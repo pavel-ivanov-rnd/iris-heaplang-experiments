@@ -9,4 +9,4 @@
 *~
 *.bak
 .coq-native/
-Makefile.coq
+Makefile*

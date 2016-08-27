@@ -1,4 +1,4 @@
--Q . iris
+-Q . flatcomb
 incr.v
 sync.v
 pair_cas.v

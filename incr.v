@@ -2,8 +2,9 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.proofmode Require Import invariants tactics.
 From iris.heap_lang Require Import proofmode notation.
-From iris.tests Require Import atomic sync.
+From iris.tests Require Import atomic.
 From iris.heap_lang Require Import spin_lock.
+From flatcomb Require Import sync.
 
 Section sync_incr.
   Context `{!heapG Σ, !lockG Σ} (N : namespace).
