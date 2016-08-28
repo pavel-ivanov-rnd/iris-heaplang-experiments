@@ -5,3 +5,4 @@ pair_cas.v
 flat.v
 sync_stack.v
 treiber_stack.v
+protocol.v
