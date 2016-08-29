@@ -23,7 +23,7 @@ Section flat_combiner.
   Definition doOp: val :=
     λ: "f" "o",
        match: !"o" with
-         InjL "req" => "o" <- InjR ("f" "o")
+         InjL "req" => "o" <- InjR ("f" "req")
        | InjR "_" => #()
        end.
 

@@ -5,7 +5,7 @@ From iris.prelude Require Import functions.
 From iris.algebra Require Import upred_big_op.
 From iris.program_logic Require Import saved_prop sts.
 From iris.heap_lang Require Import proofmode.
-From flatcomb Require Import protocol.
+From flatcomb Require Import protocol flat.
 
 Class flatG Σ := FlatG {
   flat_stsG :> stsG Σ sts
@@ -36,4 +36,17 @@ Section proof.
 
   Definition flat_ctx (γ: gname) (l : loc) : iProp Σ :=
   (■ (heapN ⊥ N) ★ heap_ctx ★ sts_ctx γ N (flat_inv l))%I.
+
+  Definition init (l: loc) :=
+    (∃ γ, flat_ctx γ l ★ sts_ownS γ {[ Init ]} ∅)%I.
+
+  Definition req (lo: val) P :=
+    (∃ γ req (l: loc), lo = #l ∧ l ↦ InjLV req ★ P req ★ sts_ownS γ {[ Req ]} {[ White ]})%I.
+
+  Lemma doOp_spec (l f o: val) P:
+    ∀ Φ: val → iProp Σ,
+      (* lock l ★ *)
+      req o P
+      ⊢ WP doOp f o {{ Φ }}.
+
 
