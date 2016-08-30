@@ -12,18 +12,24 @@ Definition srv : val :=
        | InjR "_" => "srv" "f" "p"
        end.
 
+Definition wait: val :=
+  rec: "wait" "p" :=
+    match: !"p" with
+      InjR "r" => "p" <- #0 ;; "r"
+    | InjL "_" => "wait" "p"
+    end.
+
 Definition mk_srv : val :=
   λ: "f",
-     let: "l" := newlock #() in
      let: "p" := ref (InjR #0)%V in
+     let: "l" := newlock #() in
      Fork (srv "f" "p");;
-     rec: "wait" "x" :=
+     λ: "x",
         acquire "l";;
-        "p" <- InjL "x"
-        match: !"p" with
-          InjR "r" => "p" <- #0 ;; "r"
-        | InjL "_" => "wait" "x"
-        end.
+                "p" <- InjL "x";;
+        let: "ret" := wait "p" in
+        release "l";;
+        "ret".
 
 (* play with some algebraic structure to see what fit ... *)
 
@@ -49,4 +55,57 @@ Proof. intros [?%subG_inG _]%subG_inv. split; apply _. Qed.
 
 Section proof.
   Context `{!heapG Σ, !lockG Σ, !srvG Σ} (N : namespace).
+
+  Definition srv_inv
+             (γ: gname) (p: loc)
+             (Q: val → val → Prop): iProp Σ :=
+    ((∃ x: val, p ↦ InjRV x) ∨
+     (∃ (x: val) (γ2: gname), p ↦ InjLV x ★ own γ ((1/2)%Qp, DecAgree x) ★ own γ2 (Excl ())) ∨
+     (∃ (x y: val) (γ2: gname), p ↦ InjRV y ★ own γ ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ2 (Excl ())))%I.
+
+  Lemma srv_inv_timeless γ p Q: TimelessP (srv_inv γ p Q).
+  Proof. apply _. Qed.
   
+  Lemma mk_srv_spec (f: val) Q:
+    heapN ⊥ N →
+    heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})
+    ⊢ WP mk_srv f {{ f', □ (∀ x:val, WP f' x {{ v, ■ Q x v }})}}.
+  Proof.
+    iIntros (HN) "[#Hh #Hf]".
+    wp_let. wp_alloc p as "Hp".
+    iVs (own_alloc (Excl ())) as (γ1) "Hγ1"; first done.
+    iVs (own_alloc (1%Qp, DecAgree #0)) as (γ2) "Hγ2"; first done.
+    iVs (inv_alloc N _ (srv_inv γ1 γ2 p Q) with "[Hp Hγ1]") as "#?".
+    { iNext. rewrite /srv_inv. iLeft. iExists #0. by iFrame. }
+    wp_let. wp_bind (newlock _).
+    iApply newlock_spec=>//. iFrame "Hh".
+    iAssert (∃ x: val, own γ2 (1%Qp, DecAgree x))%I with "[Hγ2]" as "Hinv"; first by eauto.
+    iFrame "Hinv". iIntros (lk γ) "#Hlk".
+    wp_let. wp_apply wp_fork.
+    iSplitL.
+    - (* client closure *)
+      iVsIntro. wp_seq. iVsIntro.
+      iAlways. iIntros (x).
+      iLöb as "IH". wp_rec.
+      wp_bind (acquire _). iApply acquire_spec.
+      iFrame "Hlk". iIntros "Hlked Ho". iDestruct "Ho" as (x') "Ho".
+      wp_seq. wp_bind (_ <- _)%E.
+      iInv N as ">Hinv" "Hclose".
+      rewrite /srv_inv.
+      iDestruct "Hinv" as "[Hinv|[Hinv|Hinv]]".
+      + iDestruct "Hinv" as (x'') "Hp".
+        wp_store.
+        iAssert (own γ2 (1%Qp, DecAgree x') -★ (own γ2 ((1/2)%Qp, DecAgree x) ★ own γ2 ((1/2)%Qp, DecAgree x)))%I as "Hsplit".
+        { admit. }
+        iDestruct ("Hsplit" with "Ho") as "[Ho1 Ho2]".
+        iVs ("Hclose" with "[Hlked Hp Ho1]").
+        * rewrite /locked. iNext. iRight. iLeft.
+          iExists x. iFrame.
+      + (* Impossible: reenter locked *)
+        iExFalso. admit.
+      + (* Impossible: reenter locked *)
+        iExFalso. admit.
+      
+     
+
+      
