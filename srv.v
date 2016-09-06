@@ -15,9 +15,11 @@ Definition srv : val :=
 Definition wait: val :=
   rec: "wait" "p" :=
     match: !"p" with
-      InjR "r" => "p" <- #0 ;; "r"
+      InjR "r" => "p" <- InjR #0 ;; "r"
     | InjL "_" => "wait" "p"
     end.
+
+Local Opaque wait.
 
 Definition mk_srv : val :=
   λ: "f",
@@ -26,7 +28,7 @@ Definition mk_srv : val :=
      Fork (srv "f" "p");;
      λ: "x",
         acquire "l";;
-                "p" <- InjL "x";;
+        "p" <- InjL "x";;
         let: "ret" := wait "p" in
         release "l";;
         "ret".
@@ -57,15 +59,62 @@ Section proof.
   Context `{!heapG Σ, !lockG Σ, !srvG Σ} (N : namespace).
 
   Definition srv_inv
-             (γ: gname) (p: loc)
+             (γx γ1 γ2: gname) (p: loc)
              (Q: val → val → Prop): iProp Σ :=
-    ((∃ x: val, p ↦ InjRV x) ∨
-     (∃ (x: val) (γ2: gname), p ↦ InjLV x ★ own γ ((1/2)%Qp, DecAgree x) ★ own γ2 (Excl ())) ∨
-     (∃ (x y: val) (γ2: gname), p ↦ InjRV y ★ own γ ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ2 (Excl ())))%I.
-
-  Lemma srv_inv_timeless γ p Q: TimelessP (srv_inv γ p Q).
-  Proof. apply _. Qed.
+    ((∃ (x: val),   p ↦ InjRV x ★ own γ1 (Excl ())) ∨
+     (∃ (x: val),   p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ2 (Excl ())) ∨
+     (∃ (x y: val), p ↦ InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ2 (Excl ())))%I.
   
+  Lemma srv_inv_timeless γx γ1 γ2 p Q: TimelessP (srv_inv γx γ1 γ2 p Q).
+  Proof. apply _. Qed.
+
+  Lemma wait_spec (Φ: val → iProp Σ) (Q: val → val → Prop) x γx γ1 γ2 p:
+    heapN ⊥ N →
+    heap_ctx ★ inv N (srv_inv γx γ1 γ2 p Q) ★
+    own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★
+    (∀ y, own γ2 (Excl ()) -★ own γx (1%Qp, DecAgree x) -★ ■ Q x y-★ Φ y)
+    ⊢ WP wait #p {{ Φ }}.
+  Proof.
+    iIntros (HN) "(#Hh & #Hsrv & Hx & Hempty & HΦ)".
+    iLöb as "IH".
+    wp_rec. wp_bind (! #p)%E.
+    iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose".
+    + (* collision with Hempty *) admit.
+    + (* not finished *)
+      iDestruct "Hinv" as (x') "(Hp & Hx' & Hissued)".
+      wp_load.
+      iVs ("Hclose" with "[Hp Hx' Hissued]").
+      { iNext. iRight. iLeft. iExists x'. by iFrame. }
+      iVsIntro. wp_match. by iApply ("IH" with "Hx Hempty").
+    + (* finished *)
+      iDestruct "Hinv" as (x' y) "(Hp & Hx' & % & Hissued)".
+      (* assert (x = x'). *)
+      (* { admit. (* should use the properties of agreement monoid to fix this *) } *)
+      wp_load. iVs ("Hclose" with "[Hp Hx' Hissued]").
+      { iNext. iRight. iRight. iExists x', y. by iFrame. }
+      iVsIntro. wp_match.
+      wp_bind (_ <- _)%E.
+      iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose".
+      - (* colission *) admit.
+      - (* impossible ... this is why irreversibility is important *)
+        admit.
+      -  iDestruct "Hinv" as (x'' y') "(Hp & Hx' & % & Hissued)".
+         assert (x = x'').
+         { admit. (* should use the properties of agreement monoid to fix this *) }
+         subst. wp_store.
+         iVs ("Hclose" with "[Hp Hempty]").
+         { iNext. iLeft. iExists #0. by iFrame. }
+         iVsIntro. wp_seq.
+         assert (y = y').
+         { admit. (* exclusivity *) }
+         subst.
+         iClear "Hx". iClear "Hx'".
+         iAssert (own γx (1%Qp, DecAgree x'')) as "Hx".
+         { admit. }
+         iSpecialize ("HΦ" $! y' with "Hissued Hx").
+         by iApply "HΦ".
+  Admitted.
+                        
   Lemma mk_srv_spec (f: val) Q:
     heapN ⊥ N →
     heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})
@@ -73,39 +122,52 @@ Section proof.
   Proof.
     iIntros (HN) "[#Hh #Hf]".
     wp_let. wp_alloc p as "Hp".
-    iVs (own_alloc (Excl ())) as (γ1) "Hγ1"; first done.
-    iVs (own_alloc (1%Qp, DecAgree #0)) as (γ2) "Hγ2"; first done.
-    iVs (inv_alloc N _ (srv_inv γ1 γ2 p Q) with "[Hp Hγ1]") as "#?".
+    iVs (own_alloc (Excl ())) as (γ1) "Hempty"; first done. (* black token *)
+    iVs (own_alloc (Excl ())) as (γ2) "Hissued"; first done. (* white token *)
+    iVs (own_alloc (1%Qp, DecAgree #0)) as (γx) "Hx"; first done.
+    iVs (inv_alloc N _ (srv_inv γx γ1 γ2 p Q) with "[Hp Hempty]") as "#?".
     { iNext. rewrite /srv_inv. iLeft. iExists #0. by iFrame. }
     wp_let. wp_bind (newlock _).
     iApply newlock_spec=>//. iFrame "Hh".
-    iAssert (∃ x: val, own γ2 (1%Qp, DecAgree x))%I with "[Hγ2]" as "Hinv"; first by eauto.
-    iFrame "Hinv". iIntros (lk γ) "#Hlk".
+    iAssert (∃ x, own γx (1%Qp, DecAgree x) ★ own γ2 (Excl ()))%I with "[Hissued Hx]" as "Hinv".
+    { iExists #0. by iFrame. }
+    iFrame "Hinv". iIntros (lk γlk) "#Hlk".
     wp_let. wp_apply wp_fork.
     iSplitL.
     - (* client closure *)
       iVsIntro. wp_seq. iVsIntro.
       iAlways. iIntros (x).
-      iLöb as "IH". wp_rec.
-      wp_bind (acquire _). iApply acquire_spec.
-      iFrame "Hlk". iIntros "Hlked Ho". iDestruct "Ho" as (x') "Ho".
+      wp_let. wp_bind (acquire _). iApply acquire_spec.
+      iFrame "Hlk". iIntros "Hlked Ho".
+      iDestruct "Ho" as (x') "[Hx Hissued]".
       wp_seq. wp_bind (_ <- _)%E.
       iInv N as ">Hinv" "Hclose".
       rewrite /srv_inv.
       iDestruct "Hinv" as "[Hinv|[Hinv|Hinv]]".
-      + iDestruct "Hinv" as (x'') "Hp".
+      + iDestruct "Hinv" as (x'') "[Hp Hempty]".
         wp_store.
-        iAssert (own γ2 (1%Qp, DecAgree x') -★ (own γ2 ((1/2)%Qp, DecAgree x) ★ own γ2 ((1/2)%Qp, DecAgree x)))%I as "Hsplit".
+        iAssert (own γx (1%Qp, DecAgree x') -★ (own γx ((1/2)%Qp, DecAgree x) ★ own γx ((1/2)%Qp, DecAgree x)))%I as "Hsplit".
         { admit. }
-        iDestruct ("Hsplit" with "Ho") as "[Ho1 Ho2]".
-        iVs ("Hclose" with "[Hlked Hp Ho1]").
-        * rewrite /locked. iNext. iRight. iLeft.
-          iExists x. iFrame.
+        iDestruct ("Hsplit" with "Hx") as "[Hx1 Hx2]".
+        iVs ("Hclose" with "[Hp Hissued Hx1]").
+        { rewrite /locked. iNext. iRight. iLeft.
+          iExists x. by iFrame. }
+        (* now prove things about wait *)
+        iVsIntro. wp_seq.
+        wp_bind (wait _).
+        iApply (wait_spec with "[Hempty Hx2 Hlked]"); first by auto.
+        { iFrame "Hh". iFrame "~". iFrame.
+          iIntros (y) "Hempty Hx HQ".
+          wp_let.
+          wp_bind (release _).
+          iApply release_spec.
+          iFrame "Hlk Hlked".
+          iSplitL "Hempty Hx".
+          - iExists x. by iFrame.
+          - by wp_seq.
+        }
       + (* Impossible: reenter locked *)
         iExFalso. admit.
       + (* Impossible: reenter locked *)
-        iExFalso. admit.
-      
-     
-
-      
+        iExFalso. admit.      
+  Admitted.

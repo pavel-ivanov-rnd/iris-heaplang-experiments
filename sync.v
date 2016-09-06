@@ -4,6 +4,8 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.tests Require Import atomic.
+From iris.algebra Require Import dec_agree frac.
+From iris.program_logic Require Import auth.
 Import uPred.
 
 (* See CaReSL paper §3.2 *)
@@ -83,31 +85,36 @@ Section proof.
     iFrame.
     by wp_seq.
   Qed.
-
-  (* a general way to get atomic triple from mk_styc *)
-
-  Definition atomic_triple' {A: Type}
-             (ϕ: A → iProp Σ)
-             (β: A → A → val → iProp Σ)
-             (Ei Eo: coPset)
-             (e: expr) : iProp Σ :=
-    (∀ P Q, (P ={Eo, Ei}=> ∃ g g',
-                                ϕ g ★
-                                (∀ v, β g g' v ={Ei, Eo}=★ Q v)
-            ) -★ {{ P }} e @ ⊤ {{ Q }})%I.
-  
 End proof.
 
-From iris.algebra Require Import dec_agree frac.
-From iris.program_logic Require Import auth.
+Section generic.
+  Context {A: Type} `{∀ x y : A, Decision (x = y)}.
+  
+  Definition syncR := authR (optionUR (prodR fracR (dec_agreeR A))).
 
-Definition pcas_R := authR (optionUR (prodR fracR (dec_agreeR (val * val)))).
+  Class syncG Σ := SyncG { sync_tokG :> inG Σ syncR }.
+  Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
-Class pcasG Σ := PcasG { pcas_tokG :> inG Σ pcas_R }.
-Definition pcasΣ : gFunctors := #[GFunctor (constRF pcas_R)].
+  Section triple.
+    Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
+
+    Definition gFragR (g: A) : syncR := ◯ Some ((1/2)%Qp, DecAgree g).
+    Definition gFullR (g: A) : syncR := ● Some ((1/2)%Qp, DecAgree g).
+    
+    Definition gFrag (γ: gname) (g: A) : iProp Σ := own γ (gFragR g).
+    Definition gFull (γ: gname) (g: A) : iProp Σ := own γ (gFullR g).
+  
+    Definition atomic_triple'
+               (β: A → A → val → iProp Σ)
+               (Ei Eo: coPset)
+               (e: expr) γ : iProp Σ :=
+      (∀ Q, (∀ g g' r, (True ={Eo, Ei}=> gFrag γ g) ★
+                     (gFrag γ g' ★ β g g' r ={Ei, Eo}=> Q r)) -★ WP e {{ Q }})%I.
+  End triple.
+End generic.
 
 Section atomic_pair.
-  Context `{!heapG Σ, !lockG Σ, !pcasG Σ} (N : namespace).
+  Context `{!heapG Σ, !lockG Σ, !(@syncG (val * val) _ Σ)} (N : namespace).
   
   Definition pcas_seq : val :=
     λ: "l1" "l2" "a" "b",
@@ -156,33 +163,22 @@ Section atomic_pair.
           let: "v" := pcas_seq "l1" "l2" "a" "b" in
           release "lk";;
           "v".
-
-  Definition gFullR (x1 x2: val) : pcas_R := ● Some ((1/2)%Qp, DecAgree (x1, x2)).
-  Definition gFragR (x1 x2: val) : pcas_R := ◯ Some ((1/2)%Qp, DecAgree (x1, x2)).
-
-  Definition gFull (x1 x2: val) γ: iProp Σ := own γ (gFullR x1 x2).
-  Definition gFrag (x1 x2: val) γ :iProp Σ := own γ (gFragR x1 x2).
-
-  Definition β (x1 x2 x1' x2' v a b: val) : iProp Σ :=
-    ((v = #true  ∧ x1 = a ∧ x2 = a ∧ x1' = b ∧ x2' = b) ∨
-     (v = #false ∧ x1 = a ∧ x2 = a ∧ x1' = b ∧ x2' = b))%I.
   
-  Definition is_pcas γ (f: val) (Ei Eo: coPset) : iProp Σ :=
-    (∀ (a b: val) (Q: val → iProp Σ),
-      (∀ x1 x2 x1' x2' (r: val),
-         (True ={Ei, Eo}=> gFrag x1 x2 γ) ★
-         (gFrag x1' x2' γ ★ β x1 x2 x1' x2' r a b ={Eo, Ei}=> Q r)) -★ WP f a b {{ Q }})%I.
+  Definition β (a b: val) (xs xs': val * val) (v: val) : iProp Σ :=
+    ((v = #true  ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b) ∨
+     (v = #false ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b))%I.
 
-  Lemma pcas_atomic_spec (x10 x20: val): (* let's fix Eo as ⊤, and Ei as heapN *)
-    heapN ⊥ N →
-    heap_ctx
-    ⊢ WP mk_pcas x10 x20 {{ f, ∃ γ, □ is_pcas γ f (⊤ ∖ nclose N) heapN }}.
+  Definition is_pcas γ (f: val): iProp Σ :=
+    (∀ a b: val, atomic_triple' (β a b) heapN (⊤ ∖ nclose N) (f a b) γ)%I.
+
+  Lemma pcas_atomic_spec (x10 x20: val):
+    heapN ⊥ N → heap_ctx ⊢ WP mk_pcas x10 x20 {{ f, ∃ γ, □ is_pcas γ f }}.
   Proof.
     iIntros (HN) "#Hh". repeat wp_let.
     wp_alloc l1 as "Hl1". wp_let.
-    wp_alloc l2 as "Hl2". iVs (own_alloc (gFullR x10 x20 ⋅ gFragR x10 x20)) as (γ) "Hγ"; first by done.
+    wp_alloc l2 as "Hl2". iVs (own_alloc (gFullR (x10, x20) ⋅ gFragR (x10, x20))) as (γ) "Hγ"; first by done.
     iDestruct (own_op with "Hγ") as "[Hfull Hfrag]".
-    iAssert (∃ x1 x2, l1 ↦ x1 ★ l2 ↦ x2 ★ gFull x1 x2 γ)%I with "[-Hfrag]" as "HR".
+    iAssert (∃ x1 x2, l1 ↦ x1 ★ l2 ↦ x2 ★ gFull γ (x1, x2))%I with "[-Hfrag]" as "HR".
     { iExists x10, x20. by iFrame. }
     wp_let.
     wp_bind (newlock _). iApply newlock_spec=>//.
@@ -209,24 +205,26 @@ Section atomic_pair.
         wp_if. wp_store.
         wp_store. wp_let.
         wp_let.
-        iDestruct ("H" $! a a b b #true) as "[Hvs1 Hvs2]".
+        iDestruct ("H" $! (a, a) (b, b) #true) as "[Hvs1 Hvs2]".
         rewrite /is_lock.
         iDestruct "Hlk" as (l) "(% & _ & % & Hinv)".
         iInv N as ([]) ">[Hl _]" "Hclose".
         * iVs ("Hvs1" with "[]") as "Hfraga"; first by auto.
           subst. wp_store.
-          iAssert (β a a b b #true a b) as "Hβ".
+          iAssert (β a b (a, a) (b, b) #true) as "Hβ".
           { iLeft. eauto. }
-          iAssert (gFrag a a γ ★ gFull a a γ -★ gFrag b b γ ★ gFull b b γ)%I as "H".
+          iAssert (gFrag γ (a, a) ★ gFull γ (a, a) -★ gFrag γ (b, b) ★ gFull γ (b, b))%I as "H".
           { admit. }
           iDestruct ("H" with "[Hfraga HFulla]") as "[HFragb HFullb]"; first by iFrame.
+          
           iVs ("Hvs2" with "[HFragb Hβ]"); first by iFrame.
           rewrite /lock_inv.
           iVsIntro. iVs ("Hclose" with "[-~]").
           { iNext. iExists false.
             iFrame. iExists b, b. by iFrame. }
           iVsIntro. wp_seq. done.
-Admitted.
+  Admitted.
+End atomic_pair.
 
 Section sync_atomic.
   Context `{!heapG Σ, !lockG Σ} (N : namespace) {A: Type}.
