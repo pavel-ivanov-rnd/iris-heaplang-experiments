@@ -108,14 +108,14 @@ Section generic.
                (β: A → A → val → iProp Σ)
                (Ei Eo: coPset)
                (e: expr) γ : iProp Σ :=
-      (∀ Q, (∀ g g' r, (True ={Eo, Ei}=> gFrag γ g) ★
-                     (gFrag γ g' ★ β g g' r ={Ei, Eo}=> Q r)) -★ WP e {{ Q }})%I.
+      (∀ P Q, (∀ g g' r, (P ={Eo, Ei}=> gFrag γ g) ★
+                         (gFrag γ g' ★ β g g' r ={Ei, Eo}=> Q r))
+              -★ {{ P }} e {{ Q }})%I.
 
-    (* Definition atomic_spec γ (f: val): iProp Σ := *)
-    (*   (∀ a b: val, atomic_triple' (β a b) heapN (⊤ ∖ nclose N) (f a b) γ)%I. *)
-    
-    (* Lemma pcas_atomic_spec (x10 x20: val): *)
-    (*   heapN ⊥ N → heap_ctx ⊢ WP mk_pcas x10 x20 {{ f, ∃ γ, □ is_pcas γ f }} *)
+    Lemma update_a: ∀ x x': A, (gFullR x ⋅ gFragR x) ~~> (gFullR x' ⋅ gFragR x').
+    Proof.
+      intros x x'.
+    Admitted.
 
   End triple.
 End generic.
@@ -201,7 +201,8 @@ Section atomic_pair.
     iClear "Hfrag". (* HFrag should be handled to user? *) 
     iVsIntro. iExists γ. iAlways.
     rewrite /is_pcas.
-    iIntros (a b Q) "H".
+    iIntros (a b P Q) "#H".
+    iAlways. iIntros "HP".
     repeat wp_let.
     wp_bind (acquire _).
     iApply acquire_spec.
@@ -221,14 +222,15 @@ Section atomic_pair.
         rewrite /is_lock.
         iDestruct "Hlk" as (l) "(% & _ & % & Hinv)".
         iInv N as ([]) ">[Hl _]" "Hclose".
-        * iVs ("Hvs1" with "[]") as "Hfraga"; first by auto.
+        * iVs ("Hvs1" with "[HP]") as "Hfraga"; first by auto.
           subst. wp_store.
           iAssert (β a b (a, a) (b, b) #true) as "Hβ".
           { iPureIntro. left. eauto. }
-          iAssert (gFrag γ (a, a) ★ gFull γ (a, a) -★ gFrag γ (b, b) ★ gFull γ (b, b))%I as "H".
-          { admit. }
-          iDestruct ("H" with "[Hfraga HFulla]") as "[HFragb HFullb]"; first by iFrame.
-          
+          iCombine "HFulla" "Hfraga" as "Ha".
+          iVs (own_update with "Ha") as "Hb".
+          { instantiate (H4:=(gFullR (b, b) ⋅ gFragR (b, b))).
+            apply update_a. eauto. }
+          iDestruct (own_op with "Hb") as "[HFullb HFragb]".
           iVs ("Hvs2" with "[HFragb Hβ]"); first by iFrame.
           rewrite /lock_inv.
           iVsIntro. iVs ("Hclose" with "[-~]").
