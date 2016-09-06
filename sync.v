@@ -110,6 +110,13 @@ Section generic.
                (e: expr) γ : iProp Σ :=
       (∀ Q, (∀ g g' r, (True ={Eo, Ei}=> gFrag γ g) ★
                      (gFrag γ g' ★ β g g' r ={Ei, Eo}=> Q r)) -★ WP e {{ Q }})%I.
+
+    (* Definition atomic_spec γ (f: val): iProp Σ := *)
+    (*   (∀ a b: val, atomic_triple' (β a b) heapN (⊤ ∖ nclose N) (f a b) γ)%I. *)
+    
+    (* Lemma pcas_atomic_spec (x10 x20: val): *)
+    (*   heapN ⊥ N → heap_ctx ⊢ WP mk_pcas x10 x20 {{ f, ∃ γ, □ is_pcas γ f }} *)
+
   End triple.
 End generic.
 
@@ -124,15 +131,20 @@ Section atomic_pair.
                 else #false
          else #false.
 
-  Lemma pcas_seq_spec (l1 l2: loc) (a b x1 x2: val):
+  Definition ϕ (l1 l2: loc) (xs: val * val) : iProp Σ := (l1 ↦ fst xs ★ l2 ↦ snd xs)%I.
+
+  Definition β (a b: val) (xs xs': val * val) (v: val) : iProp Σ :=
+    (■ ((v = #true  ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b) ∨
+        (v = #false ∧ (fst xs ≠ a ∨ snd xs ≠ a) ∧ xs = xs')))%I.
+  
+  Lemma pcas_seq_spec (l1 l2: loc) (a b: val) (xs xs': val * val):
     ∀ (Φ: val → iProp Σ),
       heapN ⊥ N →
-      heap_ctx ★ l1 ↦ x1 ★ l2 ↦ x2 ★
-      (■ (x1 = a ∧ x2 = a) -★ l1 ↦ b -★ l2 ↦ b -★ Φ #true)%I ★
-      (■ (¬ (x1 = a ∧ x2 = a)) -★ l1 ↦ x1 -★ l2 ↦ x2 -★ Φ #false)%I
+      heap_ctx ★ ϕ l1 l2 xs ★ (∀ v xs', ϕ l1 l2 xs' -★ β a b xs xs' v -★ Φ v)
       ⊢ WP pcas_seq #l1 #l2 a b {{ Φ }}.
   Proof.
-    iIntros (Φ HN) "(#Hh & Hl1 & Hl2 & HΦ1 & HΦ2)".
+    rewrite /ϕ.
+    iIntros (Φ HN) "(#Hh & (Hl1 & Hl2) & HΦ)".
     wp_seq. repeat wp_let.
     wp_load.
     wp_op=>[?|Hx1na].
@@ -140,17 +152,21 @@ Section atomic_pair.
       wp_if. wp_load.
       wp_op=>[?|Hx2na]. subst.
       + wp_if. wp_store. wp_store.
-        iAssert (■ (a = a ∧ a = a))%I as "Ha"; first by auto.
-        iApply ("HΦ1" with "Ha Hl1 Hl2").
+        iDestruct ("HΦ" $! #true (b, b)) as "H".
+        iApply ("H" with "[Hl1 Hl2]"); first by iFrame.
+        rewrite /β.
+        iPureIntro. left. eauto.
       + wp_if.
-        iAssert (■ ¬ (a = a ∧ x2 = a))%I as "Ha".
-        { iPureIntro. move=>[_ Heq]//. }
-        iApply ("HΦ2" with "Ha Hl1 Hl2").
+        iDestruct ("HΦ" $! #false xs) as "H".
+        iApply ("H" with "[Hl1 Hl2]"); first by iFrame.
+        rewrite /β.
+        iPureIntro. right. eauto.
     - subst.
       wp_if.
-        iAssert (■ ¬ (x1 = a ∧ x2 = a))%I as "Ha".
-        { iPureIntro. move=>[_ Heq]//. }
-        iApply ("HΦ2" with "Ha Hl1 Hl2").
+      iDestruct ("HΦ" $! #false xs) as "H".
+      iApply ("H" with "[Hl1 Hl2]"); first by iFrame.
+      rewrite /β.
+      iPureIntro. right. eauto.
   Qed.
 
   Definition mk_pcas : val :=
@@ -163,10 +179,6 @@ Section atomic_pair.
           let: "v" := pcas_seq "l1" "l2" "a" "b" in
           release "lk";;
           "v".
-  
-  Definition β (a b: val) (xs xs': val * val) (v: val) : iProp Σ :=
-    ((v = #true  ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b) ∨
-     (v = #false ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b))%I.
 
   Definition is_pcas γ (f: val): iProp Σ :=
     (∀ a b: val, atomic_triple' (β a b) heapN (⊤ ∖ nclose N) (f a b) γ)%I.
@@ -212,7 +224,7 @@ Section atomic_pair.
         * iVs ("Hvs1" with "[]") as "Hfraga"; first by auto.
           subst. wp_store.
           iAssert (β a b (a, a) (b, b) #true) as "Hβ".
-          { iLeft. eauto. }
+          { iPureIntro. left. eauto. }
           iAssert (gFrag γ (a, a) ★ gFull γ (a, a) -★ gFrag γ (b, b) ★ gFull γ (b, b))%I as "H".
           { admit. }
           iDestruct ("H" with "[Hfraga HFulla]") as "[HFragb HFullb]"; first by iFrame.
