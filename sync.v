@@ -120,8 +120,6 @@ Section generic.
                   (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q r))
             -★ {{ P }} f x {{ Q }})%I.
 
-  Lemma update_a: ∀ x x': A, (gFullR x ⋅ gFragR x) ~~> (gFullR x' ⋅ gFragR x').
-  Proof. Admitted.
 
   Definition sync : val :=
     λ: "f_cons" "f_seq",
@@ -178,11 +176,11 @@ Section generic.
     iFrame "Hh Hϕ Hα". iIntros (ret g') "Hϕ' Hβ".
     iCombine "HgFull" "HgFrag" as "Hg".
     iVs (own_update with "Hg") as "[HgFull HgFrag]".
-    { apply update_a. }
+    { admit . }
     iSplitL "HgFull Hϕ'".
     - iExists g'. by iFrame.
     - by iVs ("Hvs2" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
-  Qed.
+  Admitted.
   
 End generic.
 
