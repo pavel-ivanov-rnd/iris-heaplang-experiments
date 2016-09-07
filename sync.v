@@ -124,34 +124,39 @@ Section atomic_pair.
   Context `{!heapG Σ, !lockG Σ, !(@syncG (val * val) _ Σ)} (N : namespace).
   
   Definition pcas_seq : val :=
-    λ: "l1" "l2" "a" "b",
-       if: !"l1" = "a"
-         then if: !"l2" = "a"
-                then "l1" <- "b";; "l2" <- "b";; #true
+    λ: "ls" "ab",
+       if: !(Fst "ls") = Fst "ab"
+         then if: !(Snd "ls") = Fst "ab"
+                then Fst "ls" <- Snd "ab";; Snd "ls" <- Snd "ab";; #true
                 else #false
          else #false.
 
+  Local Opaque pcas_seq.
+  
   Definition ϕ (l1 l2: loc) (xs: val * val) : iProp Σ := (l1 ↦ fst xs ★ l2 ↦ snd xs)%I.
 
   Definition β (a b: val) (xs xs': val * val) (v: val) : iProp Σ :=
     (■ ((v = #true  ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b) ∨
         (v = #false ∧ (fst xs ≠ a ∨ snd xs ≠ a) ∧ xs = xs')))%I.
+
+  Local Opaque β.
   
-  Lemma pcas_seq_spec (l1 l2: loc) (a b: val) (xs xs': val * val):
-    ∀ (Φ: val → iProp Σ),
-      heapN ⊥ N →
+  Lemma pcas_seq_spec (a b: val) (xs xs': val * val) ls:
+    ∀ (Φ: val → iProp Σ) (l1 l2: loc),
+      heapN ⊥ N → to_val ls = Some (#l1, #l2)%V →
       heap_ctx ★ ϕ l1 l2 xs ★ (∀ v xs', ϕ l1 l2 xs' -★ β a b xs xs' v -★ Φ v)
-      ⊢ WP pcas_seq #l1 #l2 a b {{ Φ }}.
+      ⊢ WP pcas_seq ls (a, b) {{ Φ }}.
   Proof.
     rewrite /ϕ.
-    iIntros (Φ HN) "(#Hh & (Hl1 & Hl2) & HΦ)".
+    iIntros (Φ l1 l2 HN Hls) "(#Hh & (Hl1 & Hl2) & HΦ)".
+    wp_value. iVsIntro. 
     wp_seq. repeat wp_let.
-    wp_load.
-    wp_op=>[?|Hx1na].
+    subst. wp_proj. wp_load.
+    wp_proj. wp_op=>[?|Hx1na].
     - subst.
-      wp_if. wp_load.
+      wp_if. wp_proj. wp_load. wp_proj.
       wp_op=>[?|Hx2na]. subst.
-      + wp_if. wp_store. wp_store.
+      + wp_if. wp_proj. wp_proj. wp_store. wp_proj. wp_proj. wp_store.
         iDestruct ("HΦ" $! #true (b, b)) as "H".
         iApply ("H" with "[Hl1 Hl2]"); first by iFrame.
         rewrite /β.
@@ -169,30 +174,30 @@ Section atomic_pair.
       iPureIntro. right. eauto.
   Qed.
 
-  Definition mk_pcas : val :=
-    λ: "x1" "x2",
-       let: "l1" := ref "x1" in
-       let: "l2" := ref "x2" in
+  Definition mk_sync' : val :=
+    λ: "init" "f_seq",
+       let: "l"  := "init" #() in
        let: "lk" := newlock #() in
-       λ: "a" "b",
+       λ: "x",
           acquire "lk";;
-          let: "v" := pcas_seq "l1" "l2" "a" "b" in
+          let: "v" := "f_seq" "l" "x" in
           release "lk";;
           "v".
 
   Definition is_pcas γ (f: val): iProp Σ :=
-    (∀ a b: val, atomic_triple' (β a b) heapN (⊤ ∖ nclose N) (f a b) γ)%I.
+    (∀ a b: val, atomic_triple' (β a b) heapN (⊤) (f (a, b)%V) γ)%I.
 
-  Lemma pcas_atomic_spec (x10 x20: val):
-    heapN ⊥ N → heap_ctx ⊢ WP mk_pcas x10 x20 {{ f, ∃ γ, □ is_pcas γ f }}.
+  Lemma pcas_atomic_spec:
+    heapN ⊥ N → heap_ctx ⊢ WP mk_sync' (λ: <>, (ref #0, ref #0))%V pcas_seq {{ f, ∃ γ, □ is_pcas γ f }}.
   Proof.
     iIntros (HN) "#Hh". repeat wp_let.
-    wp_alloc l1 as "Hl1". wp_let.
-    wp_alloc l2 as "Hl2". iVs (own_alloc (gFullR (x10, x20) ⋅ gFragR (x10, x20))) as (γ) "Hγ"; first by done.
+    wp_alloc l1 as "Hl1".
+    wp_alloc l2 as "Hl2".
+    iVs (own_alloc (gFullR (#0, #0) ⋅ gFragR (#0, #0))) as (γ) "Hγ"; first by done.
+    wp_let.
     iDestruct (own_op with "Hγ") as "[Hfull Hfrag]".
     iAssert (∃ x1 x2, l1 ↦ x1 ★ l2 ↦ x2 ★ gFull γ (x1, x2))%I with "[-Hfrag]" as "HR".
-    { iExists x10, x20. by iFrame. }
-    wp_let.
+    { iExists #0, #0. by iFrame. }
     wp_bind (newlock _). iApply newlock_spec=>//.
     iFrame "Hh".
     iFrame "HR".
@@ -208,35 +213,36 @@ Section atomic_pair.
     iApply acquire_spec.
     iFrame "Hlk". iIntros "Hlked Hls".
     iDestruct "Hls" as (x1 x2) "(Hl1 & Hl2 & HFulla)".
-    wp_seq. repeat wp_let.
-    wp_load.
-    destruct (decide (x1 = a)).
-    - subst. wp_op=>[_|]//.
-      wp_if. wp_load.
-      destruct (decide (x2 = a)).
-      + subst. wp_op=>[_|]//.
-        wp_if. wp_store.
-        wp_store. wp_let.
-        wp_let.
-        iDestruct ("H" $! (a, a) (b, b) #true) as "[Hvs1 Hvs2]".
-        rewrite /is_lock.
-        iDestruct "Hlk" as (l) "(% & _ & % & Hinv)".
-        iInv N as ([]) ">[Hl _]" "Hclose".
-        * iVs ("Hvs1" with "[HP]") as "Hfraga"; first by auto.
-          subst. wp_store.
-          iAssert (β a b (a, a) (b, b) #true) as "Hβ".
-          { iPureIntro. left. eauto. }
-          iCombine "HFulla" "Hfraga" as "Ha".
-          iVs (own_update with "Ha") as "Hb".
-          { instantiate (H4:=(gFullR (b, b) ⋅ gFragR (b, b))).
-            apply update_a. eauto. }
-          iDestruct (own_op with "Hb") as "[HFullb HFragb]".
-          iVs ("Hvs2" with "[HFragb Hβ]"); first by iFrame.
-          rewrite /lock_inv.
-          iVsIntro. iVs ("Hclose" with "[-~]").
-          { iNext. iExists false.
-            iFrame. iExists b, b. by iFrame. }
-          iVsIntro. wp_seq. done.
+    wp_seq.
+    wp_bind ((pcas_seq _) _).
+    iApply (pcas_seq_spec with "[Hlked HP Hl1 Hl2 HFulla]"); try auto.
+    iFrame "Hh". rewrite /ϕ. iCombine "Hl1" "Hl2" as "Hl".
+    instantiate (H2:=(x1, x2)). iFrame.
+    iIntros (v xs') "[Hl1 Hl2] Hβ".
+    wp_let. wp_bind (release _). wp_let.
+    iDestruct ("H" $! (x1, x2) xs' v) as "[Hvs1 Hvs2]".
+    iApply wp_atomic; first by admit.
+    iVs ("Hvs1" with "HP") as "Hfraga".
+    iCombine "HFulla" "Hfraga" as "Ha".
+    iVs (own_update with "Ha") as "Hb".
+    { instantiate (H4:=(gFullR xs' ⋅ gFragR xs')).
+      apply update_a. eauto. }
+    iDestruct (own_op with "Hb") as "[HFullb HFragb]".
+    iVs ("Hvs2" with "[Hβ HFragb]").
+    { rewrite /gFrag. by iFrame. }
+    rewrite /is_lock. iDestruct "Hlk" as (lkl) "(_ & _ & % & Hlkinv)".
+    subst. iInv N as ([]) ">[Hlk _]" "Hclose".
+    + iVsIntro.
+      wp_store.
+      iVs ("Hclose" with "[-~]").
+      { iNext. iExists false.
+        iFrame. destruct xs'. simpl. iExists v0, v1. rewrite /gFull. by iFrame. }
+      iVsIntro. by wp_seq.
+    + iVsIntro. wp_store.
+      iVs ("Hclose" with "[-~]").
+      { iNext. iExists false.
+        iFrame. destruct xs'. simpl. iExists v0, v1. rewrite /gFull. by iFrame. }
+      iVsIntro. by wp_seq.
   Admitted.
 End atomic_pair.
 
