@@ -87,221 +87,104 @@ Section proof.
   Qed.
 End proof.
 
+Definition syncR := authR (optionUR (prodR fracR (dec_agreeR val))).  (* FIXME: can't use A instead of val *)
+Class syncG Σ := sync_tokG :> inG Σ syncR.
+Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
+
+Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
+Proof. by intros ?%subG_inG. Qed.
+
 Section generic.
-  Context {A: Type} `{∀ x y : A, Decision (x = y)}.
+  Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
+
+  Definition A := val.
+
+  Definition gFragR g : syncR := ◯ Some ((1/2)%Qp, DecAgree g).
+  Definition gFullR g : syncR := ● Some ((1/2)%Qp, DecAgree g).
+
+  Definition gFrag (γ: gname) g : iProp Σ := own γ (gFragR g).
+  Definition gFull (γ: gname) g : iProp Σ := own γ (gFullR g).
   
-  Definition syncR := authR (optionUR (prodR fracR (dec_agreeR A))).
+  Global Instance frag_timeless γ g: TimelessP (@own Σ syncR sync_tokG γ (gFragR g)).
+  Proof. apply _. Qed.
 
-  Class syncG Σ := SyncG { sync_tokG :> inG Σ syncR }.
-  Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
-
-  Section triple.
-    Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
-
-    Definition gFragR (g: A) : syncR := ◯ Some ((1/2)%Qp, DecAgree g).
-    Definition gFullR (g: A) : syncR := ● Some ((1/2)%Qp, DecAgree g).
-    
-    Definition gFrag (γ: gname) (g: A) : iProp Σ := own γ (gFragR g).
-    Definition gFull (γ: gname) (g: A) : iProp Σ := own γ (gFullR g).
-
-    Global Instance frag_timeless γ g: TimelessP (gFrag γ g).
-    Proof. apply _. Qed.
-
-    Global Instance full_timeless γ g: TimelessP (gFull γ g).
-    Proof. apply _. Qed.
+  Global Instance full_timeless γ g: TimelessP (gFull γ g).
+  Proof. apply _. Qed.
   
-    Definition atomic_triple'
-               (α: val → iProp Σ)
-               (β: val → A → A → val → iProp Σ)
-               (Ei Eo: coPset)
-               (f x: val) γ : iProp Σ :=
-      (∀ P Q, (∀ g, (P ={Eo, Ei}=> gFrag γ g ★ α x) ★
-                    (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q r))
-              -★ {{ P }} f x {{ Q }})%I.
+  Definition atomic_triple'
+             (α: val → iProp Σ)
+             (β: val → A → A → val → iProp Σ)
+             (Ei Eo: coPset)
+             (f x: val) γ : iProp Σ :=
+    (∀ P Q, (∀ g, (P ={Eo, Ei}=> gFrag γ g ★ α x) ★
+                  (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q r))
+            -★ {{ P }} f x {{ Q }})%I.
 
-    Lemma update_a: ∀ x x': A, (gFullR x ⋅ gFragR x) ~~> (gFullR x' ⋅ gFragR x').
-    Proof. Admitted.
+  Lemma update_a: ∀ x x': A, (gFullR x ⋅ gFragR x) ~~> (gFullR x' ⋅ gFragR x').
+  Proof. Admitted.
 
-    Definition sync : val :=
-      λ: "f_cons" "f_seq",
+  Definition sync : val :=
+    λ: "f_cons" "f_seq",
         let: "l"  := "f_cons" #() in
         let: "s" := mk_sync #() in
         "s" ("f_seq" "l").
 
-    Definition seq_spec (f: val) (ϕ: val → A → iProp Σ) α β :=
+  Definition seq_spec (f: val) (ϕ: val → A → iProp Σ) α β (E: coPset) :=
       ∀ (Φ: val → iProp Σ) (l: val),
          {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
                                heapN ⊥ N →
-                               heap_ctx ★ ϕ l g ★ α x ★ (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={⊤}=> Φ v)
-                               ⊢ WP f' x {{ Φ }} )}}.
+                               heap_ctx ★ ϕ l g ★ α x ★
+                               (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
+                               ⊢ WP f' x @ E {{ Φ }} )}}.
     
-    Definition cons_spec (f: val) (g: A) ϕ :=
-      ∀ Φ: val → iProp Σ,
-        (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
+  Definition cons_spec (f: val) (g: A) ϕ :=
+      ∀ Φ: val → iProp Σ, heapN ⊥ N →
+        heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
         ⊢ WP f #() {{ Φ }}.
     
-    Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β:
+  Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β:
       ∀ (g0: A),
-        heapN ⊥ N → seq_spec f_seq ϕ α β → cons_spec f_cons g0 ϕ →
+        heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ → cons_spec f_cons g0 ϕ →
         heap_ctx
         ⊢ WP sync f_cons f_seq {{ f, ∃ γ, gFrag γ g0 ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
-    Proof.
-      iIntros (g0 HN Hseq Hcons) "#Hh". repeat wp_let.
-      wp_bind (f_cons _). iApply Hcons.
-      iIntros (l γ) "Hϕ HFull HFrag".
-      wp_let. wp_bind (mk_sync _).
-      iApply mk_sync_spec_wp=>//.
-      iAssert (∃ g: A, ϕ l g ★ gFull γ g)%I with "[-HFrag]" as "HR".
-      { iExists g0. by iFrame. }
-      iFrame "Hh HR".
-      iIntros (s) "#Hsyncer".
-      wp_let. rewrite /is_syncer /seq_spec.
-      wp_bind (f_seq _). iApply wp_wand_r. iSplitR; first by iApply (Hseq with "[]")=>//.
-      iIntros (f) "%".
-      iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
-      iIntros (v) "#Hrefines".
-      iExists γ. iFrame. iIntros (x).
-      iAlways. rewrite /atomic_triple'.
-      iIntros (P Q) "#Hvss".
-      rewrite /refines.
-      iDestruct "Hrefines" as "#Hrefines".
-      iSpecialize ("Hrefines" $! (of_val x) x P Q).
-      iApply ("Hrefines" with "[]"); first by rewrite to_of_val.
-      iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ HgFull]".
-      (* we should view shift at this point *)
-      iDestruct ("Hvss" $! g) as "[Hvs1 Hvs2]".
-      iApply pvs_wp.
-      iVs ("Hvs1" with "HP") as "[HgFrag Hα]".
-      iVsIntro.
-      iApply H0=>//. (* H0 name is horrible *)
-      iFrame "Hh Hϕ Hα". iIntros (ret g') "Hϕ' Hβ".
-      iCombine "HgFull" "HgFrag" as "Hg".
-      iVs (own_update with "Hg") as "[HgFull HgFrag]".
-      { apply update_a. }
-      iSplitL "HgFull Hϕ'".
-      - iExists g'. by iFrame.
-      - by iVs ("Hvs2" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
-    Qed.
-  End triple.
-End generic.
-
-Section atomic_pair.
-  Context `{!heapG Σ, !lockG Σ, !(@syncG (val * val) _ Σ)} (N : namespace).
-  
-  Definition pcas_seq : val :=
-    λ: "ls" "ab",
-       if: !(Fst "ls") = Fst "ab"
-         then if: !(Snd "ls") = Fst "ab"
-                then Fst "ls" <- Snd "ab";; Snd "ls" <- Snd "ab";; #true
-                else #false
-         else #false.
-
-  Local Opaque pcas_seq.
-
-  Definition α (x: val) : iProp Σ := (∃ a b: val, x = (a, b)%V)%I.
-  
-  Definition ϕ (ls: val) (xs: val * val) : iProp Σ :=
-    (∃ l1 l2: loc, ls = (#l1, #l2)%V ★ l1 ↦ fst xs ★ l2 ↦ snd xs)%I.
-
-  Definition β (ab: val) (xs xs': val * val) (v: val) : iProp Σ :=
-    (■ ∃ a b: val,
-         ab = (a, b)%V ∧
-         ((v = #true  ∧ fst xs = a ∧ snd xs = a ∧ fst xs' = b ∧ snd xs' = b) ∨
-          (v = #false ∧ (fst xs ≠ a ∨ snd xs ≠ a) ∧ xs = xs')))%I.
-
-  Local Opaque β.
-  
-  Lemma pcas_seq_spec: seq_spec N pcas_seq ϕ α β.
   Proof.
-    rewrite /seq_spec.
-    intros Φ l.
-    iIntros "!# _". wp_seq. iVsIntro. iPureIntro. clear Φ.
-    iIntros (x Φ g HN) "(#Hh & Hg & Hα & HΦ)".
-    rewrite /ϕ /α.
-    iDestruct "Hg" as (l1 l2) "(% & Hl1 & Hl2)".
-    iDestruct "Hα" as (a b) "%".
-    subst. destruct g as (x1, x2). simpl.
-    wp_let. wp_proj. wp_load. wp_proj.
-    wp_op=>[?|Hx1na].
-    - subst.
-      wp_if. wp_proj. wp_load. wp_proj.
-      wp_op=>[?|Hx2na]. subst.
-      + wp_if. wp_proj. wp_proj. wp_store. wp_proj. wp_proj. wp_store.
-        iDestruct ("HΦ" $! #true (b, b)) as "HΦ".
-        iApply ("HΦ" with "[Hl1 Hl2]").
-        { iExists l1, l2. by iFrame. }
-        rewrite /β.
-        iPureIntro. exists a, b. split; first done. left. eauto.
-      + wp_if.
-        iDestruct ("HΦ" $! #false (a, x2)) as "H".
-        iApply ("H" with "[Hl1 Hl2]").
-        { iExists l1, l2. by iFrame. }
-        rewrite /β.
-        iPureIntro. exists a, b. split; first done. right. eauto.
-    - subst.
-      wp_if.
-      iDestruct ("HΦ" $! #false (x1, x2)) as "H".
-      iApply ("H" with "[Hl1 Hl2]").
-      { iExists l1, l2. by iFrame. }
-      rewrite /β.
-      iPureIntro. exists a, b. split; first done. right. eauto.
+    iIntros (g0 HN Hseq Hcons) "#Hh". repeat wp_let.
+    wp_bind (f_cons _). iApply Hcons=>//. iFrame "Hh".
+    iIntros (l γ) "Hϕ HFull HFrag".
+    wp_let. wp_bind (mk_sync _).
+    iApply mk_sync_spec_wp=>//.
+    iAssert (∃ g: A, ϕ l g ★ gFull γ g)%I with "[-HFrag]" as "HR".
+    { iExists g0. by iFrame. }
+    iFrame "Hh HR".
+    iIntros (s) "#Hsyncer".
+    wp_let. rewrite /is_syncer /seq_spec.
+    wp_bind (f_seq _). iApply wp_wand_r. iSplitR; first by iApply (Hseq with "[]")=>//.
+    iIntros (f) "%". (* FIXME: name *)
+    iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
+    iIntros (v) "#Hrefines".
+    iExists γ. iFrame. iIntros (x).
+    iAlways. rewrite /atomic_triple'.
+    iIntros (P Q) "#Hvss".
+    rewrite /refines.
+    iDestruct "Hrefines" as "#Hrefines".
+    iSpecialize ("Hrefines" $! (of_val x) x P Q).
+    iApply ("Hrefines" with "[]"); first by rewrite to_of_val.
+    iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ HgFull]".
+    (* we should view shift at this point *)
+    iDestruct ("Hvss" $! g) as "[Hvs1 Hvs2]".
+    iVs ("Hvs1" with "HP") as "[HgFrag Hα]".
+    iApply pvs_wp. iVsIntro.
+    iApply H=>//. (* FIXME: name *)
+    iFrame "Hh Hϕ Hα". iIntros (ret g') "Hϕ' Hβ".
+    iCombine "HgFull" "HgFrag" as "Hg".
+    iVs (own_update with "Hg") as "[HgFull HgFrag]".
+    { apply update_a. }
+    iSplitL "HgFull Hϕ'".
+    - iExists g'. by iFrame.
+    - by iVs ("Hvs2" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
   Qed.
-
-  Definition is_pcas γ (f: val): iProp Σ :=
-    (∀ a b: val, atomic_triple' (β a b) ⊤ (⊤) (f (a, b)%V) γ)%I.
-
-  Lemma pcas_atomic_spec:
-    heapN ⊥ N → heap_ctx ⊢ WP mk_sync' (λ: <>, (ref #0, ref #0))%V pcas_seq {{ f, ∃ γ, □ is_pcas γ f }}.
-  Proof.
-    iIntros (HN) "#Hh". repeat wp_let.
-    wp_alloc l1 as "Hl1".
-    wp_alloc l2 as "Hl2".
-    iVs (own_alloc (gFullR (#0, #0) ⋅ gFragR (#0, #0))) as (γ) "Hγ"; first by done.
-    wp_let. 
-    iDestruct (own_op with "Hγ") as "[Hfull Hfrag]".
-    iAssert (∃ x1 x2, l1 ↦ x1 ★ l2 ↦ x2 ★ gFull γ (x1, x2))%I with "[-Hfrag]" as "HR".
-    { iExists #0, #0. by iFrame. }
-    wp_bind (newlock _). iApply newlock_spec=>//. 
-    iFrame "Hh". 
-    iFrame "HR".
-    iIntros (lk γ') "#Hlk".
-    wp_let. 
-    iClear "Hfrag". (* HFrag should be handled to user? *) 
-    iVsIntro. iExists γ. iAlways.
-    rewrite /is_pcas.
-    iIntros (a b P Q) "#H". 
-    iAlways. iIntros "HP".
-    repeat wp_let.
-    wp_bind (acquire _).
-    iApply acquire_spec.
-    iFrame "Hlk". iIntros "Hlked Hls".
-    iDestruct "Hls" as (x1 x2) "(Hl1 & Hl2 & HFulla)".
-    wp_seq.
-    wp_bind ((pcas_seq _) _).
-    iApply (pcas_seq_spec with "[Hlked HP Hl1 Hl2 HFulla]"); try auto.
-    iFrame "Hh". rewrite /ϕ. iCombine "Hl1" "Hl2" as "Hl".
-    instantiate (H2:=(x1, x2)). iFrame.
-    iIntros (v xs') "[Hl1 Hl2] Hβ".
-    wp_let. wp_bind (release _). wp_let.
-    iDestruct ("H" $! (x1, x2) xs' v) as "[Hvs1 Hvs2]".
-    iVs ("Hvs1" with "HP") as "Hfraga". (* XXX: this Hfraga might be too strong *)
-    iCombine "HFulla" "Hfraga" as "Ha".
-    iVs (own_update with "Ha") as "Hb".
-    { instantiate (H3:=(gFullR xs' ⋅ gFragR xs')).
-      apply update_a. eauto. }
-    
-    (* I should have full access to lk now ... shit *)
-    iAssert (∃ lkl: loc, #lkl = lk ★ lkl ↦ #true)%I as "Hlkl".
-    { admit. }
-    iDestruct "Hlkl" as (lkl) "[% Hlkl]". subst.
-    wp_store. (* now I just simply discard the things ... *)
-    iDestruct (own_op with "Hb") as "[HFullb HFragb]".
-    iVs ("Hvs2" with "[Hβ HFragb]").
-    { rewrite /gFrag. by iFrame. }
-    by iVsIntro.
-Admitted.
-    
-End atomic_pair.
+  
+End generic.
 
 Section sync_atomic.
   Context `{!heapG Σ, !lockG Σ} (N : namespace) {A: Type}.
@@ -337,7 +220,7 @@ Section sync_atomic.
       heapN ⊥ N →
       whatever_seq_spec →
       f_cons_spec →
-      heap_ctx ★      
+      heap_ctx ★
       (∀ obj, whatever_triple obj -★ Φ obj)
       ⊢ WP mk_whatever f_cons f_seq #() {{ Φ }}.
   Proof.
