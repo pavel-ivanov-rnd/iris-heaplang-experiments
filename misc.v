@@ -20,8 +20,13 @@ Section lemmas.
     eapply cmra_update_exclusive.
     done.
   Qed.
-
+  
   Lemma pair_l_frac_op (g g': val):
     ((((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g'))) ~~> (1%Qp, DecAgree g').
   Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+
+  Lemma pair_l_frac_op' (g g': val):
+     (1%Qp, DecAgree g') ~~> ((((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g'))).
+  Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+
 End lemmas.
