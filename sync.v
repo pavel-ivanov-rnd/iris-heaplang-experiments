@@ -6,6 +6,7 @@ From iris.heap_lang.lib Require Import spin_lock.
 From iris.tests Require Import atomic.
 From iris.algebra Require Import dec_agree frac.
 From iris.program_logic Require Import auth.
+From flatcomb Require Import misc.
 Import uPred.
 
 (* See CaReSL paper §3.2 *)
@@ -87,7 +88,7 @@ Section proof.
   Qed.
 End proof.
 
-Definition syncR := authR (optionUR (prodR fracR (dec_agreeR val))).  (* FIXME: can't use A instead of val *)
+Definition syncR := prodR fracR (dec_agreeR val).  (* FIXME: can't use a general A instead of val *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.
 Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
@@ -99,8 +100,8 @@ Section generic.
 
   Definition A := val.
 
-  Definition gFragR g : syncR := ◯ Some ((1/2)%Qp, DecAgree g).
-  Definition gFullR g : syncR := ● Some ((1/2)%Qp, DecAgree g).
+  Definition gFragR g : syncR := ((1/2)%Qp, DecAgree g).
+  Definition gFullR g : syncR := ((1/2)%Qp, DecAgree g).
 
   Definition gFrag (γ: gname) g : iProp Σ := own γ (gFragR g).
   Definition gFull (γ: gname) g : iProp Σ := own γ (gFullR g).
@@ -139,7 +140,7 @@ Section generic.
       ∀ Φ: val → iProp Σ, heapN ⊥ N →
         heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
         ⊢ WP f #() {{ Φ }}.
-    
+  
   Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β:
       ∀ (g0: A),
         heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ → cons_spec f_cons g0 ϕ →
@@ -175,12 +176,14 @@ Section generic.
     iApply H=>//. (* FIXME: name *)
     iFrame "Hh Hϕ Hα". iIntros (ret g') "Hϕ' Hβ".
     iCombine "HgFull" "HgFrag" as "Hg".
-    iVs (own_update with "Hg") as "[HgFull HgFrag]".
-    { admit . }
+    rewrite /gFullR /gFragR.
+    iAssert (|=r=> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I with "[Hg]" as "Hupd".
+    { iApply (own_update); last by iAssumption. apply pair_l_frac_update. }
+    iVs "Hupd" as "[HgFull HgFrag]".
     iSplitL "HgFull Hϕ'".
     - iExists g'. by iFrame.
     - by iVs ("Hvs2" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
-  Admitted.
+  Qed.
   
 End generic.
 

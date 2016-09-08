@@ -4,6 +4,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import frac excl dec_agree.
+From flatcomb Require Import misc.
 
 Definition srv : val :=
   rec: "srv" "f" "p" :=
@@ -62,7 +63,7 @@ Section proof.
              (γx γ1 γ2: gname) (p: loc)
              (Q: val → val → Prop): iProp Σ :=
     ((∃ (x: val),   p ↦ InjRV x ★ own γ1 (Excl ())) ∨
-     (∃ (x: val),   p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ2 (Excl ())) ∨
+     (∃ (x: val),   p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ())) ∨
      (∃ (x y: val), p ↦ InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ2 (Excl ())))%I.
   
   Lemma srv_inv_timeless γx γ1 γ2 p Q: TimelessP (srv_inv γx γ1 γ2 p Q).
@@ -72,49 +73,53 @@ Section proof.
     heapN ⊥ N →
     heap_ctx ★ inv N (srv_inv γx γ1 γ2 p Q) ★
     own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★
-    (∀ y, own γ2 (Excl ()) -★ own γx (1%Qp, DecAgree x) -★ ■ Q x y-★ Φ y)
+    (∀ x y, own γ2 (Excl ()) -★ own γx (1%Qp, DecAgree x) -★ ■ Q x y-★ Φ y)
     ⊢ WP wait #p {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #Hsrv & Hx & Hempty & HΦ)".
     iLöb as "IH".
     wp_rec. wp_bind (! #p)%E.
     iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose".
-    + (* collision with Hempty *) admit.
-    + (* not finished *)
-      iDestruct "Hinv" as (x') "(Hp & Hx' & Hissued)".
+    + iExFalso. iDestruct "Hinv" as (?) "[_ Ho1]".
+      iCombine "Hempty" "Ho1" as "Hempty".
+      by iDestruct (own_valid with "Hempty") as "%".
+    + iDestruct "Hinv" as (x') "(Hp & Hx' & Hissued)".
       wp_load.
       iVs ("Hclose" with "[Hp Hx' Hissued]").
       { iNext. iRight. iLeft. iExists x'. by iFrame. }
       iVsIntro. wp_match. by iApply ("IH" with "Hx Hempty").
-    + (* finished *)
-      iDestruct "Hinv" as (x' y) "(Hp & Hx' & % & Hissued)".
-      (* assert (x = x'). *)
-      (* { admit. (* should use the properties of agreement monoid to fix this *) } *)
-      wp_load. iVs ("Hclose" with "[Hp Hx' Hissued]").
-      { iNext. iRight. iRight. iExists x', y. by iFrame. }
-      iVsIntro. wp_match.
-      wp_bind (_ <- _)%E.
-      iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose".
-      - (* colission *) admit.
-      - (* impossible ... this is why irreversibility is important *)
-        admit.
-      -  iDestruct "Hinv" as (x'' y') "(Hp & Hx' & % & Hissued)".
-         assert (x = x'').
-         { admit. (* should use the properties of agreement monoid to fix this *) }
-         subst. wp_store.
-         iVs ("Hclose" with "[Hp Hempty]").
-         { iNext. iLeft. iExists #0. by iFrame. }
-         iVsIntro. wp_seq.
-         assert (y = y').
-         { admit. (* exclusivity *) }
-         subst.
-         iClear "Hx". iClear "Hx'".
-         iAssert (own γx (1%Qp, DecAgree x'')) as "Hx".
-         { admit. }
-         iSpecialize ("HΦ" $! y' with "Hissued Hx").
-         by iApply "HΦ".
-  Admitted.
-                        
+    + iDestruct "Hinv" as (x' y') "(Hp & Hx' & % & Hissued)".
+      wp_load.
+      destruct (decide (x = x')) as [->|Hneq].
+      { subst.
+        iVs ("Hclose" with "[Hp Hx' Hissued]").
+        { iNext. iRight. iRight. iExists x', y'. by iFrame. }
+        iVsIntro. wp_match.
+        wp_bind (_ <- _)%E.
+        iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose".
+        - iExFalso. iDestruct "Hinv" as (?) "[_ Ho1]".
+          iCombine "Hempty" "Ho1" as "Hempty".
+          iDestruct (own_valid with "Hempty") as "%". done.
+        - iExFalso. iDestruct "Hinv" as (?) "[_ [_ Ho1]]". 
+          iCombine "Hempty" "Ho1" as "Hempty".
+          iDestruct (own_valid with "Hempty") as "%". done.
+        - iDestruct "Hinv" as (x'' y'') "(Hp & Hx'' & % & Hissued)".
+          iCombine "Hx" "Hx''" as "Hx".
+          destruct (decide (x' = x'')) as [->|Hneq].
+          + wp_store. iVs ("Hclose" with "[Hp Hempty]").
+            { iNext. iLeft. iExists #0. by iFrame. }
+            iVsIntro. wp_seq.
+            iDestruct (own_update with "Hx") as "Hx"; first by apply pair_l_frac_op.
+            iVs "Hx". iVsIntro.
+            by iApply ("HΦ" $! x'' y' with "Hissued Hx").
+          + iExFalso. iDestruct (own_valid with "Hx") as "%".
+            iPureIntro. apply Hneq. destruct H1 as [_ Hag]. apply dec_agree_op_inv in Hag.
+            by inversion Hag. }
+      { iCombine "Hx" "Hx'" as "Hx". iExFalso. iDestruct (own_valid with "Hx") as "%".
+        iPureIntro. apply Hneq. destruct H0 as [_ Hag]. apply dec_agree_op_inv in Hag.
+        by inversion Hag. }
+  Qed.
+                  
   Lemma mk_srv_spec (f: val) Q:
     heapN ⊥ N →
     heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})
