@@ -21,12 +21,12 @@ Section lemmas.
     done.
   Qed.
   
-  Lemma pair_l_frac_op (g g': val):
-    ((((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g'))) ~~> (1%Qp, DecAgree g').
-  Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+  Lemma pair_l_frac_op (p q: Qp) (g g': val):
+    (((p, DecAgree g') ⋅ (q, DecAgree g'))) ~~> ((p + q)%Qp, DecAgree g').
+  Proof. by rewrite pair_op dec_agree_idemp frac_op'. Qed.
 
-  Lemma pair_l_frac_op' (g g': val):
-     (1%Qp, DecAgree g') ~~> ((((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g'))).
-  Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+  Lemma pair_l_frac_op' (p q: Qp) (g g': val):
+     ((p + q)%Qp, DecAgree g') ~~> (((p, DecAgree g') ⋅ (q, DecAgree g'))).
+  Proof. by rewrite pair_op dec_agree_idemp frac_op'. Qed.
 
 End lemmas.
