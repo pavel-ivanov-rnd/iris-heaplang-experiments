@@ -119,46 +119,37 @@ Section proof.
     iFrame "Hinv". iIntros (lk γlk) "#Hlk".
     wp_let. wp_apply wp_fork.
     iSplitR "Ho2".
-    - (* (* client closure *) *)
-      (* iVsIntro. wp_seq. iVsIntro. *)
-      (* iAlways. iIntros (x). *)
-      (* wp_let. wp_bind (acquire _). iApply acquire_spec. *)
-      (* iFrame "Hlk". iIntros "Hlked Ho". *)
-      (* iDestruct "Ho" as (x') "[Hx [Hissued Hfinished]]". *)
-      (* wp_seq. wp_bind (_ <- _)%E. *)
-      (* iInv N as ">Hinv" "Hclose". *)
-      (* rewrite /srv_inv. *)
-      (* iDestruct "Hinv" as "[Hinv|[Hinv|Hinv]]". *)
-      (* + iDestruct "Hinv" as (x'') "[Hp Hempty]". *)
-      (*   wp_store. *)
-      (*   iAssert (|=r=> own γx (1%Qp, DecAgree x))%I with "[Hx]" as "Ho". *)
-      (*   { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption. *)
-      (*     apply cmra_update_exclusive. done. } *)
-      (*   iVs "Ho". iDestruct (own_update with "Ho") as "==>[Ho1 Ho2]"; first by apply pair_l_frac_op'. *)
-      (*   iVs ("Hclose" with "[Hp Hissued Ho1]"). *)
-      (*   { rewrite /locked. iNext. iRight. iLeft. *)
-      (*     iExists x. by iFrame. } *)
-      (*   iVsIntro. wp_seq. *)
-      (*   wp_bind (wait _). *)
-      (*   iApply (wait_spec with "[Hempty Hfinished Ho2 Hlked]"); first by done. *)
-      (*   { iFrame "Hh". iFrame "#". iFrame. *)
-      (*     iIntros (y3) "[Hempty Hissued] Hx %". *)
-      (*     wp_let. wp_bind (release _). *)
-      (*     iApply pvs_wp. *)
-      (*     iInv N as ">[Hinv|[Hinv|Hinv]]" "Hclose". *)
-      (*     - admit. *)
-      (*     - admit. *)
-      (*     - iDestruct "Hinv" as (x4 y4) "(Hp & _ & _ & Hfinished)". *)
-      (*       iVs ("Hclose" with "[Hp Hempty]"). *)
-      (*       { iNext. iLeft. iExists y4. by iFrame. } *)
-      (*       iApply release_spec. *)
-      (*       iFrame "Hlk Hlked". *)
-      (*       iSplitL "Hissued Hfinished Hx". *)
-      (*       { iExists x. by iFrame. } *)
-      (*       by wp_seq. *)
-      (*   } *)
-      (* + admit. *)
-      (* + admit. *) admit.
+    - (* client closure *)
+      iVsIntro. wp_seq. iVsIntro.
+      iAlways. iIntros (x).
+      wp_let. wp_bind (acquire _). iApply acquire_spec.
+      iFrame "Hlk". iIntros "Hlked Ho".
+      iDestruct "Ho" as (x') "[Hx Ho4]".
+      wp_seq. wp_bind (_ <- _)%E.
+      iInv N as ">Hinv" "Hclose".
+      iDestruct "Hinv" as "[Hinv|[Hinv|[Hinv|Hinv]]]".
+      + iDestruct "Hinv" as (?) "(Hp & Ho1 & Ho3)".
+        wp_store. iAssert (|=r=> own γx (1%Qp, DecAgree x))%I with "[Hx]" as "==>Hx".
+        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
+          apply cmra_update_exclusive. done. }
+        iAssert (|=r=> own γx (((1/2)%Qp, DecAgree x) ⋅ ((1/2)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
+        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
+          by apply pair_l_frac_op_1'. }
+        iVs ("Hclose" with "[Hp Hx1 Ho1 Ho4]").
+        { iNext. iRight. iLeft. iExists x. by iFrame. }
+        iVsIntro. wp_seq.
+        wp_bind (wait _).
+        iApply (wait_spec with "[Hx2 Ho3 Hlked]"); first by done.
+        iFrame "Hh". iFrame "#". iFrame.
+        iIntros (y) "Ho4 Hx %".
+        wp_let. wp_bind (release _).
+        iApply release_spec. iFrame "Hlk Hlked".
+        iSplitL.
+        * iExists x. by iFrame.
+        * wp_seq. done.
+      + admit.
+      + admit.
+      + admit.
     - (* server side *)
       iLöb as "IH".
       wp_rec. wp_let. wp_bind (! _)%E.

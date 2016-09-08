@@ -29,4 +29,8 @@ Section lemmas.
      ((p + q)%Qp, DecAgree g') ~~> (((p, DecAgree g') ⋅ (q, DecAgree g'))).
   Proof. by rewrite pair_op dec_agree_idemp frac_op'. Qed.
 
+  Lemma pair_l_frac_op_1' (g g': val):
+     (1%Qp, DecAgree g') ~~> (((1/2)%Qp, DecAgree g') ⋅ ((1/2)%Qp, DecAgree g')).
+  Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+  
 End lemmas.
