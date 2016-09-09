@@ -34,22 +34,7 @@ Definition mk_srv : val :=
         release "l";;
         "ret".
 
-(* play with some algebraic structure to see what fit ... *)
-
 Definition srvR := prodR fracR (dec_agreeR val).
-
-Lemma srv_coincide: ∀ (x1 x2: val) (q1 q2: Qp), ✓ ((q1, DecAgree x1) ⋅ (q2, DecAgree x2)) → x1 = x2.
-Proof.
-  intros x1 x2 q1 q2 H. destruct (decide (x1 = x2))=>//.
-  exfalso. destruct H as [H1 H2].
-  simpl in H2. apply dec_agree_op_inv in H2.
-  by inversion H2.
-Qed.
-
-Lemma srv_update: ∀ (x1 x2: val), (1%Qp, DecAgree x1) ~~> (1%Qp, DecAgree x2).
-Proof. intros. by apply cmra_update_exclusive. Qed.
-
-(* define the gFunctors *)
 Class srvG Σ := FlatG { srv_tokG :> inG Σ srvR }.
 Definition srvΣ : gFunctors := #[GFunctor (constRF srvR)].
 

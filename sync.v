@@ -106,7 +106,7 @@ Section generic.
   Definition gFrag (γ: gname) g : iProp Σ := own γ (gFragR g).
   Definition gFull (γ: gname) g : iProp Σ := own γ (gFullR g).
   
-  Global Instance frag_timeless γ g: TimelessP (@own Σ syncR sync_tokG γ (gFragR g)).
+  Global Instance frag_timeless γ g: TimelessP (gFrag γ g).
   Proof. apply _. Qed.
 
   Global Instance full_timeless γ g: TimelessP (gFull γ g).
