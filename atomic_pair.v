@@ -41,7 +41,7 @@ Section atomic_pair.
     rewrite /seq_spec.
     intros Φ l.
     iIntros "!# _". wp_seq. iVsIntro. iPureIntro. clear Φ.
-    iIntros (x Φ g HN) "(#Hh & Hg & Hα & HΦ)".
+    iIntros (x Φ g HN) "(#Hh & Hg & #Hα & HΦ)".
     rewrite /ϕ /α.
     iDestruct "Hg" as (l1 l2 x1 x2) "(% & % & Hl1 & Hl2)".
     iDestruct "Hα" as (a b) "%".
@@ -82,7 +82,8 @@ Section atomic_pair.
       wp_seq.
       wp_alloc l1 as "Hl1".
       wp_alloc l2 as "Hl2".
-      iVs (own_alloc (gFullR (#0, #0) ⋅ gFragR (#0, #0))) as (γ) "[HgFull HgFrag]"; first by done.
+      iVs (own_alloc (gFullR (#0, #0) ⋅ gFragR (#0, #0))) as (γ) "[HgFull HgFrag]".
+      { rewrite /gFragR /gFullR. split; first by simpl. simpl. by rewrite dec_agree_idemp. }
       rewrite /ϕ.
       iSpecialize ("HΦ" $! (#l1, #l2)%V γ).
       rewrite /gFull /gFrag.

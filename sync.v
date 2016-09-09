@@ -117,7 +117,8 @@ Section generic.
              (β: val → A → A → val → iProp Σ)
              (Ei Eo: coPset)
              (f x: val) γ : iProp Σ :=
-    (∀ P Q, (∀ g, (P ={Eo, Ei}=> gFrag γ g ★ α x) ★
+    (∀ P Q, (∀ g, (P ={Eo, Ei}=> gFrag γ g ★ □ α x) ★
+                  (gFrag γ g ★ □ α x ={Ei, Eo}=> P) ★
                   (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q r))
             -★ {{ P }} f x {{ Q }})%I.
 
@@ -132,7 +133,7 @@ Section generic.
       ∀ (Φ: val → iProp Σ) (l: val),
          {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
                                heapN ⊥ N →
-                               heap_ctx ★ ϕ l g ★ α x ★
+                               heap_ctx ★ ϕ l g ★ □ α x ★
                                (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
     
@@ -141,11 +142,11 @@ Section generic.
         heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
         ⊢ WP f #() {{ Φ }}.
   
-  Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β:
+  Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
         heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ → cons_spec f_cons g0 ϕ →
         heap_ctx
-        ⊢ WP sync f_cons f_seq {{ f, ∃ γ, gFrag γ g0 ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
+        ⊢ WP sync f_cons f_seq {{ f, ∃ γ, gFrag γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.
     iIntros (g0 HN Hseq Hcons) "#Hh". repeat wp_let.
     wp_bind (f_cons _). iApply Hcons=>//. iFrame "Hh".
@@ -170,19 +171,23 @@ Section generic.
     iApply ("Hrefines" with "[]"); first by rewrite to_of_val.
     iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ HgFull]".
     (* we should view shift at this point *)
-    iDestruct ("Hvss" $! g) as "[Hvs1 Hvs2]".
-    iVs ("Hvs1" with "HP") as "[HgFrag Hα]".
-    iApply pvs_wp. iVsIntro.
-    iApply H=>//. (* FIXME: name *)
-    iFrame "Hh Hϕ Hα". iIntros (ret g') "Hϕ' Hβ".
+    iDestruct ("Hvss" $! g) as "[Hvs1 [Hvs2 Hvs3]]".
+    iApply pvs_wp.
+    iVs ("Hvs1" with "HP") as "[HgFrag #Hα]".
+    iVs ("Hvs2" with "[HgFrag]") as "HP"; first by iFrame.
+    iVsIntro. iApply H=>//. (* FIXME: name *)
+    iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
+    iVs ("Hvs1" with "HP") as "[HgFrag _]".
     iCombine "HgFull" "HgFrag" as "Hg".
     rewrite /gFullR /gFragR.
     iAssert (|=r=> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I with "[Hg]" as "Hupd".
     { iApply (own_update); last by iAssumption. apply pair_l_frac_update. }
     iVs "Hupd" as "[HgFull HgFrag]".
+    iVs ("Hvs3" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
+    iVsIntro.
     iSplitL "HgFull Hϕ'".
     - iExists g'. by iFrame.
-    - by iVs ("Hvs2" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
+    - done.
   Qed.
   
 End generic.
