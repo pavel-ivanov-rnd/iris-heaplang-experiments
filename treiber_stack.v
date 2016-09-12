@@ -87,7 +87,8 @@ Section proof.
 
   Definition pop_triple (s: loc) :=
     atomic_triple (fun xs => is_stack s xs)%I
-                  (fun xs ret => ret = NONEV ∨ (∃ x, ret = SOMEV x ★ □ R x))%I (* FIXME: we can give a stronger one *)
+                  (fun xs ret => (ret = NONEV ∧ xs = [] ∧ is_stack s []) ∨
+                                 (∃ x, ret = SOMEV x ★ □ R x))%I (* FIXME: we can give a stronger one *)
                   (nclose heapN)
                   ⊤
                   (pop #s).
@@ -104,9 +105,11 @@ Section proof.
     destruct xs as [|y' xs'].
     - simpl. iDestruct "Hxs" as (hd) "[Hs Hhd]".
       wp_load. iDestruct "Hvs'" as "[_ Hvs']".
-      iVs ("Hvs'" $! NONEV with "[]") as "HQ"; first by iLeft.
-      iVsIntro. wp_let. iDestruct "Hhd" as (q) "Hhd".
-      wp_load. wp_match.
+      iDestruct "Hhd" as (q) "[Hhd Hhd']".
+      iVs ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
+      { iLeft. iSplit=>//. iSplit=>//.
+        iExists hd. iFrame. rewrite /is_stack'. eauto. }
+      iVsIntro. wp_let. wp_load. wp_match.
       iVsIntro. by iExists [].
     - simpl. iDestruct "Hxs" as (hd) "[Hs Hhd]".
       simpl. iDestruct "Hhd" as (hd' q) "([Hhd Hhd'] & #Hy' & Hxs')".
