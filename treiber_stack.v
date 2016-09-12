@@ -27,7 +27,7 @@ Definition pop: val :=
       end.
 
 Section proof.
-  Context `{!heapG Σ} (N: namespace) (R: val → iProp Σ) `{∀ v, TimelessP (R v)}.
+  Context `{!heapG Σ} (N: namespace) (R: val → iProp Σ).
 
   Fixpoint is_stack' (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
@@ -35,9 +35,50 @@ Section proof.
     | x :: xs => (∃ (hd': loc) q, hd ↦{ q } SOMEV (x, #hd') ★ □ R x ★ is_stack' hd' xs)%I
     end.
 
-  Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ★ is_stack' hd xs)%I.
+  (* how can we prove that it is persistent? *)
+  Lemma dup_is_stack': ∀ xs hd,
+    heap_ctx ★ is_stack' hd xs ⊢ is_stack' hd xs ★ is_stack' hd xs.
+  Proof.
+    induction xs as [|y xs' IHxs'].
+    - iIntros (hd) "(#? & Hs)".
+      simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
+    - iIntros (hd) "(#? & Hs)". simpl.
+      iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & #HR & Hs')".
+      iDestruct (IHxs' with "[Hs']") as "[Hs1 Hs2]"; first by iFrame.
+      iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
+  Qed.
 
-  Definition is_some_stack (s: loc): iProp Σ := (∃ xs, is_stack s xs)%I.
+  Lemma uniq_is_stack':
+    ∀ xs ys hd, heap_ctx ★ is_stack' hd xs ★ is_stack' hd ys ⊢ xs = ys.
+  Proof.
+    induction xs as [|x xs' IHxs'].
+    - induction ys as [|y ys' IHys'].
+      + auto.
+      + iIntros (hd) "(#? & Hxs & Hys)".
+        simpl. iDestruct "Hys" as (hd' ?) "(Hhd & #Hy & Hys')".
+        iExFalso. iDestruct "Hxs" as (?) "Hhd'".
+        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
+        { iSplitL "Hhd"; done. }
+        done.
+    - induction ys as [|y ys' IHys'].
+      + iIntros (hd) "(#? & Hxs & Hys)".
+        simpl.
+        iExFalso. iDestruct "Hxs" as (? ?) "(Hhd & _ & _)".
+        iDestruct "Hys" as (?) "Hhd'".
+        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
+        { iSplitL "Hhd"; done. }
+        done.
+      + iIntros (hd) "(#? & Hxs & Hys)".
+        simpl. iDestruct "Hxs" as (? ?) "(Hhd & _ & Hxs')".
+        iDestruct "Hys" as (? ?) "(Hhd' & _ & Hys')".
+        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
+        { iSplitL "Hhd"; done. }
+        inversion H3. (* FIXME: name *)
+        subst. iDestruct (IHxs' with "[Hxs' Hys']") as "%"; first by iFrame.
+        by subst.
+  Qed.
+  
+  Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ★ is_stack' hd xs)%I.
 
   Lemma new_stack_spec:
     ∀ (Φ: val → iProp Σ),
@@ -87,8 +128,8 @@ Section proof.
 
   Definition pop_triple (s: loc) :=
     atomic_triple (fun xs => is_stack s xs)%I
-                  (fun xs ret => (ret = NONEV ∧ xs = [] ∧ is_stack s []) ∨
-                                 (∃ x, ret = SOMEV x ★ □ R x))%I (* FIXME: we can give a stronger one *)
+                  (fun xs ret => (ret = NONEV ★ xs = [] ★ is_stack s []) ∨
+                                 (∃ x xs', ret = SOMEV x ★ □ R x ★ xs = x :: xs' ★ is_stack s xs'))%I
                   (nclose heapN)
                   ⊤
                   (pop #s).
@@ -113,16 +154,30 @@ Section proof.
       iVsIntro. by iExists [].
     - simpl. iDestruct "Hxs" as (hd) "[Hs Hhd]".
       simpl. iDestruct "Hhd" as (hd' q) "([Hhd Hhd'] & #Hy' & Hxs')".
+      iDestruct (dup_is_stack' with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".
-      iVs ("Hvs'" with "[-Hhd]") as "HP".
+      iVs ("Hvs'" with "[-Hhd Hxs1]") as "HP".
       { iExists hd. iFrame. iExists hd', (q / 2)%Qp. by iFrame. }
       iVsIntro. wp_let. wp_load. wp_match. wp_proj.
       wp_bind (CAS _ _ _). iVs ("Hvs" with "HP") as (xs) "[Hxs Hvs']".
       iDestruct "Hxs" as (hd'') "[Hs Hhd'']".
       destruct (decide (hd = hd'')) as [->|Hneq].
       + wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
-        iVs ("Hvs'" $! (SOMEV y') with "[]") as "HQ".
-        { iRight. eauto. }
+        iVs ("Hvs'" $! (SOMEV y') with "[-]") as "HQ".
+        { iRight. rewrite /is_stack. iExists y', xs'.
+          destruct xs as [|x' xs''].
+          - simpl. iDestruct "Hhd''" as (?) "H".
+            iExFalso. iDestruct (heap_mapsto_op_1 with "[Hhd H]") as "[% _]".
+            { iSplitL "Hhd"; done. }
+            done.
+          - simpl. iDestruct "Hhd''" as (hd''' ?) "(Hhd'' & _ & Hxs'')".
+            iDestruct (heap_mapsto_op_1 with "[Hhd Hhd'']") as "[% _]".
+            { iSplitL "Hhd"; done. }
+            inversion H0. (* FIXME: bad naming *) subst.
+            iDestruct (uniq_is_stack' with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
+            repeat (iSplitR "Hxs1 Hs"; first done).
+            iExists hd'''. by iFrame.
+        }
         iVsIntro. wp_if. wp_proj. eauto.
       + wp_cas_fail. iDestruct "Hvs'" as "[Hvs' _]".
         iVs ("Hvs'" with "[-]") as "HP".
@@ -131,4 +186,3 @@ Section proof.
   Qed.
       
 End proof.
-
