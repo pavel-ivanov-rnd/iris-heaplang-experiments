@@ -21,23 +21,8 @@ Definition mk_sync: val :=
 
 Global Opaque mk_sync.
 
-Section proof.
+Section syncer.
   Context `{!heapG Σ, !lockG Σ} (N: namespace).
-
-  (* concurrent object triple: R, p . <l, α p l> e <v, β p l v>*)
-  Definition conc_obj_triple {A: Type}
-             (α: val → A → iProp Σ)
-             (β: val → A → val → iProp Σ)
-             (Ei Eo: coPset)
-             (e: expr) : iProp Σ :=
-    (∀ P Q,
-       (□ (∀ (R: val → iProp Σ) p,
-             P ★ R p -★
-               ∃ l: A, α p l ★
-                 (∀ v, β p l v -★ Q l v ★ R p)))
-          -★ {{ P }} e {{ v, ∃ l, Q l v }})%I.
-
-  Arguments conc_obj_triple {_} _ _ _ _ _.
   
   (* f' refines f *)
   Definition refines (f' f: val) (R: iProp Σ): iProp Σ :=
@@ -86,7 +71,7 @@ Section proof.
     iFrame.
     by wp_seq.
   Qed.
-End proof.
+End syncer.
 
 Definition syncR := prodR fracR (dec_agreeR val).  (* FIXME: can't use a general A instead of val *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.
@@ -95,7 +80,7 @@ Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
 Proof. by intros ?%subG_inG. Qed.
 
-Section generic.
+Section atomic_sync.
   Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
 
   Definition A := val.
@@ -122,7 +107,6 @@ Section generic.
                   (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q r))
             -★ {{ P }} f x {{ Q }})%I.
 
-
   Definition sync : val :=
     λ: "f_cons" "f_seq",
         let: "l"  := "f_cons" #() in
@@ -136,7 +120,7 @@ Section generic.
                                heap_ctx ★ ϕ l g ★ □ α x ★
                                (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-    
+
   Definition cons_spec (f: val) (g: A) ϕ :=
       ∀ Φ: val → iProp Σ, heapN ⊥ N →
         heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
@@ -190,70 +174,4 @@ Section generic.
     - done.
   Qed.
   
-End generic.
-
-Section sync_atomic.
-  Context `{!heapG Σ, !lockG Σ} (N : namespace) {A: Type}.
-
-  Variable α: val → A → iProp Σ.
-  Variable β: val → A → val → iProp Σ.
-  Variable f_cons f_seq: val.
-  Variable R: val → iProp Σ.
-
-  Definition mk_whatever (f_cons: val) (f_seq: val) : val :=
-    λ: <>,
-         let: "x" := f_cons #() in
-         let: "s" := mk_sync #() in
-         "s" (λ:<>, f_seq "x").
-
-  Definition whatever_triple (obj: val) :=
-    conc_obj_triple α β (nclose heapN) ⊤ (obj #()).
-
-  Definition whatever_seq_spec :=
-    ∀ (p: val) (l: A) (Φ: val → iProp Σ),
-      heapN ⊥ N →
-      heap_ctx ★ α p l ★ (∀ v, β p l v -★ Φ v)
-      ⊢ WP f_seq p {{ Φ }}.
-
-  Definition f_cons_spec :=
-    ∀ (Φ: val → iProp Σ),
-      heapN ⊥ N →
-      heap_ctx ★ (∀ v, R v -★ Φ v)%I
-      ⊢ WP f_cons #() {{ Φ }}.
-  
-  Lemma mk_whatever_spec:
-    ∀ (Φ: val → iProp Σ),
-      heapN ⊥ N →
-      whatever_seq_spec →
-      f_cons_spec →
-      heap_ctx ★
-      (∀ obj, whatever_triple obj -★ Φ obj)
-      ⊢ WP mk_whatever f_cons f_seq #() {{ Φ }}.
-  Proof.
-    iIntros (Φ HN Hseq Hcons) "[#Hh HΦ]".
-    wp_let. wp_bind (f_cons _). iApply Hcons=>//.
-    iFrame "Hh".
-    iIntros (v) "HR".
-    wp_let. rewrite /mk_sync. (* TODO: use the derived lemmas above *)
-    wp_seq. wp_bind (newlock _). iApply (newlock_spec)=>//.
-    iFrame "Hh HR".
-    iIntros (lk γ) "#Hlk".
-    repeat wp_let.
-    iApply "HΦ".
-    rewrite /whatever_triple /conc_obj_triple.
-    iIntros (P Q) "#H".
-    iAlways. iIntros "HP". wp_seq.
-    iSpecialize ("H" $! R v).
-    wp_bind (acquire _).
-    iApply acquire_spec.
-    iFrame "Hlk". iIntros "Hlked HR".
-    iDestruct ("H" with "[HP HR]") as (x) "[Hl Hnext]"; first by iFrame.
-    wp_seq. wp_let.
-    iApply Hseq=>//. iFrame "Hh Hl".
-    iIntros (v') "Hbeta".
-    iDestruct ("Hnext" $! v' with "Hbeta") as "[HQ HR]".
-    wp_let. wp_bind (release _). iApply release_spec.
-    iFrame "Hlk Hlked HR".
-    wp_seq. iVsIntro. by iExists x.
-  Qed.
-End sync_atomic.
+End atomic_sync.

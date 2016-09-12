@@ -96,12 +96,10 @@ endif
 #                    #
 ######################
 
-VFILES:=incr.v\
-  sync.v\
+VFILES:=sync.v\
   pair_cas.v\
   flat.v\
   sync_stack.v\
-  treiber_stack.v\
   protocol.v\
   misc.v\
   atomic_pair.v

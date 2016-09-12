@@ -1,5 +1,4 @@
 -Q . flatcomb
-incr.v
 sync.v
 pair_cas.v
 flat.v
@@ -7,4 +6,3 @@ sync_stack.v
 protocol.v
 misc.v
 atomic_pair.v
-
