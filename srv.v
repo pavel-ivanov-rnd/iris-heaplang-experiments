@@ -4,35 +4,42 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import frac excl dec_agree.
+From iris.tests Require Import treiber_stack.
 From flatcomb Require Import misc.
 
-Definition srv : val :=
-  rec: "srv" "f" "p" :=
-       match: !"p" with
-         InjL "x" => "p" <- InjR ("f" "x");; "srv" "f" "p"
-       | InjR "_" => "srv" "f" "p"
-       end.
+Definition doOp : val :=
+  λ: "f" "p",
+     match: !"p" with
+       InjL "x" => "p" <- InjR ("f" "x")
+     | InjR "_" => #()
+     end.
 
-Definition wait: val :=
-  rec: "wait" "p" :=
+Definition loop : val :=
+  rec: "loop" "p" "f" "s" "lk" :=
     match: !"p" with
-      InjR "r" => "r"
-    | InjL "_" => "wait" "p"
+      InjL "_" =>
+        if: CAS "lk" #false #true
+          then iter (doOp "f") "s"
+          else "loop" "p" "f" "s" "lk"
+    | InjR "r" => "r"
     end.
 
-Local Opaque wait.
+(* Naive implementation *)
+Definition install : val :=
+  λ: "x" "s",
+     let: "p" := ref (InjL "x") in
+     push "s" "p";;
+     "p".
 
-Definition mk_srv : val :=
+Definition flat : val :=
   λ: "f",
-     let: "p" := ref (InjR #0)%V in
-     let: "l" := newlock #() in
-     Fork (srv "f" "p");;
+     let: "lk" := ref (#false) in
+     let: "s" := new_stack #() in
      λ: "x",
-        acquire "l";;
-        "p" <- InjL "x";;
-        let: "ret" := wait "p" in
-        release "l";;
-        "ret".
+        let: "p" := install "x" "s" in
+        loop "p" "f" "s" "lk".
+
+Global Opaque doOp install loop flat.
 
 Definition srvR := prodR fracR (dec_agreeR val).
 Class srvG Σ := FlatG { srv_tokG :> inG Σ srvR }.
