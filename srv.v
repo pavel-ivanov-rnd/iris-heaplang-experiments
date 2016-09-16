@@ -1,9 +1,9 @@
-From iris.program_logic Require Export weakestpre.
+From iris.program_logic Require Export auth weakestpre.
 From iris.proofmode Require Import invariants ghost_ownership.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import frac excl dec_agree.
+From iris.algebra Require Import frac excl dec_agree upred_big_op gset gmap.
 From iris.tests Require Import treiber_stack.
 From flatcomb Require Import misc.
 
@@ -41,33 +41,65 @@ Definition flat : val :=
 
 Global Opaque doOp install loop flat.
 
+Definition hdset := gset loc.
+Definition gnmap := gmap loc (dec_agree (gname * gname * gname * gname * gname)).
+
 Definition srvR := prodR fracR (dec_agreeR val).
-Class srvG Σ := FlatG { srv_tokG :> inG Σ srvR }.
-Definition srvΣ : gFunctors := #[GFunctor (constRF srvR)].
+Definition hdsetR := gset_disjUR loc.
+Definition gnmapR := gmapUR loc (dec_agreeR (gname * gname * gname * gname * gname)).
+
+Class srvG Σ :=
+  SrvG {
+      srv_tokG :> inG Σ srvR;
+      hd_G :> inG Σ (authR hdsetR);
+      gn_G :> inG Σ (authR gnmapR)
+    }.
+
+Definition srvΣ : gFunctors :=
+  #[ GFunctor (constRF srvR);
+     GFunctor (constRF (authR hdsetR));
+     GFunctor (constRF (authR gnmapR))
+   ].
 
 Instance subG_srvΣ {Σ} : subG srvΣ Σ → srvG Σ.
-Proof. intros [?%subG_inG _]%subG_inv. split; apply _. Qed.
+Proof. intros [?%subG_inG [?subG_inG [?subG_inG _]%subG_inv]%subG_inv]%subG_inv. split; apply _. Qed.
 
 Section proof.
   Context `{!heapG Σ, !lockG Σ, !srvG Σ} (N : namespace).
 
-  Definition srv_inv
+  Definition p_inv
              (γx γ1 γ2 γ3 γ4: gname) (p: loc)
              (Q: val → val → Prop): iProp Σ :=
     ((∃ (y: val), p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ())) ∨
      (∃ (x: val), p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ())) ∨
      (∃ (x: val), p ↦ InjLV x ★ own γx ((1/4)%Qp, DecAgree x) ★ own γ2 (Excl ()) ★ own γ4 (Excl ())) ∨
      (∃ (x y: val), p ↦ InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ())))%I.
-  
-  Lemma srv_inv_timeless γx γ1 γ2 γ3 γ4 p Q: TimelessP (srv_inv γx γ1 γ2 γ3 γ4 p Q).
+
+  Definition p_inv' (γs: dec_agree (gname * gname * gname * gname * gname)) p Q :=
+    match γs with
+      | DecAgreeBot => False%I
+      | DecAgree (γx, γ1, γ2, γ3, γ4) => p_inv γx γ1 γ2 γ3 γ4 p Q
+    end.
+
+  Definition srv_inv (γhd γgn: gname) (s: loc) (Q: val → val → Prop) : iProp Σ :=
+    (∃ (hds: hdset) (gnm: gnmap),
+       own γhd (● GSet hds) ★ own γgn (● gnm) ★
+       (∃ xs: list loc, is_stack s (map (fun x => # (LitLoc x)) xs) ★
+                        [★ list] k ↦ x ∈ xs, ■ (x ∈ dom (gset loc) gnm)) ★
+       ([★ set] hd ∈ hds, ∃ xs, is_list hd (map (fun x => # (LitLoc x)) xs) ★
+                                [★ list] k ↦ x ∈ xs, ■ (x ∈ dom (gset loc) gnm)) ★
+       ([★ map] p ↦ γs ∈ gnm, p_inv' γs p Q)
+    )%I.
+
+  Instance stack_inv_timeless γx γ1 γ2 γ3 γ4 p Q: TimelessP (srv_inv γx γ1 γ2 γ3 γ4 p Q).
   Proof. apply _. Qed.
 
-  Lemma wait_spec (Φ: val → iProp Σ) (Q: val → val → Prop) x γx γ1 γ2 γ3 γ4 p:
+  Lemma install_spec (Φ: val → iProp Σ) (Q: val → val → Prop) x γ3 γ4 γx p s:
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_inv γx γ1 γ2 γ3 γ4 p Q) ★
+    heap_ctx ★ inv N (stack_inv s Q) ★
     own γx ((1/2)%Qp, DecAgree x) ★ own γ3 (Excl ()) ★
     (∀ y, own γ4 (Excl ()) -★ own γx (1%Qp, DecAgree x) -★ ■ Q x y-★ Φ y)
-    ⊢ WP wait #p {{ Φ }}.
+    ⊢ WP install #p #s {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #Hsrv & Hx & Ho3 & HΦ)".
     iLöb as "IH".
@@ -165,7 +197,7 @@ Section proof.
         * admit.
         * iDestruct "Hinv" as (x') "(Hp & Hx' & Ho2 & Ho4)".
           destruct (decide (x = x')) as [->|Hneq]; last by admit.
-          wp_store. iCombine "Hx2" "Hx'" as "Hx". 
+          wp_store. iCombine "Hx2" "Hx'" as "Hx".
           iDestruct (own_update with "Hx") as "==>Hx"; first by apply pair_l_frac_op.
           rewrite Qp_div_S.
           iVs ("Hclose" with "[Hp Hx Ho1 Ho4]").
