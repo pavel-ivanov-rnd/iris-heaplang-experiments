@@ -107,19 +107,19 @@ Section proof.
   Lemma push_spec
         (Φ: val → iProp Σ) (Q: val → val → Prop)
         (p: loc) (γx γ1 γ2 γ3 γ4: gname)
-        (γhd γgn: gname) (s: loc) (y: val) :
+        (γhd γgn: gname) (s: loc) (x: val) :
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_inv γhd γgn s Q) ★
-    p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ()) ★ (True -★ Φ #())
+    heap_ctx ★ inv N (srv_inv γhd γgn s Q) ★ own γx ((1/2)%Qp, DecAgree x) ★
+    p ↦ InjLV x ★ own γ1 (Excl ()) ★ own γ4 (Excl ()) ★ (True -★ Φ #())
     ⊢ WP push #s #p {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & #Hsrv & Hp & Ho1 & Ho3 & HΦ)".
+    iIntros (HN) "(#Hh & #Hsrv & Hp & Hx & Ho1 & Ho4 & HΦ)".    
     iDestruct (push_atomic_spec N s #p with "Hh") as "Hpush"=>//.
     rewrite /push_triple /atomic_triple.
-    iSpecialize ("Hpush" $! (p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ()))%I
+    iSpecialize ("Hpush" $! (p ↦ InjLV x ★ own γ1 (Excl ()) ★ own γ4 (Excl ()) ★
+                             own γx ((1/2)%Qp, DecAgree x))%I
                             (fun _ ret => ret = #())%I with "[]").
-    (* iSpecialize ("Hpush" $! True%I (fun _ _ => True%I) with "[]"). *)
-    - iIntros "!#". iIntros "(Hp & Ho1 & Ho3)".
+    - iIntros "!#". iIntros "(Hp & Hx & Ho1 & Ho4)".
       (* open the invariant *)
       iInv N as (hds gnm) ">(Hohd & Hogn & Hxs & Hhd & Hps)" "Hclose".
       iDestruct "Hxs" as (xs) "(Hs & Hgn)".
@@ -131,7 +131,7 @@ Section proof.
       iFrame "Hs". iSplit.
       + (* provide a way to rollback *)
         iIntros "Hl'".
-        iVs "Hvs". iVs ("Hclose" with "[-Hp Ho1 Ho3]"); last by iFrame.
+        iVs "Hvs". iVs ("Hclose" with "[-Hp Hx Ho1 Ho4]"); last by iFrame.
         iNext. rewrite /srv_inv. iExists hds, gnm.
         iFrame. iExists xs. by iFrame.
       + (* provide a way to commit *)
@@ -148,8 +148,8 @@ Section proof.
           iFrame. admit. }
         iSplitL "Hhd".
         { admit. }
-        iAssert (p_inv' (DecAgree (γx, γ1, γ2, γ3, γ4)) p Q)  with "[Hp Ho1 Ho3]" as "Hinvp".
-        { rewrite /p_inv' /p_inv. iLeft. iExists y. by iFrame. }
+        iAssert (p_inv' (DecAgree (γx, γ1, γ2, γ3, γ4)) p Q)  with "[Hp Hx Ho1 Ho4]" as "Hinvp".
+        { rewrite /p_inv' /p_inv. iRight. iLeft. iExists x. by iFrame. }
         admit.
     - iApply wp_wand_r. iSplitR "HΦ".
       + iApply "Hpush". by iFrame.
@@ -167,17 +167,23 @@ Section proof.
     ⊢ WP install x #s {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #Hsrv & HΦ)".
-    wp_seq. wp_let. wp_alloc l as "Hl".
+    wp_seq. wp_let. wp_alloc p as "Hl".
     iVs (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
     iVs (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iVs (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
-    iVs (own_alloc (1%Qp, DecAgree #0)) as (γx) "Hx"; first done.
-    iVs (inv_alloc N _ (srv_inv γx γ1 γ2 γ3 γ4 p Q) with "[Hp Ho1 Ho3]") as "#?".
-    { iNext. rewrite /srv_inv. iLeft. iExists #0. by iFrame. }
-
+    iVs (own_alloc (1%Qp, DecAgree x)) as (γx) "Hx"; first done.
+    iDestruct (own_update with "Hx") as "==>[Hx1 Hx2]".
+    { by apply pair_l_frac_op_1'. }
     wp_let. wp_bind ((push _) _).
-    
+    iApply push_spec=>//.
+    iFrame "Hh Hsrv Hx1 Hl Ho1 Ho4".
+    iIntros "_". wp_seq. iVsIntro.
+    iSpecialize ("HΦ" $! p γx γ1 γ2 γ3 γ4).
+    iAssert (own γgn (◯ {[p := DecAgree (γx, γ1, γ2, γ3, γ4)]})) as "Hfrag".
+    { admit. }
+    iApply ("HΦ" with "Ho2 Ho3 Hfrag Hx2").
+  Admitted.
     
   Lemma mk_srv_spec (f: val) Q:
     heapN ⊥ N →
