@@ -184,90 +184,43 @@ Section proof.
     { admit. }
     iApply ("HΦ" with "Ho2 Ho3 Hfrag Hx2").
   Admitted.
-    
-  Lemma mk_srv_spec (f: val) Q:
-    heapN ⊥ N →
-    heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})
-    ⊢ WP mk_srv f {{ f', □ (∀ x:val, WP f' x {{ v, ■ Q x v }})}}.
+
+  Definition doOp_triple (f: val) p γx γ1 γ2 γ3 γ4 Q: iProp Σ :=
+    atomic_triple (fun _:() => p_inv γx γ1 γ2 γ3 γ4 p Q ★ (own γ2 (Excl ()) ∨ own γ1 (Excl ())) ★
+                               □ (∀ x:val, WP f x {{ v, ■ Q x v }}))%I
+                  (fun _ ret => (own γ2 (Excl ()) ∨ own γ1 (Excl ())) ★ ret = #() ★ p_inv γx γ1 γ2 γ3 γ4 p Q)%I
+                  (nclose heapN)
+                  ⊤
+                  (doOp f #p).
+
+  Lemma doOp_spec (f: val) p γx γ1 γ2 γ3 γ4 R:
+    heapN ⊥ N → heap_ctx  ⊢ doOp_triple f p γx γ1 γ2 γ3 γ4 R.
   Proof.
-    iIntros (HN) "[#Hh #Hf]".
-    wp_let. wp_alloc p as "Hp".
-    iVs (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
-    iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
-    iVs (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
-    iVs (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
-    iVs (own_alloc (1%Qp, DecAgree #0)) as (γx) "Hx"; first done.
-    iVs (inv_alloc N _ (srv_inv γx γ1 γ2 γ3 γ4 p Q) with "[Hp Ho1 Ho3]") as "#?".
-    { iNext. rewrite /srv_inv. iLeft. iExists #0. by iFrame. }
-    wp_let. wp_bind (newlock _).
-    iApply newlock_spec=>//. iFrame "Hh".
-    iAssert (∃ x, own γx (1%Qp, DecAgree x) ★ own γ4 (Excl ()))%I with "[Ho4 Hx]" as "Hinv".
-    { iExists #0. by iFrame. }
-    iFrame "Hinv". iIntros (lk γlk) "#Hlk".
-    wp_let. wp_apply wp_fork.
-    iSplitR "Ho2".
-    - (* client closure *)
-      iVsIntro. wp_seq. iVsIntro.
-      iAlways. iIntros (x).
-      wp_let. wp_bind (acquire _). iApply acquire_spec.
-      iFrame "Hlk". iIntros "Hlked Ho".
-      iDestruct "Ho" as (x') "[Hx Ho4]".
-      wp_seq. wp_bind (_ <- _)%E.
-      iInv N as ">Hinv" "Hclose".
-      iDestruct "Hinv" as "[Hinv|[Hinv|[Hinv|Hinv]]]".
-      + iDestruct "Hinv" as (?) "(Hp & Ho1 & Ho3)".
-        wp_store. iAssert (|=r=> own γx (1%Qp, DecAgree x))%I with "[Hx]" as "==>Hx".
-        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
-          apply cmra_update_exclusive. done. }
-        iAssert (|=r=> own γx (((1/2)%Qp, DecAgree x) ⋅ ((1/2)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
-        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
-          by apply pair_l_frac_op_1'. }
-        iVs ("Hclose" with "[Hp Hx1 Ho1 Ho4]").
-        { iNext. iRight. iLeft. iExists x. by iFrame. }
-        iVsIntro. wp_seq.
-        wp_bind (wait _).
-        iApply (wait_spec with "[Hx2 Ho3 Hlked]"); first by done.
-        iFrame "Hh". iFrame "#". iFrame.
-        iIntros (y) "Ho4 Hx %".
-        wp_let. wp_bind (release _).
-        iApply release_spec. iFrame "Hlk Hlked".
-        iSplitL.
-        * iExists x. by iFrame.
-        * wp_seq. done.
-      + admit.
-      + admit.
-      + admit.
-    - (* server side *)
-      iLöb as "IH".
-      wp_rec. wp_let. wp_bind (! _)%E.
-      iInv N as ">[Hinv|[Hinv|[Hinv|Hinv]]]" "Hclose".
-      + admit.
-      + iDestruct "Hinv" as (x) "(Hp & Hx & Ho1 & Ho4)".
+    iIntros (HN) "#Hh". rewrite /doOp_triple /atomic_triple.
+    iIntros (P Q) "#Hvs".
+    iIntros "!# HP". wp_rec.
+    wp_let. wp_bind (! _)%E.
+    iVs ("Hvs" with "HP") as (xs) "[[Hp [[Ho2 | Ho1] #Hf]] Hvs']".
+    - rewrite /p_inv.
+      iDestruct "Hp" as "[Hp | [Hp | [Hp | Hp]]]".
+      + iDestruct "Hp" as (y) "(Hp & Ho1 & Ho3)".
+        wp_load. iDestruct "Hvs'" as "[_ Hvs']".
+        iVs ("Hvs'" $! #() with "[-]") as "HQ".
+        { iSplitL "Ho2"; first by iLeft. iSplitR; first auto. iLeft. iExists y. by iFrame. }
+        iVsIntro. wp_match. eauto.
+      + iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
+        wp_load.
         iAssert (|=r=> own γx (((1 / 4)%Qp, DecAgree x) ⋅ ((1 / 4)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
         { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
           replace ((1 / 2)%Qp) with (1/4 + 1/4)%Qp; last by apply Qp_div_S.
           by apply pair_l_frac_op'. }
-        wp_load.
-        iVs ("Hclose" with "[Hp Hx1 Ho2 Ho4]").
-        { iNext. iRight. iRight. iLeft. iExists x. by iFrame. }
+        iDestruct "Hvs'" as "[Hvs' _]".
+        iVs ("Hvs'" with "[-]") as "HP".
+        { iSplitR "Ho1"; last auto. iRight. iRight. iLeft. iExists x. by iFrame.  }
         iVsIntro. wp_match.
-        wp_bind (f x).
-        iApply wp_wand_r. iSplitR; first by iApply "Hf".
-        iIntros (y) "%".
-        wp_value. iVsIntro. wp_bind (_ <- _)%E.
-        iInv N as ">[Hinv|[Hinv|[Hinv|Hinv]]]" "Hclose".
-        * admit.
-        * admit.
-        * iDestruct "Hinv" as (x') "(Hp & Hx' & Ho2 & Ho4)".
-          destruct (decide (x = x')) as [->|Hneq]; last by admit.
-          wp_store. iCombine "Hx2" "Hx'" as "Hx".
-          iDestruct (own_update with "Hx") as "==>Hx"; first by apply pair_l_frac_op.
-          rewrite Qp_div_S.
-          iVs ("Hclose" with "[Hp Hx Ho1 Ho4]").
-          { iNext. rewrite /srv_inv. iRight. iRight. iRight.
-            iExists x', y. by iFrame. }
-          iVsIntro. wp_seq. iApply ("IH" with "Ho2").
-        * admit.
-      + admit.
-      + admit.
-  Admitted.
+        
+      
+      
+    
+    
+    
