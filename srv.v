@@ -4,7 +4,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import frac excl dec_agree upred_big_op gset gmap.
-From iris.tests Require Import treiber_stack.
+From iris.tests Require Import atomic treiber_stack.
 From flatcomb Require Import misc.
 
 Definition doOp : val :=
@@ -91,37 +91,94 @@ Section proof.
        ([★ map] p ↦ γs ∈ gnm, p_inv' γs p Q)
     )%I.
 
-  Instance stack_inv_timeless γx γ1 γ2 γ3 γ4 p Q: TimelessP (srv_inv γx γ1 γ2 γ3 γ4 p Q).
+  Instance p_inv_timeless γx γ1 γ2 γ3 γ4 p Q: TimelessP (p_inv γx γ1 γ2 γ3 γ4 p Q).  
   Proof. apply _. Qed.
 
-  Lemma install_spec (Φ: val → iProp Σ) (Q: val → val → Prop) x γ3 γ4 γx p s:
-    heapN ⊥ N →
-    heap_ctx ★ inv N (stack_inv s Q) ★
-    own γx ((1/2)%Qp, DecAgree x) ★ own γ3 (Excl ()) ★
-    (∀ y, own γ4 (Excl ()) -★ own γx (1%Qp, DecAgree x) -★ ■ Q x y-★ Φ y)
-    ⊢ WP install #p #s {{ Φ }}.
+  Instance p_inv'_timeless γs p Q: TimelessP (p_inv' γs p Q).
   Proof.
-    iIntros (HN) "(#Hh & #Hsrv & Hx & Ho3 & HΦ)".
-    iLöb as "IH".
-    wp_rec. wp_bind (! #p)%E.
-    iInv N as ">[Hinv|[Hinv|[Hinv|Hinv]]]" "Hclose".
-    - iExFalso. iDestruct "Hinv" as (?) "[_ [_ Ho3']]".
-      iCombine "Ho3" "Ho3'" as "Ho3".
-      by iDestruct (own_valid with "Ho3") as "%".
-    - admit.
-    - admit.
-    - iDestruct "Hinv" as (x' y') "(Hp & Hx' & % & Ho1 & Ho4)".
-      destruct (decide (x = x')) as [->|Hneq].
-      + wp_load. iVs ("Hclose" with "[Hp Ho1 Ho3]").
-        { iNext. rewrite /srv_inv. iLeft. iExists y'. by iFrame. }
-        iVsIntro. wp_match.
-        iCombine "Hx" "Hx'" as "Hx".
-        iDestruct (own_update with "Hx") as "==>Hx"; first by apply pair_l_frac_op.
-        rewrite Qp_div_2.
-        iApply ("HΦ" with "Ho4 Hx"). done.
-      + admit.
+    rewrite /p_inv'. destruct γs as [γs|].
+    - repeat (destruct γs as [γs ?]). apply _.
+    - apply _.
+  Qed.
+
+  Instance srv_inv_timeless γhd γgn s Q: TimelessP (srv_inv γhd γgn s Q).
+  Proof. apply _. Qed.
+
+  Lemma push_spec
+        (Φ: val → iProp Σ) (Q: val → val → Prop)
+        (p: loc) (γx γ1 γ2 γ3 γ4: gname)
+        (γhd γgn: gname) (s: loc) (y: val) :
+    heapN ⊥ N →
+    heap_ctx ★ inv N (srv_inv γhd γgn s Q) ★
+    p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ()) ★ (True -★ Φ #())
+    ⊢ WP push #s #p {{ Φ }}.
+  Proof.
+    iIntros (HN) "(#Hh & #Hsrv & Hp & Ho1 & Ho3 & HΦ)".
+    iDestruct (push_atomic_spec N s #p with "Hh") as "Hpush"=>//.
+    rewrite /push_triple /atomic_triple.
+    iSpecialize ("Hpush" $! (p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ()))%I
+                            (fun _ ret => ret = #())%I with "[]").
+    (* iSpecialize ("Hpush" $! True%I (fun _ _ => True%I) with "[]"). *)
+    - iIntros "!#". iIntros "(Hp & Ho1 & Ho3)".
+      (* open the invariant *)
+      iInv N as (hds gnm) ">(Hohd & Hogn & Hxs & Hhd & Hps)" "Hclose".
+      iDestruct "Hxs" as (xs) "(Hs & Hgn)".
+      (* mask magic *)
+      iApply pvs_intro'.
+      { apply ndisj_subseteq_difference; auto. }
+      iIntros "Hvs".
+      iExists (map (λ x : loc, #x) xs).
+      iFrame "Hs". iSplit.
+      + (* provide a way to rollback *)
+        iIntros "Hl'".
+        iVs "Hvs". iVs ("Hclose" with "[-Hp Ho1 Ho3]"); last by iFrame.
+        iNext. rewrite /srv_inv. iExists hds, gnm.
+        iFrame. iExists xs. by iFrame.
+      + (* provide a way to commit *)
+        iIntros (?) "[% Hs]". subst.
+        iVs "Hvs". iVs ("Hclose" with "[-]"); last done.
+        iNext. rewrite /srv_inv. iExists hds, (gnm ∪ {[ p := DecAgree (γx, γ1, γ2, γ3, γ4) ]}).
+        iFrame.
+        iClear "Hogn".
+        iAssert (own γgn (● (gnm ∪ {[p := DecAgree (γx, γ1, γ2, γ3, γ4)]})) ★
+                 own γgn (◯ {[ p := DecAgree (γx, γ1, γ2, γ3, γ4) ]}))%I as "[Hogn' Hfrag]".
+        { admit. }
+        iFrame. iSplitL "Hs Hgn".
+        { iExists (p::xs).
+          iFrame. admit. }
+        iSplitL "Hhd".
+        { admit. }
+        iAssert (p_inv' (DecAgree (γx, γ1, γ2, γ3, γ4)) p Q)  with "[Hp Ho1 Ho3]" as "Hinvp".
+        { rewrite /p_inv' /p_inv. iLeft. iExists y. by iFrame. }
+        admit.
+    - iApply wp_wand_r. iSplitR "HΦ".
+      + iApply "Hpush". by iFrame.
+      + iIntros (?) "H". iDestruct "H" as (?) "%". subst. by iApply "HΦ".
   Admitted.
 
+  Lemma install_spec
+        (Φ: val → iProp Σ) (Q: val → val → Prop)
+        (x: val) (γhd γgn: gname) (s: loc):
+    heapN ⊥ N →
+    heap_ctx ★ inv N (srv_inv γhd γgn s Q) ★
+    (∀ (p: loc) (γx γ1 γ2 γ3 γ4: gname),
+       own γ2 (Excl ()) -★ own γ3 (Excl ()) -★ own γgn (◯ {[ p := DecAgree (γx, γ1, γ2, γ3, γ4) ]}) -★
+       own γx ((1/2)%Qp, DecAgree x) -★ Φ #p)
+    ⊢ WP install x #s {{ Φ }}.
+  Proof.
+    iIntros (HN) "(#Hh & #Hsrv & HΦ)".
+    wp_seq. wp_let. wp_alloc l as "Hl".
+    iVs (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
+    iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
+    iVs (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
+    iVs (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
+    iVs (own_alloc (1%Qp, DecAgree #0)) as (γx) "Hx"; first done.
+    iVs (inv_alloc N _ (srv_inv γx γ1 γ2 γ3 γ4 p Q) with "[Hp Ho1 Ho3]") as "#?".
+    { iNext. rewrite /srv_inv. iLeft. iExists #0. by iFrame. }
+
+    wp_let. wp_bind ((push _) _).
+    
+    
   Lemma mk_srv_spec (f: val) Q:
     heapN ⊥ N →
     heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})
