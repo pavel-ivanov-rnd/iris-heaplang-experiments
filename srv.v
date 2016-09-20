@@ -340,5 +340,22 @@ Section proof.
       wp_load. wp_match.
       by iApply "HΦ".
   Admitted.
+
+  Lemma flat_spec (f: val) Q:
+    heapN ⊥ N →
+    heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I
+    ⊢ WP flat f {{ f', True%I }}.
+  Proof.
+    iIntros (HN) "(#Hh & #?)".
+    wp_seq. wp_alloc lk as "Hl".
+    iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
+    iVs (own_alloc (Excl ())) as (γlk) "Hγlk"; first done.
+    iVs (inv_alloc N _ (lock_inv γlk lk (own γ2 (Excl ()))) with "[-]") as "#?".
+    { iIntros "!>". iExists false. by iFrame. }
+    wp_let. wp_bind (new_stack _).
+    iApply new_stack_spec=>//.
+    iFrame "Hh". iIntros (s) "Hs".
+    wp_let.
+    done.
+  Qed.
   
-    
