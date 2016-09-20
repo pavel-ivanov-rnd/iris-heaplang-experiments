@@ -185,42 +185,52 @@ Section proof.
     iApply ("HΦ" with "Ho2 Ho3 Hfrag Hx2").
   Admitted.
 
-  Definition doOp_triple (f: val) p γx γ1 γ2 γ3 γ4 Q: iProp Σ :=
-    atomic_triple (fun _:() => p_inv γx γ1 γ2 γ3 γ4 p Q ★ (own γ2 (Excl ()) ∨ own γ1 (Excl ())) ★
-                               □ (∀ x:val, WP f x {{ v, ■ Q x v }}))%I
-                  (fun _ ret => (own γ2 (Excl ()) ∨ own γ1 (Excl ())) ★ ret = #() ★ p_inv γx γ1 γ2 γ3 γ4 p Q)%I
-                  (nclose heapN)
-                  ⊤
-                  (doOp f #p).
+  Definition pinv_sub RI γx γ1 γ2 γ3 γ4 p Q := (RI ⊣⊢ ∃ Rf, Rf ★ p_inv γx γ1 γ2 γ3 γ4 p Q)%I.
 
-  Lemma doOp_spec (f: val) p γx γ1 γ2 γ3 γ4 R:
-    heapN ⊥ N → heap_ctx  ⊢ doOp_triple f p γx γ1 γ2 γ3 γ4 R.
+  Lemma doOp_spec Φ (f: val) (RI: iProp Σ) γx γ1 γ2 γ3 γ4 p Q `{TimelessP _ RI}:
+    heapN ⊥ N → pinv_sub RI γx γ1 γ2 γ3 γ4 p Q →
+    heap_ctx ★ inv N RI ★ own γ2 (Excl ()) ★
+    □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ (own γ2 (Excl ()) -★ Φ #())
+    ⊢ WP doOp f #p {{ Φ }}.
   Proof.
-    iIntros (HN) "#Hh". rewrite /doOp_triple /atomic_triple.
-    iIntros (P Q) "#Hvs".
-    iIntros "!# HP". wp_rec.
-    wp_let. wp_bind (! _)%E.
-    iVs ("Hvs" with "HP") as (xs) "[[Hp [[Ho2 | Ho1] #Hf]] Hvs']".
-    - rewrite /p_inv.
-      iDestruct "Hp" as "[Hp | [Hp | [Hp | Hp]]]".
-      + iDestruct "Hp" as (y) "(Hp & Ho1 & Ho3)".
-        wp_load. iDestruct "Hvs'" as "[_ Hvs']".
-        iVs ("Hvs'" $! #() with "[-]") as "HQ".
-        { iSplitL "Ho2"; first by iLeft. iSplitR; first auto. iLeft. iExists y. by iFrame. }
-        iVsIntro. wp_match. eauto.
-      + iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
-        wp_load.
-        iAssert (|=r=> own γx (((1 / 4)%Qp, DecAgree x) ⋅ ((1 / 4)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
-        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
-          replace ((1 / 2)%Qp) with (1/4 + 1/4)%Qp; last by apply Qp_div_S.
-          by apply pair_l_frac_op'. }
-        iDestruct "Hvs'" as "[Hvs' _]".
-        iVs ("Hvs'" with "[-]") as "HP".
-        { iSplitR "Ho1"; last auto. iRight. iRight. iLeft. iExists x. by iFrame.  }
-        iVsIntro. wp_match.
-        
-      
-      
-    
-    
-    
+    iIntros (HN Hsub) "(#Hh & #HRI & Ho2 & #Hf & HΦ)".
+    wp_seq. wp_let. wp_bind (! _)%E.
+    iInv N as ">H" "Hclose".
+    iDestruct (Hsub with "H") as (Rf) "[HRf [Hp | [Hp | [Hp | Hp]]]]".
+    - iDestruct "Hp" as (y) "(Hp & Ho1 & Ho3)".
+      wp_load. iVs ("Hclose" with "[HRf Hp Ho1 Ho3]").
+      { iNext. iApply Hsub. iExists Rf. iFrame "HRf".
+        iLeft. iExists y. by iFrame. }
+      iVsIntro. wp_match. by iApply "HΦ".
+    - iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
+      wp_load.
+      iAssert (|=r=> own γx (((1 / 4)%Qp, DecAgree x) ⋅ ((1 / 4)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
+      { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
+        replace ((1 / 2)%Qp) with (1/4 + 1/4)%Qp; last by apply Qp_div_S.
+        by apply pair_l_frac_op'. }
+      iVs ("Hclose" with "[HRf Hp Hx1 Ho2 Ho4]").
+      { iNext. iApply Hsub. iExists Rf. iFrame "HRf".
+        iRight. iRight. iLeft. iExists x. by iFrame. }
+      iVsIntro. wp_match.
+      wp_bind (f _). iApply wp_wand_r.
+      iSplitR; first by iApply "Hf".
+      iIntros (y) "%".
+      iInv N as ">H" "Hclose".
+      iDestruct (Hsub with "H") as (Rf') "[HRf [Hp | [Hp | [Hp | Hp]]]]".
+      + admit.
+      + admit.
+      + iDestruct "Hp" as (x') "(Hp & Hx & Ho2 & Ho4)".
+        destruct (decide (x = x')) as [->|Hneq]; last by admit.
+        iCombine "Hx2" "Hx" as "Hx".
+        iDestruct (own_update with "Hx") as "==>Hx"; first by apply pair_l_frac_op.
+        rewrite Qp_div_S.
+        wp_store. iVs ("Hclose" with "[HRf Hp Hx Ho1 Ho4]").
+        { iNext. iApply Hsub. iExists Rf'. iFrame "HRf".
+          iRight. iRight. iRight. iExists x', y.
+          by iFrame. }
+        iVsIntro. by iApply "HΦ".
+      + admit.
+    - admit.
+    - admit.
+  Admitted.
+  
