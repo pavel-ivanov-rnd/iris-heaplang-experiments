@@ -316,10 +316,29 @@ Section proof.
       wp_let. wp_let. wp_load.
         by iClear "~5".
   Admitted.
+
+  Lemma loop_spec Φ (p s lk: loc) (f: val) Q (γhd γgn γ2 γlk: gname) γs:
+    heapN ⊥ N →
+    heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ inv N (lock_inv γlk lk (own γ2 (Excl ()))) ★
+    own γgn (◯ {[ p := γs ]})  ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ (∀ x y, ■ Q x y → Φ y) (* there should be some constraints on x *)
+    ⊢ WP loop #p f #s #lk {{ Φ }}.
+  Proof.
+    iIntros (HN) "(#Hh & #? & #? & #? & #? & HΦ)".
+    iLöb as "IH".
+    wp_rec. repeat wp_let.
+    (* we should be able to know p is something by open the invariant and using the fragment *)
+    (* but for now we will move fast *)
+    iAssert (p_inv' γ2 γs p Q) as "Hp".
+    { admit. }
+    rewrite /p_inv'. destruct γs as [[[[γx γ1] γ3] γ4]|]; last by iExFalso.
+    iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
+    - (* I should be able to refuse this case *) admit.
+    - admit.
+    - admit.
+    - iDestruct "Hp" as (x y) "(Hp & Hx & % & Ho1 & Ho4)".
+      (* there should be some token exchange *)
+      wp_load. wp_match.
+      by iApply "HΦ".
+  Admitted.
   
-      
-        
-          
-      
-        
-      
+    
