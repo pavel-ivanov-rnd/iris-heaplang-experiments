@@ -237,9 +237,89 @@ Section proof.
   Lemma loop_iter_list_spec Φ (f: val) (s hd: loc) Q (γhd γgn γ2: gname) xs:
     heapN ⊥ N →
     heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ own γ2 (Excl ()) ★
-    is_list hd xs ★ own γhd (◯ GSet {[ hd ]}) ★ Φ #()
-    ⊢ WP iter' #hd (doOp f) {{ Φ }}.
+    is_list hd xs ★ own γhd (◯ GSet {[ hd ]}) ★ (own γ2 (Excl ()) -★ Φ #())
+    ⊢ WP doOp f {{ f', WP iter' #hd f' {{ Φ  }} }}.
   Proof.
     iIntros (HN) "(#Hh & #? & #Hf & Hxs & Hhd & Ho2 & HΦ)".
-    
-    
+    rewrite /doOp. wp_let.
+    iLöb as "IH".
+    wp_rec. wp_let. wp_bind (! _)%E.
+    destruct xs as [|x xs'].
+    - simpl. iDestruct "Hhd" as (q) "Hhd".
+      wp_load. wp_match. by iApply "HΦ".
+    - simpl. iDestruct "Hhd" as (hd' q) "[[Hhd1 Hhd2] Hhd']".
+      wp_load. wp_match. wp_proj. wp_let.
+      wp_bind (! _)%E.
+      iInv N as (hds gnm) ">(Hohd & Hogn & Hxse & Hhds & Hps)" "Hclose".
+      iAssert (∃ (p: loc) γs, x = #p ★ p_inv' γ2 γs p Q)%I as "Hx".
+      { admit. }
+      iDestruct "Hx" as (p γs) "[% Hp]". subst.
+      rewrite /p_inv'. destruct γs as [[[[γx γ1] γ3] γ4]|].
+      iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]"=>//.
+      + admit.
+      + iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
+        iAssert (|=r=> own γx (((1 / 4)%Qp, DecAgree x) ⋅ ((1 / 4)%Qp, DecAgree x)))%I with "[Hx]" as "==>[Hx1 Hx2]".
+        { iDestruct (own_update with "Hx") as "Hx"; last by iAssumption.
+          replace ((1 / 2)%Qp) with (1/4 + 1/4)%Qp; last by apply Qp_div_S.
+          by apply pair_l_frac_op'. }
+        wp_load. iVs ("Hclose" with "[-Ho1 Hx2 Hhd2 HΦ]").
+        { iNext. iExists hds, gnm. by iFrame. }
+        iVsIntro. wp_match.
+        wp_bind (f _). iApply wp_wand_r. iSplitR; first by iApply "Hf".
+        iIntros (y) "Q". 
+        iInv N as (hds' gnm') ">(Hohd & Hogn & Hxse & Hhds & Hps)" "Hclose".
+        iAssert (p_inv' γ2 (DecAgree (γx, γ1, γ3, γ4)) p Q)%I as "Hp".
+        { admit. }
+        rewrite /p_inv'.
+        iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
+        * admit.
+        * admit.
+        * iDestruct "Hp" as (x') "(Hp & Hx' & Ho2 & Ho4)".
+          destruct (decide (x = x')) as [->|Hneq]; last by admit.
+          iCombine "Hx2" "Hx'" as "Hx".
+          iDestruct (own_update with "Hx") as "==>Hx"; first by apply pair_l_frac_op.
+          rewrite Qp_div_S.
+          wp_store. iVs ("Hclose" with "[-Ho2 HΦ Hhd2]").
+          { iNext. iExists hds', gnm'. by iFrame. }
+          iVsIntro. wp_seq. wp_proj. rewrite /doOp.
+          iAssert (is_list hd' xs') as "Hl".
+          { admit. }
+          iAssert (∃ (hd'0 : loc) (q0 : Qp),
+                     hd ↦{q0} SOMEV (#p, #hd'0) ★ is_list hd'0 xs')%I with "[Hhd2 Hl]" as "He".
+          { iExists hd', (q / 2)%Qp. by iFrame. }
+          iAssert (own γhd (◯ GSet {[hd]})) as "Hfrag".
+          { admit. }
+          iSpecialize ("IH" with "Ho2 He Hfrag HΦ").
+          admit.
+        * admit.
+      + admit.
+      + admit.
+      + by iExFalso.
+  Admitted.
+
+  Lemma loop_iter_spec Φ (f: val) (s: loc) Q (γhd γgn γ2: gname):
+    heapN ⊥ N →
+    heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★
+    own γ2 (Excl ()) ★ (own γ2 (Excl ()) -★ Φ #())
+    ⊢ WP iter (doOp f) #s {{ Φ }}.
+  Proof.
+    iIntros (HN) "(#Hh & #? & #? & ? & ?)".
+    iAssert (∃ (hd: loc) xs, is_list hd xs ★ own γhd (◯ GSet {[ hd ]}) ★ s ↦ #hd)%I as "H".
+    { admit. }
+    iDestruct "H" as (hd xs) "(? & ? & ?)".
+    wp_bind (doOp _).
+    iApply wp_wand_r.
+    iSplitR "~5".
+    - iApply loop_iter_list_spec=>//.
+      iFrame "Hh". iFrame. by iFrame "#".
+    - iIntros (v) "Hf'".
+      wp_let. wp_let. wp_load.
+        by iClear "~5".
+  Admitted.
+  
+      
+        
+          
+      
+        
+      
