@@ -3,7 +3,7 @@ From iris.proofmode Require Import invariants ghost_ownership.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import frac excl dec_agree upred_big_op gset gmap.
+From iris.algebra Require Import upred frac excl dec_agree upred_big_op gset gmap.
 From iris.tests Require Import atomic treiber_stack.
 From flatcomb Require Import misc.
 
@@ -41,68 +41,38 @@ Definition flat : val :=
 
 Global Opaque doOp install loop flat.
 
-Definition hdset := gset loc.
-Definition gnmap := gmap loc (dec_agree (gname * gname * gname * gname)).
-
 Definition srvR := prodR fracR (dec_agreeR val).
-Definition hdsetR := gset_disjUR loc.
-Definition gnmapR := gmapUR loc (dec_agreeR (gname * gname * gname * gname)).
-
-Class srvG Σ :=
-  SrvG {
-      srv_tokG :> inG Σ srvR;
-      hd_G :> inG Σ (authR hdsetR);
-      gn_G :> inG Σ (authR gnmapR)
-    }.
-
-Definition srvΣ : gFunctors :=
-  #[ GFunctor (constRF srvR);
-     GFunctor (constRF (authR hdsetR));
-     GFunctor (constRF (authR gnmapR))
-   ].
-
+Class srvG Σ := SrvG { srv_G :> inG Σ srvR }.
+Definition srvΣ : gFunctors := #[GFunctor (constRF srvR)].
 Instance subG_srvΣ {Σ} : subG srvΣ Σ → srvG Σ.
-Proof. intros [?%subG_inG [?subG_inG [?subG_inG _]%subG_inv]%subG_inv]%subG_inv. split; apply _. Qed.
+Proof. intros [?%subG_inG _]%subG_inv. split; apply _. Qed.
 
 Section proof.
-  Context `{!heapG Σ, !lockG Σ, !srvG Σ} (N : namespace).
+  Context `{!heapG Σ, !lockG Σ, !evidenceG loc val Σ, !srvG Σ} (N : namespace).
 
   Definition p_inv
-             (γx γ1 γ2 γ3 γ4: gname) (p: loc)
-             (Q: val → val → Prop): iProp Σ :=
-    ((∃ (y: val), p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ())) ∨
-     (∃ (x: val), p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ())) ∨
-     (∃ (x: val), p ↦ InjLV x ★ own γx ((1/4)%Qp, DecAgree x) ★ own γ2 (Excl ()) ★ own γ4 (Excl ())) ∨
-     (∃ (x y: val), p ↦ InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ())))%I.
+             (γx γ1 γ2 γ3 γ4: gname)
+             (Q: val → val → Prop)
+             (v: val): iProp Σ :=
+    ((∃ (y: val), v = InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ())) ∨
+     (∃ (x: val), v = InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ())) ∨
+     (∃ (x: val), v = InjLV x ★ own γx ((1/4)%Qp, DecAgree x) ★ own γ2 (Excl ()) ★ own γ4 (Excl ())) ∨
+     (∃ (x y: val), v = InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ())))%I.
 
-  Definition p_inv' γ2 (γs: dec_agree (gname * gname * gname * gname)) p Q :=
-    match γs with
-      | DecAgreeBot => False%I
-      | DecAgree (γx, γ1, γ3, γ4) => p_inv γx γ1 γ2 γ3 γ4 p Q
-    end.
+  Definition p_inv_R γ2 Q v : iProp Σ := (∃ γx γ1 γ3 γ4: gname, p_inv γx γ1 γ2 γ3 γ4 Q v)%I.
 
-  Definition srv_inv (γhd γgn γ2: gname) (s: loc) (Q: val → val → Prop) : iProp Σ :=
-    (∃ (hds: hdset) (gnm: gnmap),
-       own γhd (● GSet hds) ★ own γgn (● gnm) ★
-       (∃ xs: list loc, is_stack s (map (fun x => # (LitLoc x)) xs) ★
-                        [★ list] k ↦ x ∈ xs, ■ (x ∈ dom (gset loc) gnm)) ★
-       ([★ set] hd ∈ hds, ∃ xs, is_list hd (map (fun x => # (LitLoc x)) xs) ★
-                                [★ list] k ↦ x ∈ xs, ■ (x ∈ dom (gset loc) gnm)) ★
-       ([★ map] p ↦ γs ∈ gnm, p_inv' γ2 γs p Q)
-    )%I.
+  Definition srv_inv (γ γ2: gname) (s: loc) (Q: val → val → Prop) : iProp Σ :=
+    (∃ xs, is_stack' (p_inv_R γ2 Q) xs s γ)%I.
 
   Instance p_inv_timeless γx γ1 γ2 γ3 γ4 p Q: TimelessP (p_inv γx γ1 γ2 γ3 γ4 p Q).
   Proof. apply _. Qed.
 
-  Instance p_inv'_timeless γ2 γs p Q: TimelessP (p_inv' γ2 γs p Q).
+  Instance srv_inv_timeless γ γ2 s Q: TimelessP (srv_inv γ γ2 s Q).
   Proof.
-    rewrite /p_inv'. destruct γs as [γs|].
-    - repeat (destruct γs as [γs ?]). apply _.
-    - apply _.
+    apply uPred.exist_timeless.
+    move=>x. apply is_stack'_timeless.
+    move=>v. apply _.
   Qed.
-
-  Instance srv_inv_timeless γhd γgn γ2 s Q: TimelessP (srv_inv γhd γgn γ2 s Q).
-  Proof. apply _. Qed.
 
   (* Lemma push_spec *)
   (*       (Φ: val → iProp Σ) (Q: val → val → Prop) *)
@@ -237,7 +207,7 @@ Section proof.
   Lemma loop_iter_list_spec Φ (f: val) (s hd: loc) Q (γhd γgn γ2: gname) xs:
     heapN ⊥ N →
     heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ own γ2 (Excl ()) ★
-    is_list hd xs ★ own γhd (◯ GSet {[ hd ]}) ★ (own γ2 (Excl ()) -★ Φ #())
+    is_list hd xs ★ own γhd (◯ ({[ hd ]} : hdsetR)) ★ (own γ2 (Excl ()) -★ Φ #())
     ⊢ WP doOp f {{ f', WP iter' #hd f' {{ Φ  }} }}.
   Proof.
     iIntros (HN) "(#Hh & #? & #Hf & Hxs & Hhd & Ho2 & HΦ)".
@@ -287,7 +257,7 @@ Section proof.
           iAssert (∃ (hd'0 : loc) (q0 : Qp),
                      hd ↦{q0} SOMEV (#p, #hd'0) ★ is_list hd'0 xs')%I with "[Hhd2 Hl]" as "He".
           { iExists hd', (q / 2)%Qp. by iFrame. }
-          iAssert (own γhd (◯ GSet {[hd]})) as "Hfrag".
+          iAssert (own γhd (◯ {[hd]})) as "Hfrag".
           { admit. }
           iSpecialize ("IH" with "Ho2 He Hfrag HΦ").
           admit.
@@ -304,7 +274,7 @@ Section proof.
     ⊢ WP iter (doOp f) #s {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & #? & ? & ?)".
-    iAssert (∃ (hd: loc) xs, is_list hd xs ★ own γhd (◯ GSet {[ hd ]}) ★ s ↦ #hd)%I as "H".
+    iAssert (∃ (hd: loc) xs, is_list hd xs ★ own γhd (◯ {[ hd ]}) ★ s ↦ #hd)%I as "H".
     { admit. }
     iDestruct "H" as (hd xs) "(? & ? & ?)".
     wp_bind (doOp _).
@@ -343,19 +313,23 @@ Section proof.
 
   Lemma flat_spec (f: val) Q:
     heapN ⊥ N →
-    heap_ctx ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I
-    ⊢ WP flat f {{ f', True%I }}.
+    heap_ctx ★ □ (∀ x: val, WP f x {{ v, ■ Q x v }})%I
+    ⊢ WP flat f {{ f', □ (∀ x: val, WP f' x {{ v, ■ Q x v }}) }}.
   Proof.
     iIntros (HN) "(#Hh & #?)".
     wp_seq. wp_alloc lk as "Hl".
     iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
     iVs (own_alloc (Excl ())) as (γlk) "Hγlk"; first done.
+    iVs (own_alloc (● (∅: hdsetR) ⋅ ◯ ∅)) as (γhd) "[Hgs Hgs']"; first admit.
+    iVs (own_alloc (● ∅ ⋅ ◯ ∅)) as (γgn) "[Hgs Hgs']"; first admit.
+    iVs (own_alloc ()) as (γlk) "Hγlk"; first done.
     iVs (inv_alloc N _ (lock_inv γlk lk (own γ2 (Excl ()))) with "[-]") as "#?".
     { iIntros "!>". iExists false. by iFrame. }
     wp_let. wp_bind (new_stack _).
     iApply new_stack_spec=>//.
     iFrame "Hh". iIntros (s) "Hs".
+    iVs (inv_alloc N _ (srv_inv γhd γgn γ2 s Q) with "") as "#?".
     wp_let.
-    done.
+    iVsIntro. iPureIntro
   Qed.
-  
+End proof.
