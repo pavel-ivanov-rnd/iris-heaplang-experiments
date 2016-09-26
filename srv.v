@@ -18,8 +18,10 @@ Definition loop (f: val): val :=
   rec: "loop" "p" "s" "lk" :=
     match: !"p" with
       InjL "_" =>
-        if: CAS "lk" #false #true
-          then iter (doOp f) "s"
+        if: try_acquire "lk"
+          then iter' (!"s") (doOp f);;
+               release "lk";;
+               "loop" "p" "s" "lk"
           else "loop" "p" "s" "lk"
     | InjR "r" => "r"
     end.
@@ -32,12 +34,12 @@ Definition install : val :=
      "p".
 
 Definition flat (f: val) : val :=
-  λ: "f",
-     let: "lk" := ref (#false) in
-     let: "s" := new_stack #() in
-     λ: "x",
-        let: "p" := install "x" "s" in
-        loop f "p" "s" "lk".
+  λ: <>,
+   let: "lk" := newlock #() in
+   let: "s" := new_stack #() in
+   λ: "x",
+      let: "p" := install "x" "s" in
+      loop f "p" "s" "lk".
 
 Global Opaque doOp install loop flat.
 
@@ -64,10 +66,10 @@ Section proof.
              (Q: val → val → Prop)
              (v: val): iProp Σ :=
     (∃ (p : loc) (q: Qp), v = #p ★ own γm (◯ ({[ p := (q, DecAgree (γx, γ1, γ3, γ4)) ]} : tokR)) ★
-     ((∃ (y: val), p ↦ InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ())) ∨
-      (∃ (x: val), p ↦ InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ())) ∨
-      (∃ (x: val), p ↦ InjLV x ★ own γx ((1/4)%Qp, DecAgree x) ★ own γ2 (Excl ()) ★ own γ4 (Excl ())) ∨
-      (∃ (x y: val), p ↦ InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))))%I.
+     ((∃ (y: val), p ↦{1/2} InjRV y ★ own γ1 (Excl ()) ★ own γ3 (Excl ())) ∨
+      (∃ (x: val), p ↦{1/2} InjLV x ★ own γx ((1/2)%Qp, DecAgree x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ())) ∨
+      (∃ (x: val), p ↦{1/2} InjLV x ★ own γx ((1/4)%Qp, DecAgree x) ★ own γ2 (Excl ()) ★ own γ4 (Excl ())) ∨
+      (∃ (x y: val), p ↦{1/2} InjRV y ★ own γx ((1/2)%Qp, DecAgree x) ★ ■ Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))))%I.
 
   Definition p_inv_R γm γ2 Q v : iProp Σ :=
     (∃ γx γ1 γ3 γ4: gname, p_inv γm γx γ1 γ2 γ3 γ4 Q v)%I.
@@ -75,7 +77,7 @@ Section proof.
   Definition srv_stack_inv (γ γm γ2: gname) (s: loc) (Q: val → val → Prop) : iProp Σ :=
     (∃ xs, is_stack' (p_inv_R γm γ2 Q) xs s γ)%I.
 
-  Definition srv_m_inv γm := (∃ m, own γm (● m))%I.
+  Definition srv_m_inv γm := (∃ m, own γm (● m) ★ [★ map] p ↦ _ ∈ m, ∃ v, p ↦{1/2} v)%I.
 
   Lemma install_push_spec
         (Φ: val → iProp Σ) (Q: val → val → Prop)
@@ -84,7 +86,7 @@ Section proof.
     heapN ⊥ N →
     heap_ctx ★ inv N (srv_stack_inv γ γm γ2 s Q) ★ own γx ((1/2)%Qp, DecAgree x) ★
     own γm (◯ ({[ p := ((1 / 2)%Qp, DecAgree (γx, γ1, γ3, γ4)) ]})) ★
-    p ↦ InjLV x ★ own γ1 (Excl ()) ★ own γ4 (Excl ()) ★ (True -★ Φ #())
+    p ↦{1/2} InjLV x ★ own γ1 (Excl ()) ★ own γ4 (Excl ()) ★ (True -★ Φ #())
     ⊢ WP push #s #p {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & Hx & Hpm & Hp & Ho1 & Ho2 & HΦ)".
@@ -112,20 +114,44 @@ Section proof.
   Proof.
     iIntros (HN) "(#Hh & #? & #? & HΦ)".
     wp_seq. wp_let. wp_alloc p as "Hl".
+    iDestruct "Hl" as "[Hl1 Hl2]".
+    iApply pvs_wp.
     iVs (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iVs (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iVs (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
     iVs (own_alloc (1%Qp, DecAgree x)) as (γx) "Hx"; first done.
+    iInv N as ">Hm" "Hclose".
+    iDestruct "Hm" as (m) "[Hm HRm]".
+    destruct (decide (m !! p = None)).
+    - (* fresh name *)
+      iAssert (|=r=> own γm (● ({[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅ m) ⋅
+                             ◯ {[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4))]}))%I with "[Hm]" as "==>[Hm1 Hm2]".
+      { iDestruct (own_update with "Hm") as "?"; last by iAssumption.
+        apply auth_update_no_frag. apply alloc_unit_singleton_local_update=>//. }
+      iVs ("Hclose" with "[HRm Hm1 Hl1]").
+      { iNext. rewrite /srv_m_inv. iExists ({[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅ m).
+        iFrame. replace ({[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅ m) with (<[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4))]> m); last admit.
+        iDestruct (big_sepM_insert _ m with "[-]") as "?".
+        - exact e.
+        - iSplitR "HRm"; last done. simpl. eauto.
+        - eauto. }
+      iAssert (|=r=>own γm (◯ {[p := ((1/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅
+                            ◯ {[p := ((1/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]}))%I
+              with "[Hm2]" as "==>[Hfrag1 Hfrag2]".
+      { iDestruct (own_update with "Hm2") as "?"; last by iAssumption.
+        rewrite <- auth_frag_op.
+        by rewrite op_singleton pair_op dec_agree_idemp frac_op' Qp_div_2. }
     iDestruct (own_update with "Hx") as "==>[Hx1 Hx2]"; first by apply pair_l_frac_op_1'.
-    wp_let. wp_bind ((push _) _).
+    iVsIntro. wp_let. wp_bind ((push _) _).
     iApply install_push_spec=>//.
-    iFrame "#".
-    iAssert (own γm (◯ {[p := ((1/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅
-                     ◯ {[p := ((1/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]})) as "[Hfrag1 Hfrag2]".
-    { admit. }
-    iFrame "Hx1 Hfrag1 Hl Ho1 Ho4". iIntros "_". wp_seq. iVsIntro.
+    iFrame "#". iFrame "Hx1 Hfrag1 Hl2 Ho1 Ho4". iIntros "_". wp_seq. iVsIntro.
     iSpecialize ("HΦ" $! p γx γ1 γ2 γ3 γ4 with "[-Hx2 Hfrag2]")=>//.
     iApply ("HΦ" with "Hfrag2 Hx2").
+    - iExFalso. (* XXX: used name *)
+      (* iAssert (([★ map] _↦v ∈ delete p m, ∃ v' : val, v = (1%Qp, DecAgree v') ★ p_inv_R γm γ2 Q v') ★ *)
+      (*          (∃ v, v = (1%Qp, DecAgree #p) ★ p_inv_R γm γ2 Q #p))%I *)
+      (*          with "[HRs]" as "[HRs Hp]". *)
+      admit.
   Admitted.
 
   Lemma loop_iter_list_spec Φ (f: val) (s hd: loc) Q (γ γm γ2: gname) xs:
@@ -146,7 +172,15 @@ Section proof.
       iIntros (Φ' x _ Hin) "(#Hh & #? & (Hls & Ho2) & HΦ')".
       wp_let. wp_bind (! _)%E. iInv N as (xs') ">Hs" "Hclose".
       iDestruct "Hs" as (hd') "[Hhd [Hxs HRs]]".
-      (* now I know x conforms to p_inv_R *)
+      iDestruct "HRs" as (m) "[Hom HRs]".
+      (* now I know x conforms to p_inv:
+         since is_list' γ hd xs, so for any x ∈ xs,
+         we can attain its fragment as evidence that it is
+         mapped to by some k in m; and since "HRs", so we know (tmeporarily)
+         that x conforms to R.
+         XXX: I suppose that this part can be further simplified and split out
+         *)
+      (* iAssert (p_inv_R γm γ2 Q x) as "Hx". *)
       admit.
     - apply to_of_val.
     - iFrame "#". iFrame "Hl2 Hl3 Ho2".
@@ -154,69 +188,125 @@ Section proof.
     - done.
   Admitted.
 
-  Lemma loop_iter_spec Φ (f: val) (s: loc) Q (γhd γgn γ2: gname):
+  Lemma loop_spec Φ (p s: loc) (lk: val) (f: val)
+        Q (γ2 γm γ γlk: gname) (γx γ1 γ3 γ4: gname):
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★
-    own γ2 (Excl ()) ★ (own γ2 (Excl ()) -★ Φ #())
-    ⊢ WP iter (doOp f) #s {{ Φ }}.
+    heap_ctx ★ inv N (srv_stack_inv γ γm γ2 s Q) ★ is_lock N γlk lk (own γ2 (Excl ())) ★
+    own γ3 (Excl ()) ★ (∃ q: Qp, own γm (◯ {[ p := (q, DecAgree (γx, γ1, γ3, γ4)) ]})) ★
+    □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ (∀ x y,  own γx ((1 / 2)%Qp, DecAgree x) -★ ■ Q x y -★  Φ y)
+    ⊢ WP loop f #p #s lk {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & #? & #? & ? & ?)".
-    iAssert (∃ (hd: loc) xs, is_list hd xs ★ own γhd (◯ {[ hd ]}) ★ s ↦ #hd)%I as "H".
-    { admit. }
-    iDestruct "H" as (hd xs) "(? & ? & ?)".
-    wp_bind (doOp _).
-    iApply wp_wand_r.
-    iSplitR "~5".
-    - iApply loop_iter_list_spec=>//.
-      iFrame "Hh". iFrame. by iFrame "#".
-    - iIntros (v) "Hf'".
-      wp_let. wp_let. wp_load.
-        by iClear "~5".
-  Admitted.
-
-  Lemma loop_spec Φ (p s lk: loc) (f: val) Q (γhd γgn γ2 γlk: gname) γs:
-    heapN ⊥ N →
-    heap_ctx ★ inv N (srv_inv γhd γgn γ2 s Q) ★ inv N (lock_inv γlk lk (own γ2 (Excl ()))) ★
-    own γgn (◯ {[ p := γs ]})  ★ □ (∀ x:val, WP f x {{ v, ■ Q x v }})%I ★ (∀ x y, ■ Q x y → Φ y) (* there should be some constraints on x *)
-    ⊢ WP loop #p f #s #lk {{ Φ }}.
-  Proof.
-    iIntros (HN) "(#Hh & #? & #? & #? & #? & HΦ)".
-    iLöb as "IH".
-    wp_rec. repeat wp_let.
-    (* we should be able to know p is something by open the invariant and using the fragment *)
-    (* but for now we will move fast *)
-    iAssert (p_inv' γ2 γs p Q) as "Hp".
-    { admit. }
-    rewrite /p_inv'. destruct γs as [[[[γx γ1] γ3] γ4]|]; last by iExFalso.
-    iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
-    - (* I should be able to refuse this case *) admit.
+    iIntros (HN) "(#Hh & #? & #? & Ho3 & Hγs & #? & HΦ)".
+    iLöb as "IH". wp_rec. repeat wp_let.
+    iDestruct "Hγs" as (q) "Hγs".
+    wp_bind (! _)%E. iInv N as ">Hinv" "Hclose".
+    iDestruct "Hinv" as (xs hd) "[Hs [Hxs HRs]]".
+    (* iAssert (|=r=>own γm (◯ {[p := ((q/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]} ⋅ *)
+    (*                       ◯ {[p := ((q/2)%Qp, DecAgree (γx, γ1, γ3, γ4))]}))%I *)
+    (*         with "[Hγs]" as "==>[Hfrag1 Hfrag2]". *)
+    (* { iDestruct (own_update with "Hγs") as "?"; last by iAssumption. *)
+    (*   rewrite <- auth_frag_op. *)
+    (*   by rewrite op_singleton pair_op dec_agree_idemp frac_op' Qp_div_2. } *)
+    iDestruct "HRs" as (m) "[Hom HRs]".
+    destruct (decide (m !! p = None)).
     - admit.
-    - admit.
-    - iDestruct "Hp" as (x y) "(Hp & Hx & % & Ho1 & Ho4)".
-      (* there should be some token exchange *)
-      wp_load. wp_match.
-      by iApply "HΦ".
+      (* impossible -- because of the fragment *)
+    - iAssert (([★ map] _↦v ∈ delete p m, ∃ v' : val, v = (1%Qp, DecAgree v') ★ p_inv_R γm γ2 Q v') ★
+               (∃ v, v = (1%Qp, DecAgree #p) ★ p_inv_R γm γ2 Q #p))%I
+              with "[HRs]" as "[HRs Hp]".
+      { admit. }
+      iDestruct "Hp" as (?) "[% Hpr]"; subst.
+      iDestruct "Hpr" as (γx' γ1' γ3' γ4' p' q') "(% & Hp' & Hp)".
+      inversion H. subst.
+      destruct (decide (γ1 = γ1' ∧ γx = γx' ∧ γ3 = γ3' ∧ γ4 = γ4')) as [[? [? [? ?]]]|Hneq].
+      + subst. 
+        iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
+        * admit.
+        * iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
+          wp_load.
+          iVs ("Hclose" with "[-Hp' Ho3 HΦ]").
+          { iNext. iExists xs, hd. iFrame. iExists m. iFrame. (* merge *) admit. }
+          iVsIntro. wp_match. (* we should close it as it is in this case *)
+          (* now, just reason like a server *)
+          wp_bind (try_acquire _). iApply try_acquire_spec.
+          iFrame "#". iSplit.
+          { (* acquired the lock *)
+            iIntros "Hlocked Ho2".
+            wp_if. wp_bind ((iter' _) _). wp_bind (! _)%E.
+            iInv N as ">H" "Hclose".
+            iDestruct "H" as (xs' hd') "[Hs [Hxs HRs]]".
+            wp_load. iDestruct (dup_is_list' with "[Hxs]") as "==>[Hxs1 Hxs2]"; first by iFrame.
+            iVs ("Hclose" with "[Hs Hxs1 HRs]").
+            { iNext. iExists xs', hd'. by iFrame. }
+            iVsIntro. iApply loop_iter_list_spec=>//.
+            iFrame "#". iSplitR; first eauto.
+            iFrame. iIntros "Ho2".
+            wp_seq. wp_bind (release _). iApply release_spec.
+            iFrame "~ Hlocked Ho2". wp_seq.
+            (* maybe q q' should be equal? or we just need any kind of q? *)
+            iAssert ((∃ q0 : Qp,
+                        own γm (◯ {[p' := (q0, DecAgree (γx', γ1', γ3', γ4'))]})))%I with "[Hp']" as "Hp'".
+            { eauto. }
+            by iApply ("IH" with "Ho3 Hp'"). }
+          {  wp_if.
+            iAssert ((∃ q0 : Qp,
+                        own γm (◯ {[p' := (q0, DecAgree (γx', γ1', γ3', γ4'))]})))%I with "[Hp']" as "Hp'".
+            { eauto. }
+            iApply ("IH" with "Ho3 Hp'")=>//. }
+        * iDestruct "Hp" as (x) "(Hp & Hx & Ho1 & Ho4)".
+          wp_load.
+          iVs ("Hclose" with "[-Hp' Ho3 HΦ]").
+          { iNext. iExists xs, hd. iFrame. iExists m. iFrame. (* merge *) admit. }
+          iVsIntro. wp_match. (* we should close it as it is in this case *)
+          wp_bind (try_acquire _). iApply try_acquire_spec.
+          iFrame "#". iSplit.
+          { (* impossible *) admit. }
+          { wp_if.
+            iAssert ((∃ q0 : Qp,
+                        own γm (◯ {[p' := (q0, DecAgree (γx', γ1', γ3', γ4'))]})))%I with "[Hp']" as "Hp'".
+            { eauto. }
+            iApply ("IH" with "Ho3 Hp'")=>//. }
+        * iDestruct "Hp" as (x y) "(Hp & Hox & % & Ho1 & Ho4)".
+          wp_load.
+          iVs ("Hclose" with "[-Hp' Ho3 HΦ Hox]").
+          { iNext. iExists xs, hd. iFrame. iExists m. iFrame. (* merge *) admit. }
+          iVsIntro. wp_match. by iApply ("HΦ" with "Hox").
+      + iCombine "Hγs" "Hp'" as "Hγs".
+        iExFalso.
+        admit.
   Admitted.
 
   Lemma flat_spec (f: val) Q:
     heapN ⊥ N →
     heap_ctx ★ □ (∀ x: val, WP f x {{ v, ■ Q x v }})%I
-    ⊢ WP flat f {{ f', □ (∀ x: val, WP f' x {{ v, ■ Q x v }}) }}.
+    ⊢ WP flat f #() {{ f', □ (∀ x: val, WP f' x {{ v, ■ Q x v }}) }}.
   Proof.
     iIntros (HN) "(#Hh & #?)".
-    wp_seq. wp_alloc lk as "Hl".
     iVs (own_alloc (Excl ())) as (γ2) "Ho2"; first done.
-    iVs (own_alloc (Excl ())) as (γlk) "Hγlk"; first done.
-    iVs (own_alloc (● (∅: hdsetR) ⋅ ◯ ∅)) as (γhd) "[Hgs Hgs']"; first admit.
-    iVs (own_alloc (● ∅ ⋅ ◯ ∅)) as (γgn) "[Hgs Hgs']"; first admit.
-    iVs (own_alloc ()) as (γlk) "Hγlk"; first done.
-    iVs (inv_alloc N _ (lock_inv γlk lk (own γ2 (Excl ()))) with "[-]") as "#?".
-    { iIntros "!>". iExists false. by iFrame. }
+    iVs (own_alloc (● (∅: tokR) ⋅ ◯ ∅)) as (γm) "[Hm _]".
+    { by rewrite -auth_both_op. }
+    iVs (inv_alloc N _ (srv_m_inv γm)%I with "[Hm]") as "#Hm"; first eauto.
+    { iNext. rewrite /srv_m_inv. iExists ∅. iFrame. (* XXX: iApply big_sepM_empty. *)
+      by rewrite /uPred_big_sepM map_to_list_empty. }
+    wp_seq. wp_bind (newlock _).
+    iApply newlock_spec=>//.
+    iFrame "Hh Ho2". iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
-    iApply new_stack_spec=>//.
-    iFrame "Hh". iIntros (s) "Hs".
-    iVs (inv_alloc N _ (srv_inv γhd γgn γ2 s Q) with "") as "#?".
-    wp_let.
-    iVsIntro. iPureIntro
+    iApply (new_stack_spec' _ (p_inv_R γm γ2 Q))=>//.
+    iFrame "Hh". iIntros (γ s) "#Hss".
+    wp_let. iVsIntro. iAlways.
+    iIntros (x). wp_let.
+    wp_bind ((install _) _).
+    iApply install_spec=>//.
+    iFrame "Hh Hss Hm". iIntros (p γx γ1 _ γ3 γ4) "Hp3 Hpx Hx".
+    wp_let. iApply loop_spec=>//.
+    iFrame "Hh Hss Hlk". iFrame.
+    iSplitL "Hpx"; first eauto.
+    iSplitR; first eauto. iIntros (? ?) "Hox %".
+    destruct (decide (x = a)) as [->|Hneq]; first done.
+    iExFalso. iCombine "Hx" "Hox" as "Hx".
+    iDestruct (own_valid with "Hx") as "%".
+    rewrite pair_op in H0. destruct H0 as [_ ?]. simpl in H0.
+    rewrite dec_agree_ne in H0=>//.
   Qed.
 End proof.
