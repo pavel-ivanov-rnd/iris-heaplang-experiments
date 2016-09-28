@@ -39,11 +39,28 @@ Section lemmas.
     m !! k = Some v → ([★ map] k ↦ v ∈ m, R k) ⊢ R k ★ ([★ map] k ↦ v ∈ delete k m, R k).
   Proof. iIntros (?) "HRm". by iApply (big_sepM_delete (fun k _ => R k)). Qed.
 
+  Lemma merge_mapk
+        {Σ} {K: Type} `{Countable K} {V: cmraT}
+        (m: gmapUR K V) (k: K) (v: V) (R: K → iProp Σ) :
+    R k ★ ([★ map] k ↦ v ∈ delete k m, R k) ⊢ ([★ map] k ↦ v ∈ m, R k).
+  Proof.
+    iIntros "[Hk HRs]".
+    destruct (m !! k) eqn:Heqn.
+    - iApply (big_sepM_delete (fun k _ => R k))=>//. iFrame.
+    - rewrite delete_notin=>//.
+  Qed.
+  
   Lemma split_mapv
         {Σ} {K: Type} `{Countable K} {V: cmraT}
         (m: gmapUR K V) (k: K) (v: V) (R: V → iProp Σ) :
     m !! k = Some v → ([★ map] k ↦ v ∈ m, R v) ⊢ R v ★ ([★ map] k ↦ v ∈ delete k m, R v).
   Proof. iIntros (?) "HRm". by iApply (big_sepM_delete (fun _ v => R v)). Qed.
+
+  Lemma merge_mapv
+        {Σ} {K: Type} `{Countable K} {V: cmraT}
+        (m: gmapUR K V) (k: K) (v: V) (R: V → iProp Σ) :
+    m !! k = Some v → R v ★ ([★ map] k ↦ v ∈ delete k m, R v) ⊢ ([★ map] k ↦ v ∈ m, R v).
+  Proof. iIntros (?) "HRm". iApply (big_sepM_delete (fun _ v => R v))=>//. Qed.
 
   Lemma map_agree {A: cmraT} m m' (hd: loc) (p q: A) x y:
     m !! hd = Some (p, DecAgree y) →
@@ -57,13 +74,12 @@ Section lemmas.
     - rewrite dec_agree_ne in H3=>//.
   Qed.
 
-  Lemma map_agree_none {A: cmraT} m m' (hd: loc) (q: A) x:
+  Lemma map_agree_none {A: cmraT} m m' (hd: loc) (q: A) (x: val):
     m !! hd = None → m = {[hd := (q, DecAgree x)]} ⋅ m' → False.
   Proof.
     intros H1 H2. subst. rewrite lookup_op lookup_singleton in H1.
     destruct (m' !! hd)=>//.
   Qed.
-
 End lemmas.
 
 
