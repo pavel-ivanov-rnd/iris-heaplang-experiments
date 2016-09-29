@@ -102,7 +102,8 @@ VFILES:=sync.v\
   sync_stack.v\
   protocol.v\
   misc.v\
-  atomic_pair.v
+  atomic_pair.v\
+  srv.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
