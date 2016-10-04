@@ -90,9 +90,9 @@ Section proof.
   Definition is_plock (fs: val) (R1 R2 : iProp Σ) : iProp Σ :=
     (∃ (l1 l2: loc) (f1 f2 f3: val) (γ1 γ2: gname),
        heapN ⊥ N ∧ heap_ctx ∧ fs = (f1, f2, f3)%V ∧
-       refines f1 (casp_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2) ∧
-       refines f2 (loadp_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2) ∧
-       refines f3 (storep_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2))%I.
+       synced f1 (casp_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2) ∧
+       synced f2 (loadp_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2) ∧
+       synced f3 (storep_seq' l1 l2) (plock_inv γ1 γ2 R1 R2 l1 l2))%I.
 
   Global Instance is_plock_persistent p R1 R2: PersistentP (is_plock p R1 R2).
   Proof. apply _. Qed.
@@ -150,7 +150,7 @@ Section proof.
     iIntros "(#Hp & HΦ)".
     iLöb as "Hl".
     wp_rec. wp_let.
-    rewrite /is_plock /refines.
+    rewrite /is_plock /synced.
     iDestruct "Hp" as (l1 l2 casp loadp storep γ1 γ2) "(#? & #? & % & #HRcas & _ & #HRstore)".
     subst. wp_proj. wp_proj. wp_bind (casp _).
     iAssert ({{ True }} casp (#false%V, #true%V)%E {{ z, z = #false ∨ (z =#true ★ plocked ★ R1 ★ R2)}})%I as "#HP".

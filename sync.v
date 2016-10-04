@@ -24,20 +24,20 @@ Global Opaque mk_sync.
 Section syncer.
   Context `{!heapG Σ, !lockG Σ} (N: namespace).
   
-  (* f' refines f *)
-  Definition refines (f' f: val) (R: iProp Σ): iProp Σ :=
+  (* R synced f w.r.t f' *)
+  Definition synced (f' f: val) (R: iProp Σ): iProp Σ :=
     (□ ∀ (x: expr) (v: val) (P: iProp Σ) (Q: val -> iProp Σ),
          to_val x = Some v -★
          {{ R ★ P }} f x {{ z, R ★ Q z }} -★
          {{ P }} f' x {{ z, Q z }})%I.
 
-  Global Instance refines_persistent f f' R: PersistentP (refines f f' R).
+  Global Instance synced_persistent f f' R: PersistentP (synced f f' R).
   Proof. apply _. Qed.
 
-  Global Opaque refines.
+  Global Opaque synced.
   
   Definition is_syncer (R: iProp Σ) (s: val) : iProp Σ :=
-    (∀ (f : val), WP s f {{ f', refines f' f R }})%I.
+    (∀ (f : val), WP s f {{ f', synced f' f R }})%I.
 
   Lemma mk_sync_spec_wp:
     ∀ (R: iProp Σ) (Φ: val -> iProp Σ),
@@ -51,7 +51,7 @@ Section syncer.
     iFrame "HR".
     iIntros (lk γ) "#Hl". wp_let. iApply "HΦ". iIntros "!#".
     rewrite /is_syncer. iIntros (f).
-    wp_let. iVsIntro. rewrite /refines. iIntros "!#".
+    wp_let. iVsIntro. rewrite /synced. iIntros "!#".
     iIntros (x v P Q <-%of_to_val) "#Hf !# HP".
     wp_let.
     wp_bind (acquire _).
@@ -143,23 +143,23 @@ Section atomic_sync.
     iIntros (s) "#Hsyncer".
     wp_let. rewrite /is_syncer /seq_spec.
     wp_bind (f_seq _). iApply wp_wand_r. iSplitR; first by iApply (Hseq with "[]")=>//.
-    iIntros (f) "%". (* FIXME: name *)
+    iIntros (f Hf).
     iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
-    iIntros (v) "#Hrefines".
+    iIntros (v) "#Hsynced".
     iExists γ. iFrame. iIntros (x).
     iAlways. rewrite /atomic_triple'.
     iIntros (P Q) "#Hvss".
-    rewrite /refines.
-    iDestruct "Hrefines" as "#Hrefines".
-    iSpecialize ("Hrefines" $! (of_val x) x P Q).
-    iApply ("Hrefines" with "[]"); first by rewrite to_of_val.
+    rewrite /synced.
+    iDestruct "Hsynced" as "#Hsynced".
+    iSpecialize ("Hsynced" $! (of_val x) x P Q).
+    iApply ("Hsynced" with "[]"); first by rewrite to_of_val.
     iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ HgFull]".
     (* we should view shift at this point *)
     iDestruct ("Hvss" $! g) as "[Hvs1 [Hvs2 Hvs3]]".
     iApply pvs_wp.
     iVs ("Hvs1" with "HP") as "[HgFrag #Hα]".
     iVs ("Hvs2" with "[HgFrag]") as "HP"; first by iFrame.
-    iVsIntro. iApply H=>//. (* FIXME: name *)
+    iVsIntro. iApply Hf=>//.
     iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
     iVs ("Hvs1" with "HP") as "[HgFrag _]".
     iCombine "HgFull" "HgFrag" as "Hg".
