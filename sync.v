@@ -3,10 +3,9 @@ From iris.proofmode Require Import invariants ghost_ownership.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.tests Require Import atomic.
+From iris.tests Require Import atomic misc.
 From iris.algebra Require Import dec_agree frac.
 From iris.program_logic Require Import auth.
-From flatcomb Require Import misc.
 Import uPred.
 
 (* See CaReSL paper §3.2 *)
