@@ -96,7 +96,7 @@ endif
 #                    #
 ######################
 
-VFILES:=sync.v\
+VFILES:=simple_sync.v\
   pair_cas.v\
   flat.v\
   atomic_pair.v\
