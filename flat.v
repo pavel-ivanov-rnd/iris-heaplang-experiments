@@ -49,7 +49,8 @@ Definition mk_flat : val :=
    let: "s" := new_stack #() in
    λ: "x",
       let: "p" := install "x" "s" in
-      loop "f" "p" "s" "lk".
+      let: "r" := loop "f" "p" "s" "lk" in
+      "r".
 
 Global Opaque doOp try_srv install loop mk_flat.
 
@@ -406,7 +407,7 @@ Section proof.
   Qed.
 
   Definition flatten (f' f: val) :=
-    (∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, ▷ Q x v }}))%I.
+    (∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, Q x v }}))%I.
 
   Lemma mk_flat_spec (f: val) :
     ∀ (Φ: val → iProp Σ),
@@ -431,13 +432,14 @@ Section proof.
     iApply (install_spec _ P Q)=>//.
     iFrame "#". iFrame "Hp". iSplitR; first iApply "Hf".
     iIntros (p [[[[γx γ1] γ3] γ4] γq]) "(Ho3 & Hx & HoQ) Hev Hhd".
-    wp_let. iApply loop_spec=>//.
+    wp_let. wp_bind (loop _ _ _ _).
+    iApply loop_spec=>//.
     iFrame "#". iFrame.
     iIntros (? ?) "Hs".
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
     destruct (decide (x = a)) as [->|Hneq].
     - iDestruct (saved_prop_agree with "[HoQ HoQ']") as "Heq"; first by iFrame.
-      iNext. iDestruct (uPred.cofe_funC_equivI with "Heq") as "Heq".
+      wp_let. iDestruct (uPred.cofe_funC_equivI with "Heq") as "Heq".
       iSpecialize ("Heq" $! a0). by iRewrite "Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
@@ -478,7 +480,7 @@ Section atomic_sync.
     (∀ P Q, (∀ g, (P x ={Eo, Ei}=> gFrag γ g ★ □ α x) ★
                   (gFrag γ g ★ □ α x ={Ei, Eo}=> P x) ★
                   (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q x r))
-            -★ {{ P x }} f x {{ v, ▷ Q x v }})%I.
+            -★ {{ P x }} f x {{ v, Q x v }})%I.
 
   Definition sync : val :=
     λ: "f_cons" "f_seq",
