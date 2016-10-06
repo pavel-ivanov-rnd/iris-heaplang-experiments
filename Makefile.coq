@@ -99,7 +99,8 @@ endif
 VFILES:=sync.v\
   pair_cas.v\
   flat.v\
-  atomic_pair.v
+  atomic_pair.v\
+  atomic_sync.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))

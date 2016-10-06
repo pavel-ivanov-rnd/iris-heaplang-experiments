@@ -1,5 +1,4 @@
 From iris.program_logic Require Export weakestpre hoare.
-From iris.proofmode Require Import invariants ghost_ownership.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.

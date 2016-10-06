@@ -4,6 +4,7 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import upred frac agree excl dec_agree upred_big_op gset gmap.
 From iris.tests Require Import misc atomic treiber_stack.
+Require Import flatcomb.atomic_sync.
 
 Definition doOp : val :=
   λ: "f" "p",
@@ -406,13 +407,10 @@ Section proof.
       rewrite /ev. eauto.
   Qed.
 
-  Definition flatten (f' f: val) :=
-    (∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, Q x v }}))%I.
-
   Lemma mk_flat_spec (f: val) :
     ∀ (Φ: val → iProp Σ),
       heapN ⊥ N → 
-      heap_ctx ★ R ★ (∀ f', □ flatten f' f -★ Φ f') ⊢ WP mk_flat f {{ Φ }}.
+      heap_ctx ★ R ★ (∀ f', □ synced R f' f -★ Φ f') ⊢ WP mk_flat f {{ Φ }}.
   Proof.
     iIntros (Φ HN) "(#Hh & HR & HΦ)".
     iVs (own_alloc (Excl ())) as (γr) "Ho2"; first done.
@@ -425,7 +423,7 @@ Section proof.
     wp_let. wp_bind (new_stack _).
     iApply (new_stack_spec' _ (p_inv γm γr f))=>//.
     iFrame "Hh Hm". iIntros (γ s) "#Hss".
-    wp_let. iVsIntro. iApply "HΦ". rewrite /flatten.
+    wp_let. iVsIntro. iApply "HΦ". rewrite /synced.
     iAlways. iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_let.
     wp_bind ((install _) _).
@@ -448,99 +446,24 @@ Section proof.
 
 End proof.
 
-Definition syncR := prodR fracR (dec_agreeR val).  (* FIXME: can't use a general A instead of val *)
-Class syncG Σ := sync_tokG :> inG Σ syncR.
-Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
-
-Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
-Proof. by intros ?%subG_inG. Qed.
-
 Section atomic_sync.
   Context `{!heapG Σ, !lockG Σ, !syncG Σ, !evidenceG loc val Σ, !flatG Σ} (N : namespace).
 
-  Definition A := val.
-
-  Definition gFragR g : syncR := ((1/2)%Qp, DecAgree g).
-  Definition gFullR g : syncR := ((1/2)%Qp, DecAgree g).
-
-  Definition gFrag (γ: gname) g : iProp Σ := own γ (gFragR g).
-  Definition gFull (γ: gname) g : iProp Σ := own γ (gFullR g).
-  
-  Global Instance frag_timeless γ g: TimelessP (gFrag γ g).
-  Proof. apply _. Qed.
-
-  Global Instance full_timeless γ g: TimelessP (gFull γ g).
-  Proof. apply _. Qed.
-  
-  Definition atomic_triple'
-             (α: val → iProp Σ)
-             (β: val → A → A → val → iProp Σ)
-             (Ei Eo: coPset)
-             (f x: val) γ : iProp Σ :=
-    (∀ P Q, (∀ g, (P x ={Eo, Ei}=> gFrag γ g ★ □ α x) ★
-                  (gFrag γ g ★ □ α x ={Ei, Eo}=> P x) ★
-                  (∀ g' r, gFrag γ g' ★ β x g g' r ={Ei, Eo}=> Q x r))
-            -★ {{ P x }} f x {{ v, Q x v }})%I.
-
-  Definition sync : val :=
+  Definition flat_sync : val :=
     λ: "f_cons" "f_seq",
         let: "l"  := "f_cons" #() in
         mk_flat ("f_seq" "l").
-
-  Definition seq_spec (f: val) (ϕ: val → A → iProp Σ) α β (E: coPset) :=
-      ∀ (Φ: val → iProp Σ) (l: val),
-         {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
-                               heapN ⊥ N →
-                               heap_ctx ★ ϕ l g ★ □ α x ★
-                               (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
-                               ⊢ WP f' x @ E {{ Φ }} )}}.
-
-  Definition cons_spec (f: val) (g: A) ϕ :=
-      ∀ Φ: val → iProp Σ, heapN ⊥ N →
-        heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gFull γ g -★ gFrag γ g -★ Φ l)
-        ⊢ WP f #() {{ Φ }}.
   
-  Lemma atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
+  Lemma flat_atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
-        heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ → cons_spec f_cons g0 ϕ →
+        heapN ⊥ N → seq_spec N f_seq ϕ α β ⊤ → cons_spec N f_cons g0 ϕ →
         heap_ctx
-        ⊢ WP sync f_cons f_seq {{ f, ∃ γ, gFrag γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
+        ⊢ WP flat_sync f_cons f_seq {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.
-    iIntros (g0 HN Hseq Hcons) "#Hh". repeat wp_let.
-    wp_bind (f_cons _). iApply Hcons=>//. iFrame "Hh".
-    iIntros (l γ) "Hϕ HFull HFrag".
-    wp_let. wp_bind (f_seq _)%E.
-    iApply wp_wand_r. iSplitR; first by iApply (Hseq with "[]")=>//.
-    iIntros (f Hf). iApply (mk_flat_spec _ (∃ g: A, ϕ l g ★ gFull γ g)%I)=>//.
-    iFrame "#". iSplitL "HFull Hϕ".
-    { iExists g0. by iFrame. }
-    iIntros (f') "#Hflatten".
-    iExists γ. iFrame.
-    iIntros (x). iAlways.
-    rewrite /atomic_triple'.
-    iIntros (P Q) "#Hvss".
-    rewrite /flatten.
-    iSpecialize ("Hflatten" $! P Q).
-    iApply ("Hflatten" with "[]").
-    iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ HgFull]".
-    (* we should view shift at this point *)
-    iDestruct ("Hvss" $! g) as "[Hvs1 [Hvs2 Hvs3]]".
-    iApply pvs_wp.
-    iVs ("Hvs1" with "HP") as "[HgFrag #Hα]".
-    iVs ("Hvs2" with "[HgFrag]") as "HP"; first by iFrame.
-    iVsIntro. iApply Hf=>//.
-    iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
-    iVs ("Hvs1" with "HP") as "[HgFrag _]".
-    iCombine "HgFull" "HgFrag" as "Hg".
-    rewrite /gFullR /gFragR.
-    iAssert (|=r=> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I with "[Hg]" as "Hupd".
-    { iApply (own_update); last by iAssumption. apply pair_l_frac_update. }
-    iVs "Hupd" as "[HgFull HgFrag]".
-    iVs ("Hvs3" $! g' ret with "[HgFrag Hβ]"); first by iFrame.
-    iVsIntro.
-    iSplitL "HgFull Hϕ'".
-    - iExists g'. by iFrame.
-    - done.
+    iIntros (????) "#?". iApply (atomic_spec N mk_flat with "[-]")=>//.
+    rewrite /mk_sync_spec.
+    iIntros (????) "(?&?&?)".
+    iApply (mk_flat_spec N R)=>//.
+    iFrame.
   Qed.
-  
 End atomic_sync.
