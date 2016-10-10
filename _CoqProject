@@ -4,3 +4,5 @@ pair_cas.v
 flat.v
 atomic_pair.v
 atomic_sync.v
+treiber.v
+

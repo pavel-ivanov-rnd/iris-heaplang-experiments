@@ -100,7 +100,8 @@ VFILES:=simple_sync.v\
   pair_cas.v\
   flat.v\
   atomic_pair.v\
-  atomic_sync.v
+  atomic_sync.v\
+  treiber.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
