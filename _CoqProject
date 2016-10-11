@@ -1,8 +1,11 @@
 -Q . iris_atomic
 atomic.v
+sync.v
+atomic_incr.v
 simple_sync.v
 flat.v
 atomic_sync.v
 treiber.v
 misc.v
 evmap.v
+peritem.v

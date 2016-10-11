@@ -3,7 +3,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import dec_agree frac.
-From iris_atomic Require Import atomic misc.
+From iris_atomic Require Import atomic sync misc.
 
 Definition syncR := prodR fracR (dec_agreeR val).
 Class syncG Σ := sync_tokG :> inG Σ syncR.
@@ -39,22 +39,11 @@ Section atomic_sync.
                                heap_ctx ★ ϕ l g ★ □ α x ★
                                (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-
-  Definition synced R (f' f: val) :=
-    (□ ∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, Q x v }}))%I.
-
-  Definition is_syncer (R: iProp Σ) (s: val) :=
-    (∀ (f : val), WP s f {{ f', synced R f' f }})%I.
-
-  Definition mk_syncer_spec (mk_syncer: val) :=
-    ∀ (R: iProp Σ) (Φ: val -> iProp Σ),
-      heapN ⊥ N →
-      heap_ctx ★ R ★ (∀ s, □ (is_syncer R s) -★ Φ s) ⊢ WP mk_syncer #() {{ Φ }}.
   
   Lemma atomic_spec (mk_syncer f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
         heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ →
-        mk_syncer_spec mk_syncer →
+        mk_syncer_spec N mk_syncer →
         heap_ctx ★ ϕ l g0
         ⊢ WP (sync mk_syncer) f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.

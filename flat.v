@@ -3,12 +3,12 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import auth upred frac agree excl dec_agree upred_big_op gset gmap.
-From iris_atomic Require Import misc atomic treiber atomic_sync evmap.
+From iris_atomic Require Import misc peritem sync evmap.
 
 Definition doOp : val :=
   λ: "p",
      match: !"p" with
-      InjL "req" => "p" <- InjR ((Fst "req") (Snd "req"))
+       InjL "req" => "p" <- InjR ((Fst "req") (Snd "req"))
      | InjR "_" => #()
      end.
 

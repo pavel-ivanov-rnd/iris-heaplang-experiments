@@ -97,12 +97,15 @@ endif
 ######################
 
 VFILES:=atomic.v\
+  sync.v\
+  atomic_incr.v\
   simple_sync.v\
   flat.v\
   atomic_sync.v\
   treiber.v\
   misc.v\
-  evmap.v
+  evmap.v\
+  peritem.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
