@@ -28,7 +28,7 @@ Section atomic_sync.
                                 (f x) (P x) (fun _ => Q x))%I.
        
   Definition sync (mk_syncer: val) : val :=
-    λ: "f_cons" "f_seq" "l",
+    λ: "f_seq" "l",
        let: "s" := mk_syncer #() in
        "s" ("f_seq" "l").
 
@@ -51,12 +51,12 @@ Section atomic_sync.
       heapN ⊥ N →
       heap_ctx ★ R ★ (∀ s, □ (is_syncer R s) -★ Φ s) ⊢ WP mk_syncer #() {{ Φ }}.
   
-  Lemma atomic_spec (mk_syncer f_cons f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
+  Lemma atomic_spec (mk_syncer f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
         heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ →
         mk_syncer_spec mk_syncer →
         heap_ctx ★ ϕ l g0
-        ⊢ WP (sync mk_syncer) f_cons f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
+        ⊢ WP (sync mk_syncer) f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.
     iIntros (g0 HN Hseq Hsync) "[#Hh Hϕ]".
     iVs (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
