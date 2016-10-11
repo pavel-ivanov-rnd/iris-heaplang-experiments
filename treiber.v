@@ -106,8 +106,8 @@ Section proof.
   Qed.
 
   Definition push_triple (s: loc) (x: val) :=
-    atomic_triple (fun xs_hd: list val * loc =>
-                     let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
+  atomic_triple _ (fun xs_hd: list val * loc =>
+                       let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
                   (fun xs_hd ret =>
                      let '(xs, hd) := xs_hd in 
                      ∃ hd': loc,
@@ -140,7 +140,7 @@ Section proof.
   Qed.
 
   Definition pop_triple (s: loc) :=
-    atomic_triple (fun xs_hd: list val * loc =>
+  atomic_triple _ (fun xs_hd: list val * loc =>
                      let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
                   (fun xs_hd ret =>
                      let '(xs, hd) := xs_hd in

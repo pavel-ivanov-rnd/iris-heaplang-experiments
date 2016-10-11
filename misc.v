@@ -84,20 +84,26 @@ End big_op_later.
 
 Section pair.
   Context `{EqDecision A, !inG Σ (prodR fracR (dec_agreeR A))}.
-  
+
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ★ own γm (q2, DecAgree a2)
-    ⊢ |=r=> own γm ((q1 + q2)%Qp, DecAgree a1) ★ (a1 = a2).
+    own γm (q1, DecAgree a1) ★ own γm (q2, DecAgree a2) ⊢ (a1 = a2).
   Proof.
     iIntros "[Ho Ho']".
-    destruct (decide (a1 = a2)) as [->|Hneq].
-    - iSplitL=>//.
-      iCombine "Ho" "Ho'" as "Ho".
-      iDestruct (own_update with "Ho") as "?"; last by iAssumption.
-      by rewrite pair_op frac_op' dec_agree_idemp.
-    - iCombine "Ho" "Ho'" as "Ho".
-      iDestruct (own_valid with "Ho") as %Hvalid.
-      exfalso. destruct Hvalid as [_ Hvalid].
-      simpl in Hvalid. apply dec_agree_op_inv in Hvalid. inversion Hvalid. subst. auto.
+    destruct (decide (a1 = a2)) as [->|Hneq]=>//.
+    iCombine "Ho" "Ho'" as "Ho".
+    iDestruct (own_valid with "Ho") as %Hvalid.
+    exfalso. destruct Hvalid as [_ Hvalid].
+    simpl in Hvalid. apply dec_agree_op_inv in Hvalid. inversion Hvalid. subst. auto.
+  Qed.
+  
+  Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
+    own γm (q1, DecAgree a1) ★ own γm (q2, DecAgree a2)
+    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ★ (a1 = a2).
+  Proof.
+    iIntros "[Ho Ho']".
+    iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.
+    subst. iCombine "Ho" "Ho'" as "Ho".
+    rewrite pair_op frac_op' dec_agree_idemp. by iFrame.
   Qed.
 End pair.
+

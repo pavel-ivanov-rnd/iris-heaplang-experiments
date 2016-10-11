@@ -7,9 +7,9 @@ From iris_atomic Require Import atomic atomic_sync.
 Import uPred.
 
 Definition mk_sync: val :=
-  λ: "f",
+  λ: <>,
        let: "l" := newlock #() in
-       λ: "x",
+       λ: "f" "x",
           acquire "l";;
           let: "ret" := "f" "x" in
           release "l";;
@@ -20,18 +20,16 @@ Global Opaque mk_sync.
 Section syncer.
   Context `{!heapG Σ, !lockG Σ} (N: namespace).
   
-  Lemma mk_sync_spec (R: iProp Σ) (f: val):
-    ∀ (Φ: val -> iProp Σ),
-      heapN ⊥ N →
-      heap_ctx ★ R ★ (∀ f', □ (synced R f' f) -★ Φ f') ⊢ WP mk_sync f {{ Φ }}.
+  Lemma mk_sync_spec: mk_syncer_spec N mk_sync.
   Proof.
-    iIntros (Φ HN) "(#Hh & HR & HΦ)".
+    iIntros (R Φ HN) "(#Hh & HR & HΦ)".
     wp_seq. wp_bind (newlock _).
     iApply newlock_spec; first done.
     iSplitR "HR HΦ"; first done.
     iFrame "HR".
     iIntros (lk γ) "#Hl". wp_let. iApply "HΦ". iIntros "!#".
-    rewrite /synced. iIntros (P Q x) "#Hf !# HP".
+    iIntros (f). wp_let. iVsIntro. iAlways.
+    iIntros (P Q x) "#Hf !# HP".
     wp_let. wp_bind (acquire _).
     iApply acquire_spec. iSplit; first done.
     iIntros "Hlocked R". wp_seq. wp_bind (f _).
@@ -42,20 +40,3 @@ Section syncer.
     iFrame. by wp_seq.
   Qed.
 End syncer.
-
-Section atomic_sync.
-  Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
-
-  Lemma mk_sync_atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
-      ∀ (g0: A),
-        heapN ⊥ N → seq_spec N f_seq ϕ α β ⊤ → cons_spec N f_cons g0 ϕ →
-        heap_ctx
-        ⊢ WP (sync mk_sync) f_cons f_seq {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
-  Proof.
-    iIntros (????) "#Hh".
-    iApply (atomic_spec N mk_sync with "[-]")=>//.
-    iIntros (????) "(?&?&?)". iApply (mk_sync_spec N R)=>//.
-    iFrame.
-  Qed.
-  
-End atomic_sync.

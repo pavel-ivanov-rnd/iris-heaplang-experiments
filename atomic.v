@@ -5,38 +5,21 @@ From iris.proofmode Require Import tactics.
 Import uPred.
 
 Section atomic.
-  Context `{irisG Λ Σ} {A: Type}.
+  Context `{irisG Λ Σ} (A: Type).
+
+  Definition atomic_triple_base
+             (α: A → iProp Σ)
+             (β: A → val _ → iProp Σ)
+             (Ei Eo: coPset)
+             (e: expr _) P Q : iProp Σ :=
+    ((P ={Eo, Ei}=> ∃ x:A,
+                       α x ★
+                       ((α x ={Ei, Eo}=★ P) ∧
+                        (∀ v, β x v ={Ei, Eo}=★ Q x v))
+     ) -★ {{ P }} e @ ⊤ {{ v, (∃ x: A, Q x v) }})%I.
 
   (* logically atomic triple: <x, α> e @ E_i, E_o <v, β x v> *)
-  Definition atomic_triple
-             (α: A → iProp Σ)
-             (β: A → val _ → iProp Σ)
-             (Ei Eo: coPset)
-             (e: expr _) : iProp Σ :=
-    (∀ P Q, (P ={Eo, Ei}=> ∃ x:A,
-                                α x ★
-                                ((α x ={Ei, Eo}=★ P) ∧
-                                 (∀ v, β x v ={Ei, Eo}=★ Q x v))
-            ) -★ {{ P }} e @ ⊤ {{ v, (∃ x: A, Q x v) }})%I.
-
-  (* Weakest-pre version of the above one. Also weaker in some sense *)
-  Definition atomic_triple_wp
-             (α: A → iProp Σ)
-             (β: A → val _ → iProp Σ)
-             (Ei Eo: coPset)
-             (e: expr _) : iProp Σ :=
-    (∀ P Q, (P ={Eo, Ei}=> ∃ x,
-                              α x ★
-                              ((α x ={Ei, Eo}=★ P) ∧
-                               (∀ v, β x v ={Ei, Eo}=★ Q x v))
-            ) -★ P -★ WP e @ ⊤ {{ v, (∃ x, Q x v) }})%I.
-
-  Lemma atomic_triple_weaken α β Ei Eo e:
-    atomic_triple α β Ei Eo e ⊢ atomic_triple_wp α β Ei Eo e.
-  Proof.
-    iIntros "H". iIntros (P Q) "Hvs Hp".
-    by iApply ("H" $! P Q with "Hvs").
-  Qed.
+  Definition atomic_triple α β Ei Eo e := (∀ P Q, atomic_triple_base α β Ei Eo e P Q)%I.
 
   Arguments atomic_triple {_} _ _ _ _.
 End atomic.
@@ -57,11 +40,11 @@ Section incr.
 
   (* TODO: Can we have a more WP-style definition and avoid the equality? *)
   Definition incr_triple (l: loc) :=
-    atomic_triple (fun (v: Z) => l ↦ #v)%I
-                  (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
-                  (nclose heapN)
-                  ⊤
-                  (incr #l).
+    atomic_triple _ (fun (v: Z) => l ↦ #v)%I
+                    (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
+                    (nclose heapN)
+                    ⊤
+                    (incr #l).
 
   Lemma incr_atomic_spec: ∀ (l: loc), heapN ⊥ N → heap_ctx ⊢ incr_triple l.
   Proof.

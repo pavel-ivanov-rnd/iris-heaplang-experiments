@@ -6,50 +6,42 @@ From iris.algebra Require Import auth upred frac agree excl dec_agree upred_big_
 From iris_atomic Require Import misc atomic treiber atomic_sync evmap.
 
 Definition doOp : val :=
-  λ: "f" "p",
-     match: !"p" with
-       InjL "x" => "p" <- InjR ("f" "x")
-     | InjR "_" => #()
-     end.
-
-Definition doOp' (f:val) : val :=
   λ: "p",
      match: !"p" with
-       InjL "x" => "p" <- InjR (f "x")
+      InjL "req" => "p" <- InjR ((Fst "req") (Snd "req"))
      | InjR "_" => #()
      end.
 
 Definition try_srv : val :=
-  λ: "lk" "s" "f",
+  λ: "lk" "s",
     if: try_acquire "lk"
       then let: "hd" := !"s" in
-           let: "f'" := doOp "f" in
-           iter "hd" "f'";;
+           iter "hd" doOp;;
            release "lk"
       else #().
 
 Definition loop: val :=
-  rec: "loop" "f" "p" "s" "lk" :=
+  rec: "loop" "p" "s" "lk" :=
     match: !"p" with
     InjL "_" =>
-        try_srv "lk" "s" "f";;
-        "loop" "f" "p" "s" "lk"
+        try_srv "lk" "s";;
+        "loop" "p" "s" "lk"
     | InjR "r" => "r"
     end.
 
 Definition install : val :=
-  λ: "x" "s",
-     let: "p" := ref (InjL "x") in
+  λ: "f" "x" "s",
+     let: "p" := ref (InjL ("f", "x")) in
      push "s" "p";;
      "p".
 
 Definition mk_flat : val :=
-  λ: "f",
+  λ: <>,
    let: "lk" := newlock #() in
    let: "s" := new_stack #() in
-   λ: "x",
-      let: "p" := install "x" "s" in
-      let: "r" := loop "f" "p" "s" "lk" in
+   λ: "f" "x",
+      let: "p" := install "f" "x" "s" in
+      let: "r" := loop "p" "s" "lk" in
       "r".
 
 Global Opaque doOp try_srv install loop mk_flat.
@@ -74,15 +66,15 @@ Proof. intros [?%subG_inG [?%subG_inG [? _]%subG_inv]%subG_inv]%subG_inv. split;
 
 Section proof.
   Context `{!heapG Σ, !lockG Σ, !evidenceG loc val unitR Σ, !flatG Σ} (N : namespace).
-  Context (R: iProp Σ).
 
   Definition init_s (ts: toks) :=
     let '(_, γ1, γ3, _, _) := ts in (own γ1 (Excl ()) ★ own γ3 (Excl ()))%I.
 
-  Definition installed_s (ts: toks) (f x: val) :=
+  Definition installed_s R (ts: toks) (f x: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
-    (∃ (P: val → iProp Σ) Q, own γx ((1/2)%Qp, DecAgree x) ★ P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
-                             saved_prop_own γq (Q x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))%I.
+    (∃ (P: val → iProp Σ) Q,
+       own γx ((1/2)%Qp, DecAgree x) ★ P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
+       saved_prop_own γq (Q x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))%I.
 
   Definition received_s (ts: toks) (x: val) γr :=
     let '(γx, _, _, γ4, _) := ts in
@@ -97,39 +89,38 @@ Section proof.
   Definition evm := ev loc toks.
   
   (* p slot invariant *)
-  Definition p_inv (γm γr: gname) (f v: val) :=
+  Definition p_inv R (γm γr: gname) (v: val) :=
     (∃ (ts: toks) (p : loc),
        v = #p ★ evm γm p ts ★
        ((* INIT *)
         (∃ y: val, p ↦{1/2} InjRV y ★ init_s ts)∨
         (* INSTALLED *)
-        (∃ x: val, p ↦{1/2} InjLV x ★ installed_s ts f x) ∨
+        (∃ f x: val, p ↦{1/2} InjLV (f, x) ★ installed_s R ts f x) ∨
         (* RECEIVED *)
-        (∃ x: val, p ↦{1/2} InjLV x ★ received_s ts x γr) ∨
+        (∃ f x: val, p ↦{1/2} InjLV (f, x) ★ received_s ts x γr) ∨
         (* FINISHED *)
         (∃ x y: val, p ↦{1/2} InjRV y ★ finished_s ts x y)))%I.
 
-  Definition srv_stack_inv γs γm γr s f := (∃ xs, is_stack' (p_inv γm γr f) γs xs s)%I.
+  Definition srv_stack_inv R γs γm γr s := (∃ xs, is_stack' (p_inv R γm γr) γs xs s)%I.
 
   Definition srv_tokm_inv γm := (∃ m : tokmR, own γm (● m) ★ [★ map] p ↦ _ ∈ m, ∃ v, p ↦{1/2} v)%I.
 
-  Lemma install_push_spec
-        (Φ: val → iProp Σ)
+  Lemma install_push_spec R
         (p: loc) (γs γm γr: gname) (ts: toks)
-        (s: loc) (f x: val) :
+        (s: loc) (f x: val) (Φ: val → iProp Σ) :
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv γs γm γr s f ★ srv_tokm_inv γm) ★
-    evm γm p ts ★ installed_s ts f x ★
-    p ↦{1/2} InjLV x ★ ((∃ hd, evs γs hd #p) -★ Φ #())
+    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
+    evm γm p ts ★ installed_s R ts f x ★
+    p ↦{1/2} InjLV (f, x) ★ ((∃ hd, evs γs hd #p) -★ Φ #())
     ⊢ WP push #s #p {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & Hpm & Hs & Hp & HΦ)".
     rewrite /srv_stack_inv.
-    iDestruct (push_spec N (p_inv γm γr f) (fun v => (∃ hd, evs γs hd #p) ★ v = #())%I
+    iDestruct (push_spec N (p_inv R γm γr) (fun v => (∃ hd, evs γs hd #p) ★ v = #())%I
                with "[-HΦ]") as "Hpush"=>//.
     - iFrame "Hh". iSplitL "Hp Hs Hpm"; last eauto.
       iExists ts. iExists p. iSplit=>//. iFrame "Hpm".
-      iRight. iLeft. iExists x. iFrame.
+      iRight. iLeft. iExists f, x. iFrame.
     - iApply wp_wand_r.
       iSplitL "Hpush"; first done.
       iIntros (?) "[? %]". subst.
@@ -141,15 +132,17 @@ Section proof.
     (own γ3 (Excl ()) ★ own γx ((1/2)%Qp, DecAgree x) ★ saved_prop_own γq (Q x))%I.
 
   Lemma install_spec
-        (Φ: val → iProp Σ) P Q
-        (f x: val) (γs γm γr: gname) (s: loc):
+        R P Q
+        (f x: val) (γs γm γr: gname) (s: loc)
+        (Φ: val → iProp Σ):
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv γs γm γr s f ★ srv_tokm_inv γm) ★ P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
+    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
+    P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
     (∀ (p: loc) (ts: toks), installed_recp ts x Q -★ evm γm p ts -★(∃ hd, evs γs hd #p) -★ Φ #p)
-    ⊢ WP install x #s {{ Φ }}.
+    ⊢ WP install f x #s {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & Hpx & Hf & HΦ)".
-    wp_seq. wp_let. wp_alloc p as "Hl".
+    wp_seq. wp_let. wp_let. wp_alloc p as "Hl".
     iApply pvs_wp.
     iVs (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iVs (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
@@ -181,20 +174,20 @@ Section proof.
         by iApply ("HΦ" with "[]").
   Qed.
 
-  Lemma loop_iter_list_spec Φ (f: val) (s hd: loc) (γs γm γr: gname) xs:
+  Lemma loop_iter_doOp_spec R (s hd: loc) (γs γm γr: gname) xs Φ:
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv γs γm γr s f ★ srv_tokm_inv γm) ★ own γr (Excl ()) ★ R ★
+    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★ own γr (Excl ()) ★ R ★
     is_list' γs hd xs ★ (own γr (Excl ()) -★ R -★ Φ #())
-    ⊢ WP doOp f {{ f', WP iter #hd f' {{ Φ }} }}.
+    ⊢ WP iter #hd doOp {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hf & #? & Ho2 & HR & Hlist' & HΦ)".
     iApply pvs_wp.
     iDestruct (dup_is_list' with "[Hlist']") as "==>[Hl1 Hl2]"; first by iFrame.
     iDestruct (dup_is_list' with "[Hl2]") as "==>[Hl2 Hl3]"; first by iFrame.
-    iVsIntro. wp_seq.
-    iDestruct (iter_spec _ (p_inv γm γr f) (fun v => v = #() ★ own γr (Excl ()) ★ R)%I γs s
+    iVsIntro.
+    iDestruct (iter_spec _ (p_inv R γm γr) (fun v => v = #() ★ own γr (Excl ()) ★ R)%I γs s
                          (is_list' γs hd xs ★ own γr (Excl ()) ★ R)%I (srv_tokm_inv γm) xs hd
-                         (doOp' f) (doOp' f)
+                         doOp doOp
                          with "[-Hl1 HΦ]") as "Hiter"=>//.
     - rewrite /f_spec.
       iIntros (Φ' p _ Hin) "(#Hh & #? & (Hls & Ho2 & HR) & HΦ')".
@@ -214,9 +207,9 @@ Section proof.
           iFrame. iExists #p''. iSplitR; first done. iExists ts, p''.
           iSplitR; first done. iFrame "#". iLeft. iExists y. iFrame. }
         iVsIntro. wp_match. iApply "HΦ'". by iFrame.
-      + iDestruct "Hp" as (x') "(Hp & Hs)".
+      + iDestruct "Hp" as (f' x') "(Hp & Hs)".
         wp_load. destruct ts as [[[[γx γ1] γ3] γ4] γq].
-        iDestruct "Hs" as  (P Q) "(Hx & Hpx & Hf & HoQ& Ho1 & Ho4)".
+        iDestruct "Hs" as (P Q) "(Hx & Hpx & Hf & HoQ& Ho1 & Ho4)".
         iAssert (|=r=> own γx (((1/2/2)%Qp, DecAgree x') ⋅
                                ((1/2/2)%Qp, DecAgree x')))%I with "[Hx]" as "==>[Hx1 Hx2]".
         { iDestruct (own_update with "Hx") as "?"; last by iAssumption.
@@ -228,9 +221,10 @@ Section proof.
           iFrame "Hom". iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
           simpl. iFrame. iExists #p''. iSplitR; auto. rewrite /allocated.
           iExists (γx, γ1, γ3, γ4, γq), p''. iSplitR; auto.
-          iFrame "#". iRight. iRight. iLeft. iExists x'. iFrame. }
+          iFrame "#". iRight. iRight. iLeft. iExists f', x'. iFrame. }
         iVsIntro. wp_match.
-        wp_bind (f _). iApply wp_wand_r. iSplitL "Hpx Hf HR".
+        wp_proj. wp_proj.
+        wp_bind (f' _). iApply wp_wand_r. iSplitL "Hpx Hf HR".
         { iApply "Hf". iFrame. }
         iIntros (v) "[HR HQ]".
         wp_value. iVsIntro. iInv N as "[Hs >Hm]" "Hclose".
@@ -246,9 +240,9 @@ Section proof.
           iDestruct "Hps" as "[Hp | [Hp | [Hp | Hp]]]".
           * iDestruct "Hp" as (?) "(_ & >Ho1' & _)".
             iApply excl_falso. iFrame.
-          * iDestruct "Hp" as (?) "[>? Hs]". iDestruct "Hs" as (? ?) "(_ & _ & _ & _ & >Ho1' & _)".
+          * iDestruct "Hp" as (? ?) "[>? Hs]". iDestruct "Hs" as (? ?) "(_ & _ & _ & _ & >Ho1' & _)".
             iApply excl_falso. iFrame.
-          * iDestruct "Hp" as (x5) ">(Hp & Hx & Ho2 & Ho4)".
+          * iDestruct "Hp" as (? x5) ">(Hp & Hx & Ho2 & Ho4)".
             iDestruct "Hm" as (m2) "[Hom2 HRm]".
             destruct (m2 !! p'''') eqn:Heqn.
             {
@@ -257,7 +251,7 @@ Section proof.
               iDestruct (heap_mapsto_op_1 with "[HRk Hp]") as "[% Hp]"; first by iFrame.
               rewrite Qp_div_2. wp_store.
               (* now close the invariant *)
-              iDestruct (m_frag_agree with "[Hx Hx2]") as "==>[Hx %]"; first iFrame.
+              iDestruct (m_frag_agree' with "[Hx Hx2]") as "[Hx %]"; first iFrame.
               subst. rewrite Qp_div_2. iVs ("Hclose" with "[-HΦ' Ho2 HR Hls3]").
               { iNext. iDestruct "Hp" as "[Hp1 Hp2]".
                 iAssert (srv_tokm_inv γm) with "[Hp1 HRm Hom2]" as "HRm".
@@ -281,7 +275,7 @@ Section proof.
         }
         { iDestruct (evmap_frag_agree_split with "[]") as "%"; first iFrame "Hevm Hevm2".
           inversion H4. subst. by contradiction Hneq. }
-      + destruct ts as [[[[γx γ1] γ3] γ4] γq]. iDestruct "Hp" as (y) "(_ & _ & >Ho2' & _)".
+      + destruct ts as [[[[γx γ1] γ3] γ4] γq]. iDestruct "Hp" as (? x) "(_ & _ & >Ho2' & _)".
         iApply excl_falso. iFrame.
       + destruct ts as [[[[γx γ1] γ3] γ4] γq]. iDestruct "Hp" as (x' y) "[Hp Hs]".
         iDestruct "Hs" as (Q) "(>Hx & HoQ & HQxy & >Ho1 & >Ho4)".
@@ -304,15 +298,14 @@ Section proof.
     let '(γx, _, _, _, γq) := ts in
     (∃ Q, own γx ((1 / 2)%Qp, DecAgree x) ★ saved_prop_own γq (Q x) ★ Q x y)%I.
 
-  Lemma try_srv_spec Φ (s: loc) (lk: val) (f: val)
-        (γs γr γm γlk: gname):
+  Lemma try_srv_spec R (s: loc) (lk: val) (γs γr γm γlk: gname) Φ :
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv γs γm γr s f ★ srv_tokm_inv γm) ★
+    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
     is_lock N γlk lk (own γr (Excl ()) ★ R) ★ Φ #()
-    ⊢ WP try_srv lk #s f {{ Φ }}.
+    ⊢ WP try_srv lk #s {{ Φ }}.
   Proof.
     iIntros (?) "(#? & #? & #? & HΦ)".
-    wp_seq. wp_let. wp_let.
+    wp_seq. wp_let.
     wp_bind (try_acquire _). iApply try_acquire_spec.
     iFrame "#". iSplit; last by wp_if.
     (* acquired the lock *)
@@ -323,26 +316,24 @@ Section proof.
     wp_load. iDestruct (dup_is_list' with "[Hxs]") as "==>[Hxs1 Hxs2]"; first by iFrame.
     iVs ("Hclose" with "[Hs Hxs1 HRs Hm]").
     { iNext. iFrame. iExists xs', hd'. by iFrame. }
-    iVsIntro. wp_let. wp_bind (doOp f).
+    iVsIntro. wp_let.
+    wp_bind (iter _ _).
     iApply wp_wand_r. iSplitL "HR Ho2 Hxs2".
-    { iApply (loop_iter_list_spec (fun v => own γr (Excl ()) ★ R ★ v = #()))%I=>//.
+    { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ★ R ★ v = #()))%I=>//.      
       iFrame "#". iFrame. iIntros "? ?". by iFrame. }
-    iIntros (f') "Hf'".
-    wp_let. wp_bind ((iter _) _).
-    iApply wp_wand_r. iSplitL "Hf'"; first iApply "Hf'".
-    iIntros (?) "[Ho2 [HR %]]". subst.
-    wp_seq. iApply release_spec.
-    iFrame "#". iFrame.
+    iIntros (f') "[Ho [HR %]]". subst.
+    wp_let. iApply release_spec. iFrame "#".
+    iFrame.
   Qed.
 
-  Lemma loop_spec Φ (p s: loc) (lk: val) (f: val)
-        (γs γr γm γlk: gname) (ts: toks):
+  Lemma loop_spec R (p s: loc) (lk: val)
+        (γs γr γm γlk: gname) (ts: toks) Φ:
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv γs γm γr s f ★ srv_tokm_inv γm) ★
+    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
     is_lock N γlk lk (own γr (Excl ()) ★ R) ★
     own_γ3 ts ★ evm γm p ts ★
     (∃ hd, evs γs hd #p) ★ (∀ x y, finished_recp ts x y -★ Φ y)
-    ⊢ WP loop f #p #s lk {{ Φ }}.
+    ⊢ WP loop #p #s lk {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & #? & Ho3 & #Hev & Hhd & HΦ)".
     iLöb as "IH". wp_rec. repeat wp_let.
@@ -361,28 +352,28 @@ Section proof.
       iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
       + iDestruct "Hp" as (?) "(_ & _ & >Ho3')".
         iApply excl_falso. iFrame.
-      + iDestruct "Hp" as (x) "(>Hp & Hs')".
+      + iDestruct "Hp" as (f x) "(>Hp & Hs')".
         wp_load. iVs ("Hclose" with "[-Ho3 HΦ Hhd]").
         { iNext. iFrame. iExists xs, hd. iFrame. iExists m. iFrame.
           iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
           iFrame. iExists #p'. iSplitR; first auto. iExists (γx, γ1, γ3, γ4, γq), p'.
           iSplitR; first auto. iFrame.
-          iRight. iLeft. iExists x. iFrame. }
+          iRight. iLeft. iExists f, x. iFrame. }
         iVsIntro. wp_match.
-        wp_bind (try_srv _ _ _). iApply try_srv_spec=>//.
+        wp_bind (try_srv _ _). iApply try_srv_spec=>//.
         iFrame "#". wp_seq.
         iAssert (∃ hd, evs γs hd #p')%I with "[Hhd]" as "Hhd"; eauto.
         by iApply ("IH" with "Ho3 Hhd").
-      + iDestruct "Hp" as (x) "(Hp & Hx & Ho2 & Ho4)".
+      + iDestruct "Hp" as (f x) "(Hp & Hx & Ho2 & Ho4)".
         wp_load.
         iVs ("Hclose" with "[-Ho3 HΦ Hhd]").
         { iNext. iFrame. iExists xs, hd. iFrame. iExists m. iFrame.
           iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
           iFrame. iExists #p'. iSplitR; auto. iExists (γx, γ1, γ3, γ4, γq), p'.
           iSplitR; first auto. iFrame.
-          iRight. iRight. iLeft. iExists x. iFrame. }
+          iRight. iRight. iLeft. iExists f, x. iFrame. }
         iVsIntro. wp_match.
-        wp_bind (try_srv _ _ _). iApply try_srv_spec=>//.
+        wp_bind (try_srv _ _). iApply try_srv_spec=>//.
         iFrame "#". wp_seq.
         iAssert (∃ hd, evs γs hd #p')%I with "[Hhd]" as "Hhd"; eauto.
         by iApply ("IH" with "Ho3 Hhd").
@@ -399,12 +390,9 @@ Section proof.
       rewrite /ev. eauto.
   Qed.
 
-  Lemma mk_flat_spec (f: val) :
-    ∀ (Φ: val → iProp Σ),
-      heapN ⊥ N → 
-      heap_ctx ★ R ★ (∀ f', □ synced R f' f -★ Φ f') ⊢ WP mk_flat f {{ Φ }}.
+  Lemma mk_flat_spec: mk_syncer_spec N mk_flat.
   Proof.
-    iIntros (Φ HN) "(#Hh & HR & HΦ)".
+    iIntros (R Φ HN) "(#Hh & HR & HΦ)".
     iVs (own_alloc (Excl ())) as (γr) "Ho2"; first done.
     iVs (own_alloc (● (∅: tokmR) ⋅ ◯ ∅)) as (γm) "[Hm _]"; first by rewrite -auth_both_op.
     iAssert (srv_tokm_inv γm) with "[Hm]" as "Hm"; first eauto.
@@ -413,16 +401,18 @@ Section proof.
     iApply (newlock_spec _ (own γr (Excl ()) ★ R))%I=>//.
     iFrame "Hh Ho2 HR". iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
-    iApply (new_stack_spec' _ (p_inv γm γr f))=>//.
+    iApply (new_stack_spec' _ (p_inv _ γm γr))=>//.
     iFrame "Hh Hm". iIntros (γ s) "#Hss".
     wp_let. iVsIntro. iApply "HΦ". rewrite /synced.
-    iAlways. iIntros (P Q x) "#Hf".
+    iAlways.
+    iIntros (f). wp_let. iVsIntro. iAlways.
+    iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_let.
-    wp_bind ((install _) _).
-    iApply (install_spec _ P Q)=>//.
+    wp_bind (install _ _ _).
+    iApply (install_spec R P Q)=>//.
     iFrame "#". iFrame "Hp". iSplitR; first iApply "Hf".
     iIntros (p [[[[γx γ1] γ3] γ4] γq]) "(Ho3 & Hx & HoQ) Hev Hhd".
-    wp_let. wp_bind (loop _ _ _ _).
+    wp_let. wp_bind (loop _ _ _).
     iApply loop_spec=>//.
     iFrame "#". iFrame.
     iIntros (? ?) "Hs".
@@ -437,25 +427,3 @@ Section proof.
   Qed.
 
 End proof.
-
-Section atomic_sync.
-  Context `{!heapG Σ, !lockG Σ, !syncG Σ, !evidenceG loc val unitR Σ, !flatG Σ} (N : namespace).
-
-  Definition flat_sync : val :=
-    λ: "f_cons" "f_seq",
-        let: "l"  := "f_cons" #() in
-        mk_flat ("f_seq" "l").
-  
-  Lemma flat_atomic_spec (f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
-      ∀ (g0: A),
-        heapN ⊥ N → seq_spec N f_seq ϕ α β ⊤ → cons_spec N f_cons g0 ϕ →
-        heap_ctx
-        ⊢ WP flat_sync f_cons f_seq {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
-  Proof.
-    iIntros (????) "#?". iApply (atomic_spec N mk_flat with "[-]")=>//.
-    rewrite /mk_sync_spec.
-    iIntros (????) "(?&?&?)".
-    iApply (mk_flat_spec N R)=>//.
-    iFrame.
-  Qed.
-End atomic_sync.
