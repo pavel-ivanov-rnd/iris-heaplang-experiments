@@ -1,8 +1,8 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import auth upred gmap dec_agree upred_big_op.
-From iris_atomic Require Import atomic misc.
+From iris.algebra Require Import frac auth upred gmap dec_agree upred_big_op csum.
+From iris_atomic Require Import atomic misc evmap.
 
 Definition new_stack: val := λ: <>, ref (ref NONE).
 
@@ -198,10 +198,8 @@ Section proof.
 
 End proof.
 
-
-
 Section defs.
-  Context `{heapG Σ, !evidenceG loc val Σ} (N: namespace).
+  Context `{heapG Σ, !evidenceG loc val unitR Σ} (N: namespace).
   Context (R: val → iProp Σ) (γ: gname) `{∀ x, TimelessP (R x)}.
 
   Definition allocated hd := (∃ q v, hd ↦{q} v)%I.
@@ -231,10 +229,10 @@ Section defs.
         iApply IHxs'=>//.
   Qed.
 
-  Definition perR' hd v v' := (v = (1%Qp, DecAgree v') ★ R v' ★ allocated hd)%I.
+  Definition perR' hd v v' := (v = ((∅: unitR), DecAgree v') ★ R v' ★ allocated hd)%I.
   Definition perR  hd v := (∃ v', perR' hd v v')%I.
   
-  Definition allR := (∃ m, own γ (● m) ★ [★ map] hd ↦ v ∈ m, perR hd v)%I.
+  Definition allR := (∃ m : evmapR loc val unitR, own γ (● m) ★ [★ map] hd ↦ v ∈ m, perR hd v)%I.
 
   Definition is_stack' xs s := (∃ hd: loc, s ↦ #hd ★ is_list' hd xs ★ allR)%I.
 
@@ -251,10 +249,9 @@ Section defs.
     - iIntros (hd) "(#? & Hs)".
       simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
     - iIntros (hd) "(#? & Hs)". simpl.
-      iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & Hev & Hs')".
+      iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & #Hev & Hs')".
       iDestruct (IHxs' with "[Hs']") as "==>[Hs1 Hs2]"; first by iFrame.
-      iDestruct (dup_ev with "Hev") as "==>[Hev1 Hev2]".
-      iVsIntro. iSplitL "Hhd Hs1 Hev1"; iExists hd', (q / 2)%Qp; by iFrame.
+      iVsIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
   Lemma extract_is_list: ∀ xs hd,
@@ -277,7 +274,7 @@ Section defs.
 End defs.
 
 Section proofs.
-  Context `{heapG Σ, !evidenceG loc val Σ} (N: namespace).
+  Context `{heapG Σ, !evidenceG loc val unitR Σ} (N: namespace).
   Context (R: val → iProp Σ).
 
 Lemma new_stack_spec' Φ RI:
@@ -286,14 +283,14 @@ Lemma new_stack_spec' Φ RI:
     ⊢ WP new_stack #() {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & HR & HΦ)".
-    iVs (own_alloc (● (∅: evmapR loc val) ⋅ ◯ ∅)) as (γ) "[Hm Hm']".
+    iVs (own_alloc (● (∅: evmapR loc val unitR) ⋅ ◯ ∅)) as (γ) "[Hm Hm']".
     { apply auth_valid_discrete_2. done. }
     wp_seq. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc s as "Hs".
     iAssert ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']" as "Hinv".
     { iFrame. iExists [], l. iFrame. simpl. iSplitL "Hl".
       - eauto.
-      - iExists ∅. iFrame. by iApply (big_sepM_empty (fun hd v => perR R hd v)). }
+      - iExists ∅. iSplitL. iFrame. by iApply (big_sepM_empty (fun hd v => perR R hd v)). }
     iVs (inv_alloc N _ ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']") as "#?"; first eauto.
     by iApply "HΦ".
   Qed.
@@ -362,22 +359,20 @@ Lemma new_stack_spec' Φ RI:
           iApply (bogus_heap hd' 1%Qp q); first apply Qp_not_plus_q_ge_1.
           iFrame "#". iFrame.
         * iAssert (evs γ hd' x ★ ▷ (allR R γ))%I
-                  with "==>[Rx Hom HRm Hhd'1]" as "[Hox ?]".
+                  with "==>[Rx Hom HRm Hhd'1]" as "[#Hox ?]".
           {
             iDestruct (evmap_alloc _ _ _ m with "[Hom]") as "==>[Hom Hox]"=>//.
-            iDestruct (dup_ev with "[Hox]") as "==>[Hox1 Hox2]".
-            { rewrite /ev. eauto. }
-            iFrame.
             iDestruct (big_sepM_insert_later (perR R) m) as "H"=>//.
-            iExists (<[hd' := (1%Qp, DecAgree x)]> m).
+            iSplitL "Hox".
+            { rewrite /evs /ev. eauto. }
+            iExists (<[hd' := ((), DecAgree x)]> m).
             iFrame. iApply "H". iFrame. iExists x.
             iFrame. rewrite /allocated. iSplitR "Hhd'1"; auto.
           }
-          iDestruct (dup_ev with "[Hox]") as "==>[Hox1 Hox2]"=>//.
-          iVs ("Hclose" with "[-Hox2]").
+          iVs ("Hclose" with "[-]").
           { iNext. iFrame. iExists (x::xs).
             iExists hd'. iFrame.
-            iExists hd, (1/2)%Qp. iFrame.
+            iExists hd, (1/2)%Qp. by iFrame.
           }
         iVsIntro. iSplitL; last auto. by iExists hd'.
     - iApply wp_wand_r. iSplitL "HRx Hpush".
@@ -387,26 +382,26 @@ Lemma new_stack_spec' Φ RI:
   Qed.
 
   (* some helpers *)
-  Lemma access (γ: gname) (x: val) (xs: list val) m:
+  Lemma access (γ: gname) (x: val) (xs: list val) (m: evmapR loc val unitR) :
     ∀ hd: loc,
     x ∈ xs  →
     ▷ ([★ map] hd↦v ∈ m, perR R hd v) ★ own γ (● m) ★
     is_list' γ hd xs
-    ⊢ ∃ hd' q, ▷ ([★ map] hd↦v ∈ delete hd' m, perR R hd v) ★
-               ▷ perR R hd' (q, DecAgree x) ★ m !! hd' = Some (q, DecAgree x) ★ own γ (● m).
+    ⊢ ∃ hd', ▷ ([★ map] hd↦v ∈ delete hd' m, perR R hd v) ★
+             ▷ perR R hd' ((∅: unitR), DecAgree x) ★ m !! hd' = Some ((∅: unitR), DecAgree x) ★ own γ (● m).
   Proof.
     induction xs as [|x' xs' IHxs'].
     - iIntros (? Habsurd). inversion Habsurd.
     - destruct (decide (x = x')) as [->|Hneq].
       + iIntros (hd _) "(HR & Hom & Hxs)".
-        simpl. iDestruct "Hxs" as (hd' q) "[Hhd [Hev Hxs']]".
+        simpl. iDestruct "Hxs" as (hd' q) "[Hhd [#Hev Hxs']]".
         rewrite /ev. destruct (m !! hd) as [[q' [x|]]|] eqn:Heqn.
         * iDestruct (big_sepM_delete_later (perR R) m with "HR") as "[Hp HRm]"=>//.
-          iDestruct (map_agree_eq' _ _ _ m with "[Hom Hev]") as "(Hom & Hev & %)"=>//; first iFrame.
-          subst. iExists hd, q'. inversion H0. subst. by iFrame.
+          iDestruct (map_agree_eq' _ _ _ m with "[Hom]") as %H'=>//; first iFrame=>//.
+          subst. iExists hd. inversion H'. subst. destruct q'. by iFrame.
         * iDestruct (big_sepM_delete_later (perR R) m with "HR") as "[Hp HRm]"=>//.
-          iDestruct (map_agree_eq' _ _ _ m with "[Hom Hev]") as "(Hom & Hev & %)"=>//; first iFrame.
-        * iExFalso. iApply (map_agree_none' _ _ _ m)=>//. iFrame.
+          iDestruct (map_agree_eq' _ _ _ m with "[Hom]") as "%"=>//; first iFrame=>//.
+        * iExFalso. iApply (map_agree_none' _ _ _ m)=>//. iFrame=>//.
       + iIntros (hd ?).
         assert (x ∈ xs'); first set_solver.
         iIntros "(HRs & Hom & Hxs')".
@@ -416,4 +411,3 @@ Lemma new_stack_spec' Φ RI:
   Qed.
 
 End proofs.
-

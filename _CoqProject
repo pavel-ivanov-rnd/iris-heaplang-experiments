@@ -2,7 +2,7 @@
 atomic.v
 simple_sync.v
 flat.v
-atomic_pair.v
 atomic_sync.v
 treiber.v
 misc.v
+evmap.v

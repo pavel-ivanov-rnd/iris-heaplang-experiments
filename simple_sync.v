@@ -20,22 +20,6 @@ Global Opaque mk_sync.
 Section syncer.
   Context `{!heapG Σ, !lockG Σ} (N: namespace).
   
-
-  (* (* R synced f w.r.t f' *) *)
-  (* Definition synced (f' f: val) (R: iProp Σ): iProp Σ := *)
-  (*   (□ ∀ (x: expr) (v: val) (P: iProp Σ) (Q: val -> iProp Σ), *)
-  (*        to_val x = Some v -★ *)
-  (*        {{ R ★ P }} f x {{ z, R ★ Q z }} -★ *)
-  (*        {{ P }} f' x {{ z, Q z }})%I. *)
-
-  (* Global Instance synced_persistent f f' R: PersistentP (synced f f' R). *)
-  (* Proof. apply _. Qed. *)
-
-  (* Global Opaque synced. *)
-  
-  (* Definition is_syncer (R: iProp Σ) (s: val) : iProp Σ := *)
-  (*   (∀ (f : val), WP s f {{ f', synced f' f R }})%I. *)
-
   Lemma mk_sync_spec (R: iProp Σ) (f: val):
     ∀ (Φ: val -> iProp Σ),
       heapN ⊥ N →

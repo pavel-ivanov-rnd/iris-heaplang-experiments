@@ -3,7 +3,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import dec_agree frac.
-From iris_atomic Require Import atomic sync.
+From iris_atomic Require Import atomic atomic_sync.
 Import uPred.
 
 Section atomic_pair.
@@ -69,7 +69,7 @@ Section atomic_pair.
   Qed.
 
   Lemma pcas_atomic_spec:
-    heapN ⊥ N → heap_ctx ⊢ WP sync (λ: <>, (ref #0, ref #0))%V pcas_seq {{ f, ∃ γ, gFrag γ (#0, #0) ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
+    heapN ⊥ N → heap_ctx ⊢ WP sync (λ: <>, (ref #0, ref #0))%V pcas_seq {{ f, ∃ γ, gHalf γ (#0, #0) ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
   Proof.
     iIntros (HN) "#Hh".
     iDestruct (atomic_spec with "[]") as "Hspec"=>//.
@@ -79,16 +79,16 @@ Section atomic_pair.
       wp_seq.
       wp_alloc l1 as "Hl1".
       wp_alloc l2 as "Hl2".
-      iVs (own_alloc (gFullR (#0, #0) ⋅ gFragR (#0, #0))) as (γ) "[HgFull HgFrag]".
-      { rewrite /gFragR /gFullR. split; first by simpl. simpl. by rewrite dec_agree_idemp. }
+      iVs (own_alloc (gFullR (#0, #0) ⋅ gHalfR (#0, #0))) as (γ) "[HgFull HgHalf]".
+      { rewrite /gHalfR /gFullR. split; first by simpl. simpl. by rewrite dec_agree_idemp. }
       rewrite /ϕ.
       iSpecialize ("HΦ" $! (#l1, #l2)%V γ).
-      rewrite /gFull /gFrag.
+      rewrite /gFull /gHalf.
       iVsIntro.
       iAssert ((∃ (l0 l3 : loc) (x1 x2 : val),
             (#l1, #l2)%V = (#l0, #l3)%V
             ★ (#0, #0)%V = (x1, x2)%V ★ l0 ↦ x1 ★ l3 ↦ x2))%I with "[Hl1 Hl2]" as "H'".
       { iExists l1, l2, #0, #0. iFrame. eauto. }
-      iApply ("HΦ" with "H' HgFull HgFrag").
+      iApply ("HΦ" with "H' HgFull HgHalf").
    Qed.
 End atomic_pair.
