@@ -28,8 +28,7 @@ Section atomic_sync.
                                 (f x) (P x) (fun _ => Q x))%I.
        
   Definition sync (mk_syncer: val) : val :=
-    λ: "f_cons" "f_seq",
-       let: "l" := "f_cons" #() in
+    λ: "f_cons" "f_seq" "l",
        let: "s" := mk_syncer #() in
        "s" ("f_seq" "l").
 
@@ -40,11 +39,6 @@ Section atomic_sync.
                                heap_ctx ★ ϕ l g ★ □ α x ★
                                (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-
-  Definition cons_spec (f: val) (g: A) ϕ :=
-      ∀ Φ: val → iProp Σ, heapN ⊥ N →
-        heap_ctx ★ (∀ (l: val) (γ: gname), ϕ l g -★ gHalf γ g -★ gHalf γ g -★ Φ l)
-        ⊢ WP f #() {{ Φ }}.
 
   Definition synced R (f' f: val) :=
     (□ ∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, Q x v }}))%I.
@@ -57,19 +51,19 @@ Section atomic_sync.
       heapN ⊥ N →
       heap_ctx ★ R ★ (∀ s, □ (is_syncer R s) -★ Φ s) ⊢ WP mk_syncer #() {{ Φ }}.
   
-  Lemma atomic_spec (mk_syncer f_cons f_seq: val) (ϕ: val → A → iProp Σ) α β Ei:
+  Lemma atomic_spec (mk_syncer f_cons f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
-        heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ → cons_spec f_cons g0 ϕ →
+        heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ →
         mk_syncer_spec mk_syncer →
-        heap_ctx
-        ⊢ WP (sync mk_syncer) f_cons f_seq {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
+        heap_ctx ★ ϕ l g0
+        ⊢ WP (sync mk_syncer) f_cons f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.
-    iIntros (g0 HN Hseq Hcons Hsync) "#Hh". repeat wp_let.
-    wp_bind (f_cons _). iApply Hcons=>//. iFrame "Hh".
-    iIntros (l γ) "Hϕ HFull HFrag".
-    wp_let. wp_bind (mk_syncer _).
+    iIntros (g0 HN Hseq Hsync) "[#Hh Hϕ]".
+    iVs (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
+    { by rewrite pair_op dec_agree_idemp. }
+    repeat wp_let. wp_bind (mk_syncer _).
     iApply (Hsync (∃ g: A, ϕ l g ★ gHalf γ g)%I)=>//. iFrame "Hh".
-    iSplitL "HFull Hϕ".
+    iSplitL "Hg1 Hϕ".
     { iExists g0. by iFrame. }
     iIntros (s) "#Hsyncer".
     wp_let. wp_bind (f_seq _). iApply wp_wand_r.
@@ -100,7 +94,7 @@ Section atomic_sync.
       iAssert (|=r=> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I
               with "[Hg]" as "==>[Hg1 Hg2]".
       { iApply own_update; last by iAssumption.
-        apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }        
+        apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }
       iVs ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
       iVsIntro. iSplitL "Hg2 Hϕ'".
