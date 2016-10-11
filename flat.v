@@ -1,10 +1,9 @@
-From iris.program_logic Require Export auth weakestpre saved_prop.
+From iris.program_logic Require Export weakestpre saved_prop.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import upred frac agree excl dec_agree upred_big_op gset gmap.
-From iris.tests Require Import misc atomic treiber_stack.
-Require Import flatcomb.atomic_sync.
+From iris.algebra Require Import auth upred frac agree excl dec_agree upred_big_op gset gmap.
+From iris_atomic Require Import misc atomic treiber atomic_sync.
 
 Definition doOp : val :=
   λ: "f" "p",
@@ -168,8 +167,7 @@ Section proof.
       iDestruct (evmap_alloc _ _ _ m p (γx, γ1, γ3, γ4, γq) with "[Hm]") as "==>[Hm1 Hm2]"=>//.
       iDestruct "Hl" as "[Hl1 Hl2]".
       iVs ("Hclose" with "[HRm Hm1 Hl1 Hrs]").
-      + iNext. iFrame. iExists ({[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4, γq))]} ⋅ m). iFrame.
-        rewrite <-(insert_singleton_op m)=>//.
+      + iNext. iFrame. iExists (<[p := (1%Qp, DecAgree (γx, γ1, γ3, γ4, γq))]> m). iFrame.
         iDestruct (big_sepM_insert _ m with "[-]") as "H"=>//.
         iSplitL "Hl1"; last by iAssumption. eauto.
       + iDestruct (pack_ev with "Hm2") as "Hev".

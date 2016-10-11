@@ -2,10 +2,8 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.tests Require Import atomic misc.
 From iris.algebra Require Import dec_agree frac.
-From iris.program_logic Require Import auth.
-From flatcomb Require Import atomic_sync.
+From iris_atomic Require Import atomic atomic_sync.
 Import uPred.
 
 Definition mk_sync: val :=

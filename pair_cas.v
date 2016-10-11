@@ -3,7 +3,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl.
-From flatcomb Require Import sync.
+Require Import iris_atomic.atomic_sync.
 Import uPred.
 
 (* CAS, load and store to pair of locations *)

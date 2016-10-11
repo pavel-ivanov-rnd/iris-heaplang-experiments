@@ -1,8 +1,8 @@
--Q . flatcomb
+-Q . iris_atomic
+atomic.v
 simple_sync.v
-pair_cas.v
 flat.v
 atomic_pair.v
 atomic_sync.v
 treiber.v
-
+misc.v
