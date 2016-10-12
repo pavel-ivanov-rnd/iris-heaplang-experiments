@@ -405,7 +405,7 @@ Section proof.
     iFrame "Hh Hm". iIntros (γ s) "#Hss".
     wp_let. iVsIntro. iApply "HΦ". rewrite /synced.
     iAlways.
-    iIntros (f). wp_let. iVsIntro. iAlways.
+    iIntros (f). wp_let. iVsIntro.
     iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_let.
     wp_bind (install _ _ _).

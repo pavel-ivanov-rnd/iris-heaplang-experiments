@@ -28,7 +28,7 @@ Section syncer.
     iSplitR "HR HΦ"; first done.
     iFrame "HR".
     iIntros (lk γ) "#Hl". wp_let. iApply "HΦ". iIntros "!#".
-    iIntros (f). wp_let. iVsIntro. iAlways.
+    iIntros (f). wp_let. iVsIntro.
     iIntros (P Q x) "#Hf !# HP".
     wp_let. wp_bind (acquire _).
     iApply acquire_spec. iSplit; first done.

@@ -3,6 +3,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth frac gmap dec_agree upred_big_op.
 From iris.prelude Require Import countable.
+From iris.program_logic Require Import auth.
 Import uPred.
 
 Section lemmas.
@@ -59,10 +60,10 @@ Section heap_extra.
     iIntros (?) "(#Hh & Hp1 & Hp2)".
     iCombine "Hp1" "Hp2" as "Hp".
     iDestruct (heap_mapsto_op_1 with "Hp") as "[_ Hp]".
-    rewrite heap_mapsto_eq. iDestruct (own_valid with "Hp") as %H'.
+    rewrite heap_mapsto_eq. iDestruct (auth_own_valid with "Hp") as %H'.    
     apply singleton_valid in H'. by destruct H' as [H' _].
   Qed.
-  
+
 End heap_extra.
 
 Section big_op_later.
@@ -106,4 +107,3 @@ Section pair.
     rewrite pair_op frac_op' dec_agree_idemp. by iFrame.
   Qed.
 End pair.
-
