@@ -1,0 +1,242 @@
+\documentclass[10pt]{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{fontspec}
+\setmonofont{Source Code Pro}
+
+\newif\ifslow\slowfalse %\slowtrue
+\ifslow
+  \usepackage[english]{babel}
+  \usepackage[babel=true]{microtype}
+\fi
+\usepackage[top=1in, bottom=1in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage[backend=biber]{biblatex}
+\bibliography{bib}
+
+\newcommand{\bdia}{\blacklozenge}
+\newcommand{\dia}{\Diamond}
+\newcommand{\injR}{\texttt{injR}}
+\newcommand{\injL}{\texttt{injL}}
+
+\input{setup}
+
+\begin{document}
+
+\title{\bfseries iris-atomic}
+\author{Zhen Zhang}
+\maketitle
+
+\section{sync.v}
+
+
+\[\begin{aligned}
+    \text{synced}(R, f', f) \eqdef
+    \All P, Q, x.
+      &\hoare{ R * P(x)}{f(x)}{ v.\,R * Q(x,v) } \ra \\
+      &\hoare{ P(x)}{f'(x)}{ v.\,Q(x,v) }
+  \end{aligned}\]
+
+\[
+  \text{is\_syncer}(R, s) \eqdef
+    \All f. \wpre{s(f)}{ f'.\, \text{synced}(R, f', f)} \]
+
+
+\[
+  mk\_syncer\_spec (mk\_syncer) :=
+    \All R.
+        \hoare{R}{mk\_syncer()}{ s.\,\always (is\_syncer(R, s)} \]
+
+
+\section{atomic.v}
+
+Logically atomic triple:
+
+\[  
+    \lahoare{g.\, \alpha(g)}{e}{v.\, \beta(g, v)}[E_i][E_o] \eqdef
+    \All P, Q.
+    \begin{aligned}
+          &P \vs[Eo][Ei] \Exists g, \alpha(g) * (\alpha(g) \vsW[Ei][Eo] P \land \All v. \beta(g, v) \vsW[Ei][Eo] Q(g, v)) \wand \\
+          &\hoare{P}{e}{v.\, \Exists g. Q(g, v)}
+    \end{aligned}\]
+
+\section{simple\_sync.v}
+
+\begin{verbatim}
+mk_sync :=
+    λ: <>,
+       let l := newlock() in
+       λ: f x,
+          acquire l;
+          let ret := f x in
+          release l;
+          ret.
+\end{verbatim}
+
+\section{atomic\_sync.v}
+
+Specialized logically atomic triple:
+
+\[ \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}
+           {f(x)}
+           {v.\, \Exists g'. \ownGhost{\gname}{g'^{1/2}} * \beta(x, g, g', v)}[E_i][E_o]\]
+
+\begin{verbatim}
+sync(mk_syncer) :=
+  λ: f_seq l,
+     let s := mk_syncer() in
+     s (f_seq l).
+\end{verbatim}
+
+\[seq\_spec(f, \phi, \alpha, \beta, E) \eqdef
+      \All l.
+         \hoare{\top}{f(l)}{f'.\,
+            \begin{aligned}
+            \pure &\All x, \Phi, g.\\
+                &\phi (l, g) * \always \alpha(x) *\\
+                &(\All v, g'. \phi(l, g') \wand \beta(x, g, g', v) \wand \pvs[E][E] \Phi(v))\\
+                &\proves \wpre{f'(x)}[E]{ \Phi }
+              \end{aligned}
+        }\]
+  
+\[\begin{aligned}
+      &\text{atomic\_spec}(mk\_syncer, f\_seq, l, \phi, \alpha, \beta, E_i) \eqdef\\
+      &\All g_0.
+        seq\_spec(f\_seq, \phi, \alpha, \beta, \top) \ra
+        mk\_syncer\_spec(mk\_syncer) \ra\\
+        &\phi(l, g_0)
+        \proves \wpre{sync(mk\_syncer, f\_seq, l)}{ f.\,
+          \Exists \gname. \ownGhost{\gname}{g_0^{1/2}} *
+          \All x. \always \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}{f(x)}
+                                  {v.\, \Exists g'. \ownGhost{\gname}{g'^{1/2}} * \beta(x, g, g', v)}[E_i][\top]}
+      \end{aligned} \]
+
+\[ (\Exists g. \phi(l, g') * \ownGhost{\gname}{g^{1/2}} * P x \]
+
+\section{treiber.v}
+
+\begin{verbatim}
+push s x :=
+  let hd := !s in
+  let s' := ref SOME (x, hd) in
+  if CAS s hd s'
+    then ()
+    else push s x.
+
+pop s :=
+  let hd := !s in
+  match !hd with
+  | SOME (x, hd') =>
+    if: CAS s hd hd'
+      then SOME x
+      else pop s
+  | NONE => NONE
+  end.
+
+iter hd f :=
+  match !hd with
+  | NONE => ()
+  | SOME (x, hd') => f x ; iter hd' f
+  end.
+
+\end{verbatim}
+
+Logiall atomic spec (version 1):
+
+\[ \lahoare{xs.\, stack(s, xs)}{push(s, x)}{stack(s, x::xs)}[heapN][\top]\]
+\[ \lahoare{xs.\, stack(s, xs)}{pop(s)}{v. \begin{split} (&\Exists x, xs'. v = SOME(x) * stack(s, xs')) \lor\\
+                                            (&v = NONE * xs = \emptyset * stack(s, \emptyset)) \end{split}}[heapN][\top]\]
+
+
+Logiall atomic spec (version 2):
+
+\[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{push(s, x)}{\Exists hd'. s \mapsto hd' * hd' \mapsto SOME(x, hd) * list(hd, xs)}[heapN][\top]\]
+\[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{pop(s)}{v.
+    \begin{split}
+      (&\Exists x, xs', hd'. v = SOME(x) * hd \mapsto SOME(x, hd') * s \mapsto hd' * list(hd', xs')) \lor\\
+      (&v = NONE * xs = \emptyset * hd \mapsto NONE)
+    \end{split}
+  }[heapN][\top]
+  \]
+
+
+\section{peritem.v}
+
+A crappy but working spec:
+
+\[f\_spec (\gname, xs, s, f, Rf, RI) \eqdef
+    \All x.
+      \hoare{x \in xs * \knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * Rf}{f(x)}{ v.\, v = () }.\]
+
+\[\begin{split}
+  iter\_spec(\gname, s, Rf, RI) \eqdef
+    &\All xs, hd, f.\\
+      &f\_spec(xs, s, f', Rf, RI) \ra\\
+      &\hoare{\knowInv\iname{\Exists xs. stack'(xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
+  \end{split}\]
+
+\[push\_spec (\gname, s, x, RI) \eqdef
+  \hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s) * RI}}{push(s, x)}{v.\, v = () * (\Exists hd. ev(\gname, hd, x))}\]
+
+\section{flat.v}
+
+\begin{verbatim}
+doOp :=
+  λ: p,
+     match !p with
+     | InjL (f, x) => p <- InjR (f x)
+     | InjR _ => ()
+     end.
+
+try_srv :=
+  λ: lk s,
+    if try_acquire lk
+      then let hd := !s in
+           iter hd doOp;
+           release lk
+      else ().
+
+loop p s lk :=
+    match !p with
+    | InjL _ =>
+        try_srv lk s;
+        loop p s lk
+    | InjR r => r
+    end.
+
+install :=
+  λ: f x s,
+     let p := ref (InjL (f, x)) in
+     push s p;
+     p.
+
+mk_flat :=
+  λ: <>,
+   let lk := newlock() in
+   let s := new_stack() in
+   λ: f x,
+      let p := install f x s in
+      let r := loop p s lk in
+      r.
+\end{verbatim}
+
+\[p \mapsto \injR(-)\]
+\[p \mapsto \texttt{injL}(f, x)\]
+\[p \mapsto \injR(y)\]
+\[\circ_i, \bullet_i, \dia_i, \bdia, \dia_i \circ_i, \dia_i \bullet_i, \bdia \bullet_i\]
+
+
+\begin{align*}
+     &\Exists y.          &&p \fmapsto[1/2] \injR(-) * \dia_i * \circ_i\\
+\lor &\Exists f, x, P, Q. &&p \fmapsto[1/2] \injL(f, x) * \ownGhost{\gname}{x^{1/2}} *
+                           P(x) * (\hoare{R * P(x)}{f(x)}{v.\,R * Q(x, v)}) * \gamma \mapstoprop Q(x) * \dia_i * \bullet_i\\
+\lor &\Exists x.          &&p \fmapsto[1/2] \injL(-, x) * \ownGhost{\gname}{x^{1/4}} * \bdia * \bullet_i\\
+\lor &\Exists x, y.       &&p \fmapsto[1/2] \injR(y) * \ownGhost{\gname}{x^{1/2}} * \gamma \mapstoprop Q(x) * Q(x, y) * \dia_i * \bullet_i
+\end{align*}
+
+\[\alpha = \alpha_a * \alpha_o, \alpha = \alpha_a' * \alpha_o\]
+\[\alpha = \alpha_o * \alpha_a, \alpha_a' * \alpha_o = \beta\]
+\[\alpha = \alpha_a * \alpha_o, \alpha = \alpha_a' * \alpha_o\]
+
+\end{document}
