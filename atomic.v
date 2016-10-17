@@ -1,4 +1,4 @@
-From iris.program_logic Require Export hoare weakestpre pviewshifts ownership.
+From iris.program_logic Require Export hoare weakestpre pviewshifts.
 From iris.prelude Require Export coPset.
 Import uPred.
 

@@ -140,12 +140,9 @@ Lemma new_stack_spec' Φ RI:
       iDestruct (extract_is_list with "[Hxs]") as "==>[Hxs Hxs']"; first by iFrame.
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs'1 Hxs'2]"; first by iFrame.
       (* mask magic *)
-      iApply pvs_intro'.
-      { apply ndisj_subseteq_difference; auto. }
-      iIntros "Hvs".
-      iExists (xs, hd).
-      iFrame "Hs Hxs'1".
-      iSplit.
+      iVs (pvs_intro_mask' (⊤ ∖ nclose N) heapN) as "Hvs"; first set_solver.
+      iVsIntro. iExists (xs, hd).
+      iFrame "Hs Hxs'1". iSplit.
       + (* provide a way to rollback *)
         iIntros "[Hs Hl']".
         iVs "Hvs". iVs ("Hclose" with "[-Rx]"); last done.

@@ -1,5 +1,8 @@
+From iris.program_logic Require Export weakestpre wsat.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris_atomic Require Import atomic.
+From iris.proofmode Require Import tactics.
+From iris.prelude Require Import coPset.
 
 Section incr.
   Context `{!heapG Σ} (N : namespace).
@@ -82,12 +85,8 @@ Section user.
       (* open the invariant *)
       iInv N as (x') ">Hl'" "Hclose".
       (* mask magic *)
-      iApply pvs_intro'.
-      { apply ndisj_subseteq_difference; auto. }
-      iIntros "Hvs".
-      iExists x'.
-      iFrame "Hl'".
-      iSplit.
+      iVs (pvs_intro_mask' (⊤ ∖ nclose N) heapN) as "Hvs"; first set_solver.
+      iVsIntro. iExists x'. iFrame "Hl'". iSplit.
       + (* provide a way to rollback *)
         iIntros "Hl'".
         iVs "Hvs". iVs ("Hclose" with "[Hl']"); eauto.
@@ -95,11 +94,10 @@ Section user.
         iIntros (v) "[Heq Hl']".
         iVs "Hvs". iVs ("Hclose" with "[Hl']"); eauto.
     - iDestruct "Hincr" as "#HIncr".
-      iSplitL; [|iSplitL]; try (iApply wp_wand_r;iSplitL; [by iApply "HIncr"|auto]).
+      iSplitL; [|iSplitL];
+        try (iApply wp_wand_r; iSplitL; [by iApply "HIncr"|auto]).
       iIntros (v1 v2) "_ !>".
-      wp_seq.
-      iInv N as (x') ">Hl" "Hclose".
-      wp_load.
-      iApply "Hclose". eauto.
+      wp_seq. iInv N as (x') ">Hl" "Hclose".
+      wp_load. iApply "Hclose". eauto.
   Qed.
 End user.

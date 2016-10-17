@@ -26,7 +26,7 @@ Section atomic_sync.
                                  (fun g v => ∃ g':A, gHalf γ g' ★ β x g g' v)
                                  Ei Eo
                                 (f x) (P x) (fun _ => Q x))%I.
-       
+
   Definition sync (mk_syncer: val) : val :=
     λ: "f_seq" "l",
        let: "s" := mk_syncer #() in
@@ -37,9 +37,14 @@ Section atomic_sync.
          {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
                                heapN ⊥ N →
                                heap_ctx ★ ϕ l g ★ □ α x ★
-                               (∀ (v: val) (g': A), ϕ l g' -★ β x g g' v -★ |={E}=> Φ v)
+                               (∀ (v: val) (g': A),
+                                  ϕ l g' -★ β x g g' v ={E}=★ Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-  
+  (* XXX (zgzehen): The linear VS in the above post-condition is for the final step
+     of computation. The client side of such triple will have to prove that the
+     specific post-condition he wants can be lvs'd from whatever threaded together
+     by magic wands. The library side ... *)
+
   Lemma atomic_spec (mk_syncer f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),
         heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ →
@@ -66,11 +71,11 @@ Section atomic_sync.
     rewrite /atomic_triple'.
     iIntros (P Q) "#Hvss".
     rewrite /synced.
-    iSpecialize ("Hsynced" $! P Q x). 
+    iSpecialize ("Hsynced" $! P Q x).
     iIntros "!# HP". iApply wp_wand_r. iSplitL "HP".
     - iApply ("Hsynced" with "[]")=>//.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
-      (* we should view shift at this point *) 
+      (* we should view shift at this point *)
       iDestruct ("Hvss" with "HP") as "Hvss'". iApply pvs_wp.
       iVs "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
       iVs ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
