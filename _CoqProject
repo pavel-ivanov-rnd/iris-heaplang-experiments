@@ -9,3 +9,4 @@ treiber.v
 misc.v
 evmap.v
 peritem.v
+atomic_pcas.v

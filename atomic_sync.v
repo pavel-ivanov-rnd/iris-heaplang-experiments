@@ -40,10 +40,11 @@ Section atomic_sync.
                                (∀ (v: val) (g': A),
                                   ϕ l g' -★ β x g g' v ={E}=★ Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-  (* XXX (zgzehen): The linear VS in the above post-condition is for the final step
+  (* XXX (zhen): The linear VS in the above post-condition is for the final step
      of computation. The client side of such triple will have to prove that the
      specific post-condition he wants can be lvs'd from whatever threaded together
-     by magic wands. The library side ... *)
+     by magic wands. The library side, when proving seq_spec, will always have
+     a view shift at the end of evalutation, which is exactly what we need.  *)
 
   Lemma atomic_spec (mk_syncer f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
       ∀ (g0: A),

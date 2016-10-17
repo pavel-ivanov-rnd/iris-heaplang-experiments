@@ -2,11 +2,12 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import dec_agree frac.
-From iris_atomic Require Import atomic_pcas'.
+From iris_atomic Require Import sync atomic_sync.
 Import uPred.
 
 Section atomic_pair.
-  Context `{!heapG Σ, !lockG Σ, !syncG Σ} (N : namespace).
+  Context `{!heapG Σ, !lockG Σ, !syncG Σ,
+            !inG Σ (prodR fracR (dec_agreeR (val * val)))} (N : namespace).
   
   Definition pcas_seq : val :=
     λ: "ls" "ab",
@@ -34,11 +35,8 @@ Section atomic_pair.
   
   Lemma pcas_seq_spec: seq_spec N pcas_seq ϕ α β ⊤.
   Proof.
-    rewrite /seq_spec.
-    intros Φ l.
-    iIntros "!# _". wp_seq. iVsIntro. iPureIntro. clear Φ.
+    iIntros (_ l) "!# _". wp_seq. iVsIntro. iPureIntro.
     iIntros (x Φ g HN) "(#Hh & Hg & #Hα & HΦ)".
-    rewrite /ϕ /α.
     iDestruct "Hg" as (l1 l2 x1 x2) "(% & % & Hl1 & Hl2)".
     iDestruct "Hα" as (a b) "%".
     subst. simpl. wp_let. wp_proj. wp_load. wp_proj.
@@ -50,44 +48,33 @@ Section atomic_pair.
         iDestruct ("HΦ" $! #true (b, b)%V) as "HΦ".
         iApply ("HΦ" with "[Hl1 Hl2]").
         { iExists l1, l2, b, b. iFrame. eauto. }
-        rewrite /β.
-        iPureIntro. exists a, b, a, a, b, b. repeat (split; first done). left. eauto.
+        rewrite /β. iPureIntro.
+        exists a, b, a, a, b, b.
+        repeat (split; first done). left. eauto.
       + wp_if.
         iDestruct ("HΦ" $! #false (a, x2)%V) as "H".
         iApply ("H" with "[Hl1 Hl2]").
         { iExists l1, l2, a, x2. iFrame. eauto. }
-        rewrite /β.
-        iPureIntro. exists a, b, a, x2, a, x2. repeat (split; first done). right. eauto.
-    - subst.
-      wp_if.
+        rewrite /β. iPureIntro.
+        exists a, b, a, x2, a, x2. repeat (split; first done). right. eauto.
+    - subst. wp_if.
       iDestruct ("HΦ" $! #false (x1, x2)%V) as "H".
       iApply ("H" with "[Hl1 Hl2]").
       { iExists l1, l2, x1, x2. iFrame. eauto. }
-      rewrite /β.
-      iPureIntro. exists a, b, x1, x2, x1, x2. repeat (split; first done). right. eauto.
+      rewrite /β. iPureIntro.
+      exists a, b, x1, x2, x1, x2.
+      repeat (split; first done). right. eauto.
   Qed.
 
-  Lemma pcas_atomic_spec:
-    heapN ⊥ N → heap_ctx ⊢ WP sync (λ: <>, (ref #0, ref #0))%V pcas_seq {{ f, ∃ γ, gHalf γ (#0, #0) ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
+  Lemma pcas_atomic_spec (mk_syncer: val) (l1 l2: loc) (x1 x2: val) :
+    heapN ⊥ N → mk_syncer_spec N mk_syncer →
+    heap_ctx ★ l1 ↦ x1 ★ l2 ↦ x2
+    ⊢ WP sync mk_syncer pcas_seq (LitV l1, LitV l2)%V {{ f, ∃ γ, gHalf γ (x1, x2)%V ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
   Proof.
-    iIntros (HN) "#Hh".
-    iDestruct (atomic_spec with "[]") as "Hspec"=>//.
+    iIntros (HN Hmk_syncer) "(#Hh & Hl1 & Hl2)".
+    iDestruct (atomic_spec with "[Hl1 Hl2]") as "Hspec"=>//.
     - apply pcas_seq_spec.
-    - rewrite /cons_spec.
-      iIntros (Φ _) "[#Hh HΦ]".
-      wp_seq.
-      wp_alloc l1 as "Hl1".
-      wp_alloc l2 as "Hl2".
-      iVs (own_alloc (gFullR (#0, #0) ⋅ gHalfR (#0, #0))) as (γ) "[HgFull HgHalf]".
-      { rewrite /gHalfR /gFullR. split; first by simpl. simpl. by rewrite dec_agree_idemp. }
-      rewrite /ϕ.
-      iSpecialize ("HΦ" $! (#l1, #l2)%V γ).
-      rewrite /gFull /gHalf.
-      iVsIntro.
-      iAssert ((∃ (l0 l3 : loc) (x1 x2 : val),
-            (#l1, #l2)%V = (#l0, #l3)%V
-            ★ (#0, #0)%V = (x1, x2)%V ★ l0 ↦ x1 ★ l3 ↦ x2))%I with "[Hl1 Hl2]" as "H'".
-      { iExists l1, l2, #0, #0. iFrame. eauto. }
-      iApply ("HΦ" with "H' HgFull HgHalf").
-   Qed.
+    - iFrame "Hh". iExists l1, l2, x1, x2. iFrame. eauto.
+  Qed.
 End atomic_pair.
+

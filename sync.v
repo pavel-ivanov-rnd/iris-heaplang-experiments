@@ -6,7 +6,8 @@ Section sync.
   Context `{!heapG Σ} (N : namespace).
 
   Definition synced R (f' f: val) :=
-    (□ ∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) → ({{ P x }} f' x {{ v, Q x v }}))%I.
+    (□ ∀ P Q (x: val), ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) →
+                       ({{ P x }} f' x {{ v, Q x v }}))%I.
 
   Definition is_syncer (R: iProp Σ) (s: val) :=
     (□ ∀ (f : val), WP s f {{ f', synced R f' f }})%I.

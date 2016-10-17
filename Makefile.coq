@@ -105,7 +105,8 @@ VFILES:=atomic.v\
   treiber.v\
   misc.v\
   evmap.v\
-  peritem.v
+  peritem.v\
+  atomic_pcas.v
 
 ifneq ($(filter-out archclean clean cleanall printenv,$(MAKECMDGOALS)),)
 -include $(addsuffix .d,$(VFILES))
