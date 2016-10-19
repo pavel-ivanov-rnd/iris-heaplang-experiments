@@ -55,15 +55,17 @@ Section evmapR.
   Global Instance persistent_ev γm k v : PersistentP (ev γm k v).
   Proof. apply _. Qed.
 
-  Lemma evmap_alloc γm m k v q:
-    m !! k = None → ✓ q →
-    own γm (● m) ⊢ |=r=> own γm (● (<[ k := (q, DecAgree v) ]> m) ⋅ ◯ {[ k := (q, DecAgree v) ]}).
+  (* Alloc a new mapsto *)
+  Lemma evmap_alloc γm m k v:
+    m !! k = None →
+    own γm (● m) ⊢ |=r=> own γm (● (<[ k := ((), DecAgree v) ]> m) ⋅ ◯ {[ k := ((), DecAgree v) ]}).
   Proof.
-    iIntros (??) "Hm".
+    iIntros (?) "Hm".
     iDestruct (own_update with "Hm") as "?"; last by iAssumption.
     apply auth_update_alloc. apply alloc_singleton_local_update=>//.
   Qed.
   
+  (* Some other supporting lemmas *)
   Lemma map_agree_none' γm (m: evmapR K A unitR) hd x:
     m !! hd = None →
     own γm (● m) ★ ev γm hd x ⊢ False.
@@ -75,8 +77,8 @@ Section evmapR.
     eapply (map_agree_none _ _ _ m)=>//.
   Qed.
 
-  Lemma map_agree_eq' γm m hd p x agy:
-    m !! hd = Some (p, agy) →
+  Lemma map_agree_eq' γm m hd x agy:
+    m !! hd = Some ((), agy) →
     ev γm hd x ★ own γm (● m) ⊢ DecAgree x = agy.
   Proof.
     iIntros (?) "[#Hev Hom]".
@@ -94,30 +96,27 @@ Section evmapR.
       by destruct H1 as [? ?].
   Qed.
 
+  (* Evidence is the witness of membership *)
   Lemma ev_map_witness γm m hd x:
     ev γm hd x ★ own γm (● m) ⊢ m !! hd = Some (∅, DecAgree x).
   Proof.
     iIntros "[#Hev Hom]".
     destruct (m !! hd) as [[[] agy]|] eqn:Heqn.
-    - iDestruct (map_agree_eq' with "[-]") as %H'=>//; first by iFrame.
-      by subst.
-    - iExFalso. iApply map_agree_none'=>//.
-      by iFrame.
+    - iDestruct (map_agree_eq' with "[-]") as %H'=>//; first by iFrame. by subst.
+    - iExFalso. iApply map_agree_none'=>//. by iFrame.
   Qed.
   
-  Lemma evmap_frag_agree_split γm p q1 q2 (a1 a2: A):
-    own γm (◯ {[p := (q1, DecAgree a1)]}) ★
-    own γm (◯ {[p := (q2, DecAgree a2)]})
-    ⊢ (a1 = a2).
+  (* Two evidences coincides *)
+  Lemma evmap_frag_agree_split γm p (a1 a2: A):
+    ev γm p a1 ★ ev γm p a2 ⊢ a1 = a2.
   Proof.
     iIntros "[Ho Ho']".
     destruct (decide (a1 = a2)) as [->|Hneq].
     - by iFrame.
     - iCombine "Ho" "Ho'" as "Ho".
-      rewrite -(@auth_frag_op (evmapR K A unitR) {[p := (q1, DecAgree a1)]} {[p := (q2, DecAgree a2)]}).
+      rewrite -(@auth_frag_op (evmapR K A unitR) {[p := (_, DecAgree a1)]} {[p := (_, DecAgree a2)]}).
       iDestruct (own_valid with "Ho") as %Hvalid.
-      exfalso. 
-      rewrite op_singleton in Hvalid.
+      exfalso. rewrite op_singleton in Hvalid.
       apply auth_valid_discrete in Hvalid. simpl in Hvalid.
       apply singleton_valid in Hvalid.
       destruct Hvalid as [_ Hvalid].
