@@ -1,10 +1,10 @@
-(* evmap.v -- generalized heap-like monoid *)
+(* evmap.v -- generalized heap-like monoid composite *)
 From iris.program_logic Require Export invariants weakestpre.
 From iris.algebra Require Export auth frac gmap dec_agree.
 From iris.proofmode Require Import tactics.
 
 Section evmap.
-  Context (K A: Type) (Q: cmraT) `{Countable K, EqDecision A(* , CMRADiscrete Q *)}.
+  Context (K A: Type) (Q: cmraT) `{Countable K, EqDecision A}.
   Definition evkR := prodR Q (dec_agreeR A).
   Definition evmapR := gmapUR K evkR.
   Definition evidenceR := authR evmapR.
@@ -14,6 +14,7 @@ Section evmap.
   Instance subG_evidenceΣ {Σ} : subG evidenceΣ Σ → evidenceG Σ.
   Proof. intros [?%subG_inG _]%subG_inv. split; apply _. Qed.
 
+  (* Some basic supporting lemmas *)
   Lemma map_agree_eq m m' (hd: K) (p q: Q) (x y: A):
     m !! hd = Some (p, DecAgree y) →
     m = {[hd := (q, DecAgree x)]} ⋅ m' → x = y.
@@ -48,6 +49,7 @@ Section evmapR.
   Context (K A: Type) `{Countable K, EqDecision A}.
   Context `{!inG Σ (authR (evmapR K A unitR))}.
 
+  (* Evidence that k immutably maps to some fixed v *)
   Definition ev γm (k : K) (v: A) := own γm (◯ {[ k := ((), DecAgree v) ]})%I.
 
   Global Instance persistent_ev γm k v : PersistentP (ev γm k v).
@@ -91,6 +93,17 @@ Section evmapR.
       exfalso. subst. rewrite H0 in H1.
       by destruct H1 as [? ?].
   Qed.
+
+  Lemma ev_map_witness γm m hd x:
+    ev γm hd x ★ own γm (● m) ⊢ m !! hd = Some (∅, DecAgree x).
+  Proof.
+    iIntros "[#Hev Hom]".
+    destruct (m !! hd) as [[[] agy]|] eqn:Heqn.
+    - iDestruct (map_agree_eq' with "[-]") as %H'=>//; first by iFrame.
+      by subst.
+    - iExFalso. iApply map_agree_none'=>//.
+      by iFrame.
+  Qed.
   
   Lemma evmap_frag_agree_split γm p q1 q2 (a1 a2: A):
     own γm (◯ {[p := (q1, DecAgree a1)]}) ★
@@ -111,4 +124,3 @@ Section evmapR.
       apply dec_agree_op_inv in Hvalid. inversion Hvalid. subst. auto.
   Qed.
 End evmapR.
-

@@ -197,13 +197,10 @@ Lemma new_stack_spec' Φ RI:
     - destruct (decide (x = x')) as [->|Hneq].
       + iIntros (hd _) "(HR & Hom & Hxs)".
         simpl. iDestruct "Hxs" as (hd' q) "[Hhd [#Hev Hxs']]".
-        rewrite /ev. destruct (m !! hd) as [[q' [x|]]|] eqn:Heqn.
-        * iDestruct (big_sepM_delete_later (perR R) m with "HR") as "[Hp HRm]"=>//.
-          iDestruct (map_agree_eq' _ _ _ m with "[Hom]") as %H'=>//; first iFrame=>//.
-          subst. iExists hd. inversion H'. subst. destruct q'. by iFrame.
-        * iDestruct (big_sepM_delete_later (perR R) m with "HR") as "[Hp HRm]"=>//.
-          iDestruct (map_agree_eq' _ _ _ m with "[Hom]") as "%"=>//; first iFrame=>//.
-        * iExFalso. iApply (map_agree_none' _ _ _ m)=>//. iFrame=>//.
+        rewrite /evs.
+        iDestruct (ev_map_witness _ _ _ m with "[Hev Hom]") as %H'; first by iFrame.
+        iDestruct (big_sepM_delete_later (perR R) m with "HR") as "[Hp HRm]"=>//.
+        iExists hd. by iFrame.
       + iIntros (hd ?).
         assert (x ∈ xs'); first set_solver.
         iIntros "(HRs & Hom & Hxs')".

@@ -345,8 +345,8 @@ Section proof.
     - iDestruct (big_sepM_delete_later _ m with "HRs") as "[Hp Hrs]"=>//.
       iDestruct "Hp" as (?) "[>% [Hpr ?]]"; subst.
       iDestruct "Hpr" as (ts' p') "(>% & >Hp' & Hp)".
-      subst. iDestruct (map_agree_eq' _ _ γs m with "[Hom Hhd]") as %H=>//; first iFrame.
-      inversion H. subst.
+      subst. iDestruct (ev_map_witness _ _ _ m with "[Hom Hhd]") as %H=>//; first iFrame.
+      rewrite Heqn in H. inversion H. subst.
       iDestruct (evmap_frag_agree_split with "[Hp']") as "%"; first iFrame "Hev Hp'". subst.
       destruct ts' as [[[[γx γ1] γ3] γ4] γq].
       iDestruct "Hp" as "[Hp | [Hp | [ Hp | Hp]]]".
@@ -356,32 +356,32 @@ Section proof.
         wp_load. iVs ("Hclose" with "[-Ho3 HΦ Hhd]").
         { iNext. iFrame. iExists xs, hd. iFrame. iExists m. iFrame.
           iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
-          iFrame. iExists #p'. iSplitR; first auto. iExists (γx, γ1, γ3, γ4, γq), p'.
+          iFrame. iExists #p. iSplitR; first auto. iExists (γx, γ1, γ3, γ4, γq), p.
           iSplitR; first auto. iFrame.
           iRight. iLeft. iExists f, x. iFrame. }
         iVsIntro. wp_match.
         wp_bind (try_srv _ _). iApply try_srv_spec=>//.
         iFrame "#". wp_seq.
-        iAssert (∃ hd, evs γs hd #p')%I with "[Hhd]" as "Hhd"; eauto.
+        iAssert (∃ hd, evs γs hd #p)%I with "[Hhd]" as "Hhd"; eauto.
         by iApply ("IH" with "Ho3 Hhd").
       + iDestruct "Hp" as (f x) "(Hp & Hx & Ho2 & Ho4)".
         wp_load.
         iVs ("Hclose" with "[-Ho3 HΦ Hhd]").
         { iNext. iFrame. iExists xs, hd. iFrame. iExists m. iFrame.
           iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
-          iFrame. iExists #p'. iSplitR; auto. iExists (γx, γ1, γ3, γ4, γq), p'.
+          iFrame. iExists #p. iSplitR; auto. iExists (γx, γ1, γ3, γ4, γq), p.
           iSplitR; first auto. iFrame.
           iRight. iRight. iLeft. iExists f, x. iFrame. }
         iVsIntro. wp_match.
         wp_bind (try_srv _ _). iApply try_srv_spec=>//.
         iFrame "#". wp_seq.
-        iAssert (∃ hd, evs γs hd #p')%I with "[Hhd]" as "Hhd"; eauto.
+        iAssert (∃ hd, evs γs hd #p)%I with "[Hhd]" as "Hhd"; eauto.
         by iApply ("IH" with "Ho3 Hhd").
        + iDestruct "Hp" as (x y) "[>Hp Hs']". iDestruct "Hs'" as (Q) "(>Hx & HoQ & HQ & >Ho1 & >Ho4)".
           wp_load. iVs ("Hclose" with "[-Ho4 HΦ Hx HoQ HQ]").
           { iNext. iFrame. iExists xs, hd. iFrame. iExists m. iFrame.
             iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
-            iFrame. iExists #p'. iSplitR; auto. iExists (γx, γ1, γ3, γ4, γq), p'.
+            iFrame. iExists #p. iSplitR; auto. iExists (γx, γ1, γ3, γ4, γq), p.
             iSplitR; first auto. iFrame.
             iLeft. iExists y. iFrame. }
           iVsIntro. wp_match. iApply ("HΦ" with "[-]"). iFrame.

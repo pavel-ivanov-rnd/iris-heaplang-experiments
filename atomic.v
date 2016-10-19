@@ -1,3 +1,5 @@
+(* Logically atomic triple *)
+
 From iris.program_logic Require Export hoare weakestpre pviewshifts.
 From iris.prelude Require Export coPset.
 Import uPred.
@@ -6,9 +8,9 @@ Section atomic.
   Context `{irisG Λ Σ} (A: Type).
 
   Definition atomic_triple_base
-             (α: A → iProp Σ)
-             (β: A → val _ → iProp Σ)
-             (Ei Eo: coPset)
+             (α: A → iProp Σ) (* atomic pre-condition *)
+             (β: A → val _ → iProp Σ) (* atomic post-condition *)
+             (Ei Eo: coPset) (* inside/outside masks *)
              (e: expr _) P Q : iProp Σ :=
     ((P ={Eo, Ei}=> ∃ x:A,
                        α x ★
