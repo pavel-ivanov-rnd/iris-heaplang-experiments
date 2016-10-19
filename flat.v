@@ -1,3 +1,5 @@
+(* Flat Combiner *)
+
 From iris.program_logic Require Export weakestpre saved_prop.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.

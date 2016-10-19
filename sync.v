@@ -1,3 +1,5 @@
+(* Syncer spec *)
+
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.

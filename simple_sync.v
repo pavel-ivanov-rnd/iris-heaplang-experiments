@@ -1,6 +1,7 @@
+(* Coarse-grained syncer *)
+
 From iris.program_logic Require Export weakestpre hoare.
-From iris.heap_lang Require Export lang.
-From iris.heap_lang Require Import proofmode notation.
+From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import dec_agree frac.
 From iris_atomic Require Import sync.

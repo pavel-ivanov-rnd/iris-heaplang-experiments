@@ -1,11 +1,10 @@
 From iris.program_logic Require Export weakestpre hoare.
-From iris.heap_lang Require Export lang.
-From iris.heap_lang Require Import proofmode notation.
+From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import dec_agree frac.
 From iris_atomic Require Import atomic sync misc.
 
-Definition syncR := prodR fracR (dec_agreeR val).
+Definition syncR := prodR fracR (dec_agreeR val). (* track the local knowledge of ghost state *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.
 Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
@@ -40,7 +39,7 @@ Section atomic_sync.
                                (∀ (v: val) (g': A),
                                   ϕ l g' -★ β x g g' v ={E}=★ Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
-  (* XXX (zhen): The linear VS in the above post-condition is for the final step
+  (* The linear view shift in the above post-condition is for the final step
      of computation. The client side of such triple will have to prove that the
      specific post-condition he wants can be lvs'd from whatever threaded together
      by magic wands. The library side, when proving seq_spec, will always have
@@ -69,9 +68,7 @@ Section atomic_sync.
     iIntros (f') "#Hsynced".
     iExists γ. iFrame.
     iIntros (x). iAlways.
-    rewrite /atomic_triple'.
     iIntros (P Q) "#Hvss".
-    rewrite /synced.
     iSpecialize ("Hsynced" $! P Q x).
     iIntros "!# HP". iApply wp_wand_r. iSplitL "HP".
     - iApply ("Hsynced" with "[]")=>//.
@@ -92,9 +89,8 @@ Section atomic_sync.
         apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }
       iVs ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
-      iVsIntro. iSplitL "Hg2 Hϕ'".
-      * iExists g'. by iFrame.
-      * done.
+      iVsIntro. iSplitL "Hg2 Hϕ'"; last done.
+      iExists g'. by iFrame.
     - iIntros (?) "?". by iExists g0.
   Qed.
 
