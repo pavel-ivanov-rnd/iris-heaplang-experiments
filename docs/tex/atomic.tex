@@ -86,7 +86,7 @@ And also, note the separation product of two linear view shifts: First one repre
 
 \section{Coarse-grained syncer}\label{mksync}
 
-First, we give the CaReSL's `mkSyncer` written in heap-lang (which is basically the same as in Coq, despite a few cosmetics).
+First, we give the CaReSL's \texttt{mkSync} written in heap-lang (which is basically the same as in Coq, despite a few cosmetics).
 
 \begin{verbatim}
 mk_sync :=
@@ -101,19 +101,52 @@ mk_sync :=
 
 Okay, now the question is: can we give a LAT spec for \texttt{mk\_sync}? Actually, we can! and we can do this in a general way (i.e. for any syncer satisfying the generic syncer spec). We will briefly discuss about it in the next section.
 
-\section{atomic\_sync.v}
+\section{Encoding generic syncer spec as a LAT-style spec}
 
-Specialized logically atomic triple:
+The first question is: \textbf{Why do we want to do so?}
+
+First, they both talk about atomicity, so we will naturally want to know what is the possible relationship between them. And second, the generic syncer spec is not canonical -- it doesn't tell explicitly what effects that operation has. When use the generic syncer spec as a client, you have to prove something about $e$ every time. But LAT, on the contrary, gives you the exact specification of the operation itself, which means that you only need to prove the viewshifts (in some sense similar to weakening/strengthening rules). And most importantly, this exact specification, should look exactly like the sequential specification! Just consider the following illustrative comparison of a sequential/concurrent stack \texttt{push} spec:
+
+\begin{align*}
+  \All xs.\hoare{stack(s, xs)}{\texttt{push}(x, s)}{\_.\, stack(s, x::xs)}\\
+  \lahoare{xs.\, stack'(s, xs)}{\texttt{push'}(x, s)}{\_.\, stack'(s, x::xs)}
+\end{align*}
+
+The second question is: \textbf{Is it possible to do so?}
+
+Intuitively, what syncer spec says is that the $e$'s sequential effects are \emph{compressed} to a single point. Consider the coarse-grained implementation of generic syncer spec, \texttt{mk\_sync}, it guards the resource $R$ by putting it inside a lock, thus every operation will exclusively own $R$ for a certain period, which makes the whole operation look atomic, when observed from outside in terms of resource accessing.
+
+The last question is: \textbf{How to do it?}
+
+First, consider what LAT's client can provide to the library: abandoning and committing viewshifts. And these two actions must happen instantly. So, naturally, we will try to commit at the time of finishing the operation and give back the $R$ to lock. But what about abandoning? What role will it have in the syncer spec?
+
+Remember that there is a canonical pre-condition $\alpha$ in LAT, which should coincide with the sequential spec. But the sequential code, when executed between the lock/unlock, is still non-atomic. So after we exchange $P$ for $\alpha$, we must retain $\alpha$ for a long time, while we also have to close the LAT viewshifts in an instant. We can't close by abandoning, since we need to give back the $\alpha$; and we can't close by committing, since we haven't started the action yet!
+
+But wait, why we \emph{must} give back $\alpha$ while losing it? What if we require that $\alpha$ is duplicable? Then problem solved! We just need to abandon in the beginning to get a duplicated $\alpha$ out, then committing with $P$ when finishing off.
+
+Now, with a sketch in mind, I will introduce you to the detailed construction: First, here is the specialized logically atomic triple for such purpose:
 
 \[ \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}
            {f(x)}
            {v.\, \Exists g'. \ownGhost{\gname}{g'^{1/2}} * \beta(x, g, g', v)}[E_i][E_o]\]
 
-But what kind of LAT do we get from it? How general it is?
+Here, $g$ represents \textbf{ghost state}. $g$ can be of any proper type. $\ownGhost{\gname}{g'^{1/2}}$ is a snapshot of $g$, i.e. local knowledge about the physical configuration. (Why it is written in such way? Well, this is the implementation detail related to the monoid used to encode this).
 
-Here is what we get. The `g`, ghost state, is of any proper type, and pre-condition alpha is a persistent predicate about state before operation. And in the post condition, we say there exists a ghost state g’ after operation, which satisfy beta , a relation over input, previous state, current state, and output
+Here, the persistent (thus duplicable) $\alpha(g)$ is some extra condition. And in the post condition, we say there exists an updated ghost state $g'$, which satisfy $\beta$, a relation over input, previous state, current state, and output.
 
-The \texttt{g\_half} ghost resource is what makes g’ useful. Let’s design the invariant in like this [special effect]. The g in invariant is shared by both physical predicate phi, and the left half of agreement. And by agreeing, we can “synchronize” local ghost state and the global physical state when we open the invariant next time.
+Let's take concurrent \texttt{push} again as an example. If $s$ is a stack pointer, \[R_s \eqdef \Exists xs. stack(s, xs) * \ownGhost{\gname}{xs^{1/2}}\] is the physical configuration plus global snapshot, then $\text{synced}(stack(s, xs), \texttt{push'}, \texttt{push}(s))$ should expand like this:
+
+\begin{align*}
+  \All P, Q, x.
+    &\hoare{ R_s * P(x)}{\texttt{push}(s)(x)}{ v.\,R_s * Q(x,v) } \ra \\
+    &\hoare{ P(x)}{\texttt{push'}(x)}{ v.\,Q(x,v) }
+\end{align*}
+
+And the LAT we can get from it looks like this:
+
+\[\lahoare{xs.\, \ownGhost{\gname}{xs^{1/2}}}{\texttt{push'}(x)}{\_.\, \Exists xs'. \ownGhost{\gname}{xs'^{1/2}} * (xs' = x::xs)} \]
+
+Here, note that in this case $\always \alpha(g)$ is selected as $\top$ (thus we can imagine that in most cases persistent restriction is not much of a problem); also, $s$ is entirely hidden somewhere in some global place, i.e., using $\ownGhost{\gname}{xs^{1/2}}$, you can also atomically access $\Exists s. stack(s, xs)$, even though such accessing is not specified as a LAT.
 
 \begin{verbatim}
 sync(mk_syncer) :=
