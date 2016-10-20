@@ -19,7 +19,7 @@ Section atomic_pair.
 
   Local Opaque pcas_seq.
 
-  Definition α (x: val) : iProp Σ := (∃ a b: val, x = (a, b)%V)%I.
+  Definition α (x: val) (_: val) : iProp Σ := (∃ a b: val, x = (a, b)%V)%I.
   
   Definition ϕ (ls: val) (xs: val) : iProp Σ :=
     (∃ (l1 l2: loc) (x1 x2: val),

@@ -1,3 +1,4 @@
+
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
@@ -17,11 +18,11 @@ Section atomic_sync.
   Definition gHalf (γ: gname) g : iProp Σ := own γ ((1/2)%Qp, DecAgree g).
 
   Definition atomic_triple'
-             (α: val → iProp Σ)
+             (α: val → A → iProp Σ)
              (β: val → A → A → val → iProp Σ)
              (Ei Eo: coPset)
              (f x: val) γ : iProp Σ :=
-    (∀ P Q, atomic_triple_base A (fun g => gHalf γ g ★ □ α x)
+    (∀ P Q, atomic_triple_base A (fun g => gHalf γ g ★ □ α x g)
                                  (fun g v => ∃ g':A, gHalf γ g' ★ β x g g' v)
                                  Ei Eo
                                 (f x) (P x) (fun _ => Q x))%I.
@@ -35,7 +36,7 @@ Section atomic_sync.
       ∀ (Φ: val → iProp Σ) (l: val),
          {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
                                heapN ⊥ N →
-                               heap_ctx ★ ϕ l g ★ □ α x ★
+                               heap_ctx ★ ϕ l g ★ □ α x g ★
                                (∀ (v: val) (g': A),
                                   ϕ l g' -★ β x g g' v ={E}=★ Φ v)
                                ⊢ WP f' x @ E {{ Φ }} )}}.
@@ -61,7 +62,7 @@ Section atomic_sync.
     { iExists g0. by iFrame. }
     iIntros (s) "#Hsyncer".
     wp_let. wp_bind (f_seq _). iApply wp_wand_r.
-    iSplitR; first by iApply (Hseq with "[]")=>//.
+    iSplitR; first iApply Hseq=>//; auto.
     iIntros (f) "%".
     iApply wp_wand_r.
     iSplitR; first iApply "Hsyncer".
@@ -76,6 +77,7 @@ Section atomic_sync.
       (* we should view shift at this point *)
       iDestruct ("Hvss" with "HP") as "Hvss'". iApply pvs_wp.
       iVs "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
+      iDestruct (m_frag_agree with "[Hg1 Hg2]") as %Heq; first iFrame. subst.
       iVs ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
       iVsIntro. iApply H=>//.
       iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
