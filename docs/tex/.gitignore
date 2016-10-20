@@ -12,3 +12,5 @@
 *.run.xml
 _*_.tex
 auto/*.el
+
+_minted-atomic/

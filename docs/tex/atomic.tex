@@ -1,9 +1,10 @@
-\documentclass[10pt]{article}
+\documentclass[11pt]{article}
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{fontspec}
 \setmonofont{Source Code Pro}
+
 
 \newif\ifslow\slowfalse %\slowtrue
 \ifslow
@@ -28,73 +29,64 @@
 \author{Zhen Zhang}
 \maketitle
 
-\section{sync.v}
+\section{Overview}
 
-\begin{align}
+\begin{figure}[hb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{ispace}
+  \caption
+   {Two dimensions of atomicity verification in Iris}
+\end{figure}
+
+\section{Generic syncer spec}
+
+\begin{align*}
   \text{synced}(R, f', f) \eqdef
   \All P, Q, x.
     &\hoare{ R * P(x)}{f(x)}{ v.\,R * Q(x,v) } \ra \\
     &\hoare{ P(x)}{f'(x)}{ v.\,Q(x,v) }
-\end{align}
+\end{align*}
 
-Here is the "syncer spec" taken from CaReSL. Note that flat combiner in CaReSL is proven to be contextual refinement of \texttt{mkSync} here, but flat combiner doesn't directly satisfy this spec.
-
-However, there is not program refinement in Iris, so I simply have to prove the flat combiner satisfy exactly this spec directly. This will lead us to a general spec which is not tied to any specific syncer implementation.
-
-\[
-  \text{is\_syncer}(R, s) \eqdef
-    \All f. \wpre{s(f)}{ f'.\, \text{synced}(R, f', f)} \]
+\[ \text{syncer}(R, s) \eqdef \All f. \wpre{s(f)}{ f'.\, \text{synced}(R, f', f)} \]
 
 
-\[
-  mk\_syncer\_spec (mk\_syncer) :=
-    \All R.
-        \hoare{R}{mk\_syncer()}{ s.\,\always (is\_syncer(R, s)} \]
+\[\text{mkSyncer}(f) \eqdef \All R. \hoare{R}{f()}{ s.\,\always \text{syncer}(R, s)} \]
 
-Here is my version, which is approx. splitting the Aaron’s version apart to emphasize the relationship between f and f’. If I use Aaron’s spec, I am afraid I can’t proceed in the first step of synchronization, because f’ is not applied to anything yet!
+This \textbf{generic syncer spec} is inspired by CaReSL. In CaReSL, fine-grained syncer (e.g. flat combiner) is proven to be contextual refinement of coarse-grained \texttt{mkSync} (See section \ref{mksync}). However, there is no program refinement yet in Iris, so I made this generalization and prove that flat combiner satisfies this \emph{directly}.
 
-Another observation is that pre- and post-conditions P, Q are universally qualified per application, that is to say, P, Q is arbitrary, depending on context.
+In fact, any sensible syncer is expected to satisfy this generic spec.
 
-And similarly, f is universally qualified per synchronisation, which means that syncer is only parameterised by the shared resource R, it can work with any operation need to access this R.
+Besides generalization, I also split original spec into two parts, corresponding to two calls that happen at different times. More generally speaking, this problem is caused by a special case of curried function (e.g. $\lambda x_1.\, \lambda x_2.\,...$): Is it possible to go from \[\All x_1, x_2. \hoare{P(x_1, x_2)}{f(x_1, x_2)}{Q(x_1, x_2)}\] to \[\All x_1. \hoare{\top}{f(x_1)}{f_1.\, \All x_2. \hoare{P(x_1, x_2)}{f_1(x_2)}{Q(x_1, x_2)}}\], assuming that \(f \eqdef \lambda x_1, x_2.\, e\).
 
-The definition below is spec for syncer constructor.
+Finally, I'd like to point out that pre- and post-conditions $P, Q$ are universally qualified per application, that is to say, $P, Q$ are arbitrary depending on the context.
 
-\section{atomic.v}
+And similarly, $f$ is universally qualified per synchronization, which means that syncer is only parameterized by the shared resource $R$, it can work with any operation that needs to access this $R$.
 
-Logically atomic triple:
+\section{Logically atomic triple (LAT)}
 
-\[  
-    \lahoare{g.\, \alpha(g)}{e}{v.\, \beta(g, v)}[E_i][E_o] \eqdef
-    \All P, Q.
+\begin{align*}
+    &\lahoare{g.\, \alpha(g)}{e}{v.\, \beta(g, v)}[E_i][E_o] \eqdef\\
+    &\All P, Q.
     \begin{aligned}
           &P \vs[Eo][Ei] \Exists g, \alpha(g) * (\alpha(g) \vsW[Ei][Eo] P \land \All v. \beta(g, v) \vsW[Ei][Eo] Q(g, v)) \wand \\
           &\hoare{P}{e}{v.\, \Exists g. Q(g, v)}
-    \end{aligned}\]
+    \end{aligned}
+\end{align*}
 
+Note again, the $P, Q$ are arbitrary depending on the context.
 
-Okay, now we consider another way of specifying atomicity. This should be familiar to most of you. But here are several things to notice:
+And also, note the separation product of two linear view shifts: First one represents \textbf{abandon} direction, while the second one represents \textbf{commit} direction. Using linear view shifts enables us to frame alongside the transition some non-persistent resource.
 
-1. P Q is arbitrary, depending on context
-2. The linear view shift lets us frame some non-persistent context.
+\begin{figure}[hb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{lat}
+  \caption
+   {Sketch of how library function specified with LAT will be used}
+\end{figure}
 
-\includegraphics[width=0.5\textwidth]{lat}
+\section{Coarse-grained syncer}\label{mksync}
 
-Here is a nice picture embodying the central idea … so, now we have introduced two ways of specifying atomicity. I want to give a more high-level picture next
-
-\includegraphics[width=0.5\textwidth]{ispace}
-
-Okay, here is space of my internship…. which has two dimensions.
-
-The vertical dimension is specification, which can either be given like the syncer, or the LAT style spec. The LAT is apparently more general. Actually, we can also feel the same way this from the fact that the atomic triple I derived from syncer spec, is specialised version of general LAT.
-
-Another dimension, the horizontal one, is implementation. We can either use put sequential code inside a pair of lock/unlock, or use some lock-free tricks such as CAS operation or helping to make it fine-grained.
-
-[Special effects]
-
-Okay, here are four proofs which correspond to each facet. Let’s start from \texttt{simple\_sync}.
-
-
-\section{simple\_sync.v}
+First, we give the CaReSL's `mkSyncer` written in heap-lang (which is basically the same as in Coq, despite a few cosmetics).
 
 \begin{verbatim}
 mk_sync :=
@@ -107,9 +99,7 @@ mk_sync :=
           ret.
 \end{verbatim}
 
-The one on the top is from CaReSL paper, and the one on the bottom is my version written in heap-lang. And fortunately, they are same!
-
-Okay, now the question is: can we give a LAT spec for \texttt{simple\_sync}? Actually, we can, and we can do this in a general way (i.e. not dependent on implementation of syncer).
+Okay, now the question is: can we give a LAT spec for \texttt{mk\_sync}? Actually, we can! and we can do this in a general way (i.e. for any syncer satisfying the generic syncer spec). We will briefly discuss about it in the next section.
 
 \section{atomic\_sync.v}
 
