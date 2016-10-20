@@ -116,7 +116,7 @@ The second question is: \textbf{Is it possible to do so?}
 
 Intuitively, what syncer spec says is that the $e$'s sequential effects are \emph{compressed} to a single point. Consider the coarse-grained implementation of generic syncer spec, \texttt{mk\_sync}, it guards the resource $R$ by putting it inside a lock, thus every operation will exclusively own $R$ for a certain period, which makes the whole operation look atomic, when observed from outside in terms of resource accessing.
 
-The last question is: \textbf{How to do it?}
+The third question is: \textbf{How to do it?}
 
 First, consider what LAT's client can provide to the library: abandoning and committing viewshifts. And these two actions must happen instantly. So, naturally, we will try to commit at the time of finishing the operation and give back the $R$ to lock. But what about abandoning? What role will it have in the syncer spec?
 
@@ -124,9 +124,10 @@ Remember that there is a canonical pre-condition $\alpha$ in LAT, which should c
 
 But wait, why we \emph{must} give back $\alpha$ while losing it? What if we require that $\alpha$ is duplicable? Then problem solved! We just need to abandon in the beginning to get a duplicated $\alpha$ out, then committing with $P$ when finishing off.
 
-Now, with a sketch in mind, I will introduce you to the detailed construction: First, here is the specialized logically atomic triple for such purpose:
+Now, with a sketch in mind, I will introduce you to the detailed construction: First, here is the specialized logically atomic triple to serve this purpose:
 
-\[ \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}
+\[ gtriple(\gname, \alpha, f, x, \beta, E_i, E_o) \eqdef
+   \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}
            {f(x)}
            {v.\, \Exists g'. \ownGhost{\gname}{g'^{1/2}} * \beta(x, g, g', v)}[E_i][E_o]\]
 
@@ -148,6 +149,8 @@ And the LAT we can get from it looks like this:
 
 Here, note that in this case $\always \alpha(g)$ is selected as $\top$ (thus we can imagine that in most cases persistent restriction is not much of a problem); also, $s$ is entirely hidden somewhere in some global place, i.e., using $\ownGhost{\gname}{xs^{1/2}}$, you can also atomically access $\Exists s. stack(s, xs)$, even though such accessing is not specified as a LAT.
 
+Now, let's consider the last question: \textbf{How to formalize it?}
+
 \begin{verbatim}
 sync(mk_syncer) :=
   λ: f_seq l,
@@ -155,32 +158,36 @@ sync(mk_syncer) :=
      s (f_seq l).
 \end{verbatim}
 
-\[seq\_spec(f, \phi, \alpha, \beta, E) \eqdef
+The code above is a helper function \texttt{sync}, which constructs the syncer, partially applies internal state value \texttt{l} to the sequential operation \texttt{f\_seq}, and synchronizes the partially applied operation. There is an assumption that \texttt{l} should represent a valid state (either freshly constructed or whatever).
+
+Now, if conditions $seqSpec(\texttt{f\_seq}, \phi, \alpha, \beta, \top)$ (see ?) and $mkSyncer(\texttt{mk\_syncer})$ are satisfied, then we have:
+
+\[
+\All g_0.
+  \phi(l, g_0)
+  \proves \wpre{\texttt{sync}(\texttt{mk\_syncer}, \texttt{f\_seq}, l)}{ f.\,
+    \Exists \gname. \ownGhost{\gname}{g_0^{1/2}} *
+    \All x. \always gtriple(\gname, \alpha, f, x, \beta, E_i, \top)}
+\]
+
+Here is the definition of sequential specification pattern:
+
+\[seqSpec(f, \phi, \alpha, \beta, E) \eqdef
       \All l.
          \hoare{\top}{f(l)}{f'.\,
             \begin{aligned}
             \pure &\All x, \Phi, g.\\
-                &\phi (l, g) * \always \alpha(x) *\\
+                &\phi (l, g) * \always \alpha(g) *\\
                 &(\All v, g'. \phi(l, g') \wand \beta(x, g, g', v) \wand \pvs[E][E] \Phi(v))\\
                 &\proves \wpre{f'(x)}[E]{ \Phi }
               \end{aligned}
         }\]
 
-Here is the sequential spec. pre-condition is the persistent alpha and exclusive ownership of shared state, and when it returns, we got the updated physical state g’, as well as beta.
+In pre-condition, we have persistent $\alpha(g)$ and exclusive ownership of shared state, and when it returns, we got the updated physical state g’, as well as beta.
 
 Funny thing is again that I have to apply f to l first ... because of currying and call site problem.
   
-\[\begin{aligned}
-      &\text{atomic\_spec}(mk\_syncer, f\_seq, l, \phi, \alpha, \beta, E_i) \eqdef\\
-      &\All g_0.
-        seq\_spec(f\_seq, \phi, \alpha, \beta, \top) \ra
-        mk\_syncer\_spec(mk\_syncer) \ra\\
-        &\phi(l, g_0)
-        \proves \wpre{sync(mk\_syncer, f\_seq, l)}{ f.\,
-          \Exists \gname. \ownGhost{\gname}{g_0^{1/2}} *
-          \All x. \always \lahoare{g.\, \ownGhost{\gname}{g^{1/2}} * \always \alpha(g)}{f(x)}
-                                  {v.\, \Exists g'. \ownGhost{\gname}{g'^{1/2}} * \beta(x, g, g', v)}[E_i][\top]}
-      \end{aligned} \]
+
 
 So, here is the theorem that states such derivation. Inside the blue box is the triple defined earlier, it is returned in the post-condition.
 
