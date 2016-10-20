@@ -160,7 +160,7 @@ sync(mk_syncer) :=
 
 The code above is a helper function \texttt{sync}, which constructs the syncer, partially applies internal state value \texttt{l} to the sequential operation \texttt{f\_seq}, and synchronizes the partially applied operation. There is an assumption that \texttt{l} should represent a valid state (either freshly constructed or whatever).
 
-Now, if conditions $seqSpec(\texttt{f\_seq}, \phi, \alpha, \beta, \top)$ (see ?) and $mkSyncer(\texttt{mk\_syncer})$ are satisfied, then we have:
+Now, if conditions $seqSpec(\texttt{f\_seq}, \phi, \alpha, \beta, \top)$ (see \ref{seq}) and $mkSyncer(\texttt{mk\_syncer})$ are satisfied, then we have:
 
 \[
 \All g_0.
@@ -170,7 +170,7 @@ Now, if conditions $seqSpec(\texttt{f\_seq}, \phi, \alpha, \beta, \top)$ (see ?)
     \All x. \always gtriple(\gname, \alpha, f, x, \beta, E_i, \top)}
 \]
 
-Here is the definition of sequential specification pattern:
+Here is the definition of sequential specification pattern \label{seq}:
 
 \[seqSpec(f, \phi, \alpha, \beta, E) \eqdef
       \All l.
@@ -178,28 +178,25 @@ Here is the definition of sequential specification pattern:
             \begin{aligned}
             \pure &\All x, \Phi, g.\\
                 &\phi (l, g) * \always \alpha(g) *\\
-                &(\All v, g'. \phi(l, g') \wand \beta(x, g, g', v) \wand \pvs[E][E] \Phi(v))\\
+                &(\All v, g'. \phi(l, g') \wand \beta(x, g, g', v) \vsW[E][E] \Phi(v))\\
                 &\proves \wpre{f'(x)}[E]{ \Phi }
               \end{aligned}
         }\]
 
-In pre-condition, we have persistent $\alpha(g)$ and exclusive ownership of shared state, and when it returns, we got the updated physical state g’, as well as beta.
+In pre-condition, we have persistent $\alpha(g)$ and exclusive ownership of shared state; and when it returns, we get back the updated physical state $g'$, as well as $\beta$.
 
-Funny thing is again that I have to apply f to l first ... because of currying and call site problem.
-  
+Funny thing is again that I have to apply $f$ to $l$ first ... because of currying problem.
 
+To be more concrete, here is the invariant that will be used globally: \( (\Exists g. \phi(l, g') * \ownGhost{\gname}{g^{1/2}} * P x \).
 
-So, here is the theorem that states such derivation. Inside the blue box is the triple defined earlier, it is returned in the post-condition.
+\begin{figure}[hb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{atomic_sync}
+  \caption{The sketch of proof: to prove triple for \texttt{f'(x)}, we prove another one for \texttt{f(x)}.
+           The blue lines are opening viewshifts; the green lines are closing viewshifts; the orange lines are ghost update }
+\end{figure}
 
-The meta procedure “sync” is parameterised in Coq with any kind of syncer constructor you want to prove about. Its heap-lang parameters are sequential code closure and the location to internal state. As you can see from its definition, it partially applies \texttt{f\_seq} with l, i.e., binding operation with shared state pointer, and return a concurrent operation synchronized by newly-created syncer.
-
-Now let’s observe its two pure conditions: first, sequential code must have a spec; second, \texttt{mk\_syncer} satisfies the syncer constructor spec [review]
-
-\[ (\Exists g. \phi(l, g') * \ownGhost{\gname}{g^{1/2}} * P x \]
-
-\includegraphics[width=0.5\textwidth]{atomic_sync}
-
-\section{treiber.v}
+\section{Treiber's stack}
 
 \begin{verbatim}
 push s x :=
@@ -227,11 +224,7 @@ iter hd f :=
 
 \end{verbatim}
 
-Finally, it is time to talk about flat combiner …. oh no, not yet. We need to talk about treiber’s stack first.
-
-These push and pop are all standard lock-free implementation.
-
-We will give LAT spec for these two operations first
+These \texttt{push} and \texttt{pop} are all standard lock-free implementations. We will give LAT spec for these two operations first:
 
 Logiall atomic spec (version 1):
 
@@ -245,35 +238,39 @@ Logiall atomic spec (version 2):
 \[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{push(s, x)}{\Exists hd'. s \mapsto hd' * hd' \mapsto SOME(x, hd) * list(hd, xs)}[heapN][\top]\]
 \[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{pop(s)}{v.
     \begin{split}
-      (&\Exists x, xs', hd'. v = SOME(x) * hd \mapsto SOME(x, hd') * s \mapsto hd' * list(hd', xs')) \lor\\
+      (&\Exists x, xs', hd'.
+          \begin{aligned}
+            &v = SOME(x) * hd \mapsto SOME(x, hd') *\\
+            &s \mapsto hd' * list(hd', xs')
+          \end{aligned})\lor\\
       (&v = NONE * xs = \emptyset * hd \mapsto NONE)
     \end{split}
   }[heapN][\top]
   \]
 
-For these two operations, we usually will give a more abstract spec, like the one above, which talks about s and elements in it, but no more.
+Apparently, the version 1 is more preferrable as a general spec, since the implementation might not necessarily be a linked-list.
 
-However, we can also give one that exposes how stack is implemented (here, as a linked list). Actually, if we want to prove push spec in per-item-invariant style, we must expose enough details.
+But if we want to iterate over it using \texttt{iter} using a per-item style spec, than we might expose enough implementation details to tie per-item resource to physical location. And as a result, to maintian such property, we must also make \texttt{push}'s LAT spec exposing enough details as well (And it doesn't even make sense to use \texttt{pop} in this case). Below is the discussion about per-item spec.
 
-Why? The intuition is that, when push some element in a per-item setting, we need to open, modify where s points to, and then close the invariant. But how can we make sure that the rest of the stack is always satisfying the per-item invariants? If we want such evidence, we need to expose something physical, such as the head pointer in this case.
+\section{Per-item spec}
 
-\section{peritem.v}
-
-A crappy but working spec:
-
-\[f\_spec (\gname, xs, s, f, Rf, RI) \eqdef
+\[fSpec (\gname, xs, s, f, Rf, RI) \eqdef
     \All x.
       \hoare{x \in xs * \knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * Rf}{f(x)}{ v.\, v = () }.\]
 
+This means that, for any item $x \in xs$, x can also be shown in $xs$ becuase there is knwo
+
 \[\begin{split}
-  iter\_spec(\gname, s, Rf, RI) \eqdef
-    &\All xs, hd, f.\\
-      &f\_spec(xs, s, f', Rf, RI) \ra\\
-      &\hoare{\knowInv\iname{\Exists xs. stack'(xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
+  iterSpec(\gname, s, Rf, RI) \eqdef
+    \All &xs, hd, f.\\
+         &fSpec(xs, s, f', Rf, RI) \ra\\
+         &\hoare{\knowInv\iname{\Exists xs. stack'(xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
   \end{split}\]
 
-\[push\_spec (\gname, s, x, RI) \eqdef
+\[pushSpec (\gname, s, x, RI) \eqdef
   \hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s) * RI}}{push(s, x)}{v.\, v = () * (\Exists hd. ev(\gname, hd, x))}\]
+
+
 
 Okay, but in per-item spec, why do you need to make sure that the stack is growth-only, and governed by a global invariant?
 
@@ -282,6 +279,8 @@ Answer: because we need to iterate thought it non-atomically. I mean, the proces
 So, having already talked a lot about per-item spec… here is how it looks like in my implementation. Well, I agree with you that this is a bit messy. 
 
 note that global inv of stack is parametrised by per-item predicate R
+
+\textbf{Problem}: This part is quite bad actually ... first, CaReSL have a smaller, nicer per-item spec; second, it doesn't sound perfectly legitimate that we can't pop things out ... I just need to make sure that the things \emph{currrently in} the stack conforms to certain resource predicate. So, if the structure of linking allows someone to control validities of all possible references into certain item, then it can pop like a breeze.
 
 \section{flat.v}
 
