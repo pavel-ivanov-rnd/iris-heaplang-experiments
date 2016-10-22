@@ -6,22 +6,22 @@ From iris_atomic Require Export treiber misc evmap.
 
 Section defs.
   Context `{heapG Σ, !evidenceG loc val unitR Σ} (N: namespace).
-  Context (R: val → iProp Σ) (γ: gname) `{∀ x, TimelessP (R x)}.
+  Context (R: val → iProp Σ) `{∀ x, TimelessP (R x)}.
 
   Definition allocated hd := (∃ q v, hd ↦{q} v)%I.
 
-  Definition evs := ev loc val γ.
+  Definition evs (γ: gname) := ev loc val γ.
 
-  Fixpoint is_list' (hd: loc) (xs: list val) : iProp Σ :=
+  Fixpoint is_list' (γ: gname) (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
     | [] => (∃ q, hd ↦{ q } NONEV)%I
-    | x :: xs => (∃ (hd': loc) q, hd ↦{q} SOMEV (x, #hd') ★ evs hd x ★ is_list' hd' xs)%I
+    | x :: xs => (∃ (hd': loc) q, hd ↦{q} SOMEV (x, #hd') ★ evs γ hd x ★ is_list' γ hd' xs)%I
     end.
 
-  Lemma in_list' x xs:
+  Lemma in_list' γ x xs:
     ∀ hd, x ∈ xs →
-          is_list' hd xs
-          ⊢ ∃ (hd' hd'': loc) q, hd' ↦{q} SOMEV (x, #hd'') ★ evs hd' x.
+          is_list' γ hd xs
+          ⊢ ∃ (hd' hd'': loc) q, hd' ↦{q} SOMEV (x, #hd'') ★ evs γ hd' x.
   Proof.
     induction xs as [|x' xs' IHxs'].
     - intros ? Hin. inversion Hin.
@@ -38,18 +38,19 @@ Section defs.
   Definition perR' hd v v' := (v = ((∅: unitR), DecAgree v') ★ R v' ★ allocated hd)%I.
   Definition perR  hd v := (∃ v', perR' hd v v')%I.
   
-  Definition allR := (∃ m : evmapR loc val unitR, own γ (● m) ★ [★ map] hd ↦ v ∈ m, perR hd v)%I.
+  Definition allR γ := (∃ m : evmapR loc val unitR, own γ (● m) ★ [★ map] hd ↦ v ∈ m, perR hd v)%I.
 
-  Definition is_stack' xs s := (∃ hd: loc, s ↦ #hd ★ is_list' hd xs ★ allR)%I.
+  Definition is_stack' γ xs s :=
+    (∃ hd: loc, s ↦ #hd ★ is_list' γ hd xs ★ allR γ)%I.
 
-  Global Instance is_list'_timeless hd xs: TimelessP (is_list' hd xs).
+  Global Instance is_list'_timeless γ hd xs: TimelessP (is_list' γ hd xs).
   Proof. generalize hd. induction xs; apply _. Qed.
 
-  Global Instance is_stack'_timeless xs s: TimelessP (is_stack' xs s).
+  Global Instance is_stack'_timeless γ xs s: TimelessP (is_stack' γ xs s).
   Proof. apply _. Qed.
 
-  Lemma dup_is_list': ∀ xs hd,
-    heap_ctx ★ is_list' hd xs ⊢ |=r=> is_list' hd xs ★ is_list' hd xs.
+  Lemma dup_is_list' γ : ∀ xs hd,
+    heap_ctx ★ is_list' γ hd xs ⊢ |=r=> is_list' γ hd xs ★ is_list' γ hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
@@ -60,8 +61,8 @@ Section defs.
       iVsIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
-  Lemma extract_is_list: ∀ xs hd,
-    heap_ctx ★ is_list' hd xs ⊢ |=r=> is_list' hd xs ★ is_list hd xs.
+  Lemma extract_is_list γ : ∀ xs hd,
+    heap_ctx ★ is_list' γ hd xs ⊢ |=r=> is_list' γ hd xs ★ is_list hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
@@ -72,10 +73,12 @@ Section defs.
       iVsIntro. iSplitL "Hhd Hs1 Hev"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
-  Definition f_spec (xs: list val) (s: loc) (f: val) (Rf RI: iProp Σ) := (* Rf, RI is some frame *)
+  Definition f_spec γ (xs: list val) (s hd: loc) (f: val) (Rf RI: iProp Σ) :=
+    (* Rf, RI are some frames *)
     ∀ Φ (x: val),
       heapN ⊥ N → x ∈ xs →
-      heap_ctx ★ inv N ((∃ xs, is_stack' xs s) ★ RI) ★  Rf ★ (Rf -★ Φ #())
+      heap_ctx ★ inv N ((∃ xs, is_stack' γ xs s) ★ RI) ★
+      (is_list' γ hd xs ★ Rf) ★ (is_list' γ hd xs -★ Rf -★ Φ #())
       ⊢ WP f x {{ Φ }}.
 End defs.
 
@@ -103,7 +106,7 @@ Lemma new_stack_spec' Φ RI:
     
   Lemma iter_spec Φ γ s (Rf RI: iProp Σ):
     ∀ xs hd (f: expr) (f': val),
-      heapN ⊥ N → f_spec N R γ xs s f' Rf RI → to_val f = Some f' →
+      heapN ⊥ N → f_spec N R γ xs s hd f' Rf RI → to_val f = Some f' →
       heap_ctx ★ inv N ((∃ xs, is_stack' R γ xs s) ★ RI) ★
       is_list' γ hd xs ★ Rf ★ (Rf -★ Φ #())
       ⊢ WP (iter #hd) f {{ v, Φ v }}.
@@ -113,14 +116,19 @@ Lemma new_stack_spec' Φ RI:
       iDestruct "Hxs1" as (q) "Hhd".
       wp_rec. wp_value. iVsIntro. wp_let. wp_load. wp_match. by iApply "HΦ".
     - simpl. iIntros (hd f f' HN Hf ?) "(#Hh & #? & Hxs1 & HRf & HΦ)".
-      iDestruct "Hxs1" as (hd2 q) "(Hhd & Hev & Hhd2)".
+      iDestruct "Hxs1" as (hd2 q) "(Hhd & #Hev & Hhd2)".
       wp_rec. wp_value. iVsIntro. wp_let. wp_load. wp_match. wp_proj.
-      wp_bind (f' _). iApply Hf=>//; first set_solver. iFrame "#". iFrame. iIntros "HRf".
+      wp_bind (f' _). iApply Hf=>//; first set_solver.
+      iFrame "#". simpl.
+      iSplitL "Hev Hhd Hhd2 HRf".
+      { iFrame. iExists hd2, q. iFrame. }
+      iIntros "Hls HRf".
       wp_seq. wp_proj. iApply (IHxs' with "[-]")=>//.
       + rewrite /f_spec. iIntros (? ? ? ?) "(#? & #? & ? & ?)".
         iApply Hf=>//.
         * set_solver.
-        * iFrame "#". by iFrame.
+        * iFrame "#".
+            by iFrame.
       + apply to_of_val.
       + iFrame "#". by iFrame.
   Qed.
