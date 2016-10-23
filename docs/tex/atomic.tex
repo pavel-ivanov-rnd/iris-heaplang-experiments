@@ -226,14 +226,14 @@ iter hd f :=
 
 These \texttt{push} and \texttt{pop} are all standard lock-free implementations. We will give LAT spec for these two operations first:
 
-Logiall atomic spec (version 1):
+\subsection{Logically atomic spec (version 1)}
 
 \[ \lahoare{xs.\, stack(s, xs)}{push(s, x)}{stack(s, x::xs)}[heapN][\top]\]
 \[ \lahoare{xs.\, stack(s, xs)}{pop(s)}{v. \begin{split} (&\Exists x, xs'. v = SOME(x) * stack(s, xs')) \lor\\
                                             (&v = NONE * xs = \emptyset * stack(s, \emptyset)) \end{split}}[heapN][\top]\]
 
 
-Logiall atomic spec (version 2):
+\subsection{Logically atomic spec (version 2)}
 
 \[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{push(s, x)}{\Exists hd'. s \mapsto hd' * hd' \mapsto SOME(x, hd) * list(hd, xs)}[heapN][\top]\]
 \[ \lahoare{hd, xs.\, s \mapsto hd * list(hd, xs)}{pop(s)}{v.
@@ -248,41 +248,46 @@ Logiall atomic spec (version 2):
   }[heapN][\top]
   \]
 
-Apparently, the version 1 is more preferrable as a general spec, since the implementation might not necessarily be a linked-list.
+\subsection{Why such dichotomy?}
+Apparently, the version 1 is more preferable as a general spec, since the implementation might not necessarily be a linked-list.
 
-But if we want to iterate over it using \texttt{iter} using a per-item style spec, than we might expose enough implementation details to tie per-item resource to physical location. And as a result, to maintian such property, we must also make \texttt{push}'s LAT spec exposing enough details as well (And it doesn't even make sense to use \texttt{pop} in this case). Below is the discussion about per-item spec.
+But if we want to iterate over it using \texttt{iter} using a per-item style spec, than we might expose enough implementation details to tie per-item resource to physical location. And as a result, to maintain such property, we must also make \texttt{push}'s LAT spec exposing enough details as well (And it doesn't even make sense to use \texttt{pop} in this case). Below is the discussion about per-item spec.
 
 \section{Per-item spec}
 
-\[fSpec (\gname, xs, s, f, Rf, RI) \eqdef
-    \All x.
-      \hoare{x \in xs * \knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * Rf}{f(x)}{ v.\, v = () }.\]
+\begin{align*}
+  fSpec &(\gname, xs, s, f, Rf, RI) \eqdef\\
+    &\All x.
+      \hoare{(\Exists hd. evs(\gname, hd, x)) * \knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * Rf}{f(x)}{ v.\, v = () * Rf}
+\end{align*}
 
-This means that, for any item $x \in xs$, x can also be shown in $xs$ becuase there is knwo
+The $fSpec$ specifies that $f$ can access the per-item resource predicate associated with $x$ through open/close the global invariants. The $evs(\gname, hd, x)$ provides the \emph{evidence} that $x$ is part of the stack.
 
-\[\begin{split}
-  iterSpec(\gname, s, Rf, RI) \eqdef
-    \All &xs, hd, f.\\
-         &fSpec(xs, s, f', Rf, RI) \ra\\
-         &\hoare{\knowInv\iname{\Exists xs. stack'(xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
-  \end{split}\]
+The first $\exists hd$ can be interpreted as ``We don't care which cell pointer points to the item $x$ in stack"; The second $\exists xs$ can be interpreted as ``We don't care what $s$ is \emph{currently} pointing to, since the previously existing elements still exist in the stack now".
 
-\[pushSpec (\gname, s, x, RI) \eqdef
-  \hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s) * RI}}{push(s, x)}{v.\, v = () * (\Exists hd. ev(\gname, hd, x))}\]
+Now, let's observe the \texttt{iter}'s spec and \texttt{push}'s spec (in a per-item setting):
 
+\begin{align*}
+  iterSpec&(\gname, s, Rf, RI) \eqdef\\
+    &\All xs, hd, f.\\
+         &fSpec(\gname, xs, s, f, Rf, RI) \ra\\
+         &\hoare{\knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
+\end{align*}
 
+\begin{align*}
+  pushSpec&(\gname, s, x, RI) \eqdef\\
+  &\hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s) * RI}}{push(s, x)}{v.\, v = () * (\Exists hd. ev(\gname, hd, x))}
+\end{align*}
 
-Okay, but in per-item spec, why do you need to make sure that the stack is growth-only, and governed by a global invariant?
+Okay, back to the per-item spec, why do you need to make sure that the stack is growth-only, and governed by a global invariant?
 
 Answer: because we need to iterate thought it non-atomically. I mean, the process of iteration is not atomic. The single operation f still needs to atomically access any resource related x.
 
-So, having already talked a lot about per-item spec… here is how it looks like in my implementation. Well, I agree with you that this is a bit messy. 
+However, my current $fSpec$ is quite bad actually ... first, CaReSL has a smaller, nicer per-item spec; second, it doesn't sound perfectly legitimate that we can't pop things out ... I just need to make sure that the things \emph{currrently in} the stack conforms to certain resource predicate. So, if the structure of linking allows us to control validities of all possible references into certain item, then popping out an element can be atomic, thus doesn't compromise the basic invariant.
 
-note that global inv of stack is parametrised by per-item predicate R
+\section{Flat combiner}
 
-\textbf{Problem}: This part is quite bad actually ... first, CaReSL have a smaller, nicer per-item spec; second, it doesn't sound perfectly legitimate that we can't pop things out ... I just need to make sure that the things \emph{currrently in} the stack conforms to certain resource predicate. So, if the structure of linking allows someone to control validities of all possible references into certain item, then it can pop like a breeze.
-
-\section{flat.v}
+Here is my implementation:
 
 \begin{verbatim}
 doOp :=
@@ -324,49 +329,36 @@ mk_flat :=
       r.
 \end{verbatim}
 
-
-Let’s go to my flat combiner code now.
-
 Compared to CaReSL, here are several notable differences:
 
-I break them down into five procedures, instead of nesting them inside the constructor. It is easier to specify.
-CaReSL’s flat constructor takes f; this doesn’t, which makes it more flexible.
-CaReSL’s install utilize TLS to avoid blowup of space use. I push in a new slot every time, which is terrible in practice, but follows the same spec.
+\begin{itemize}
+\item I break them down into five procedures, instead of nesting them inside the constructor. They all have their own spec, and it is easier to reason about.
+\item CaReSL’s flat constructor takes \texttt{f}; mine doesn’t, which is more flexible.
+\item CaReSL’s install utilizes TLS (thread-local storage) to avoid severe memory leakage. In my implementation, a new slot is created and pushed every time the operation is called. It is terrible in practice, but nevertheless follows the same spec.
+\end{itemize}
 
-Also, another problem that exist both in my, CaReSL, and FCSL’s example code, is that we never recycle the slots.
+Also, another problem that exists both in my, CaReSL, and FCSL’s example code, is that we never recycle the slots.
 
-\[p \mapsto \injR(-)\]
-\[p \mapsto \texttt{injL}(f, x)\]
-\[p \mapsto \injR(y)\]
-\[\circ_i, \bullet_i, \dia_i, \bdia, \dia_i \circ_i, \dia_i \bullet_i, \bdia \bullet_i\]
+\begin{figure}[hb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{helping}
+  \caption{Helping protocol illustration. Note that this graph is heavily simplified to reflect how I encode protocol with bare exclusive monoids.}
+\end{figure}
 
+The black diamond is a token owned by server lock; The other three kinds of token are all tagged with i, which is similar to thread id in CaReSL’s reasoning, but in my case, it is the slot address (In some sense it is more flexible since in that way, the same thread can initiate several operations at the same time).
 
-\includegraphics[width=0.5\textwidth]{helping}
-
-This is the protocol of helping … 
-
-The black diamond is a token owned by server lock.
-The other three kinds of token are all tagged with i, which should be similar to thread id in CaReSL’s reasoning, but in my case, it is the slot address (Is it more flexible than using tid to index?). And the indexing is essentially done through a ghost map in invariant. 
-
-Note that this graph is heavily simplified to reflect how I encode protocol with bare exclusive monoids. Next slide gives the detailed invariant construction
-
+Here is the per-item (i.e. request slot) invariant, which have four branches.
 
 \begin{align*}
      &\Exists y.          &&p \fmapsto[1/2] \injR(-) * \dia_i * \circ_i\\
 \lor &\Exists f, x, P, Q. &&p \fmapsto[1/2] \injL(f, x) * \ownGhost{\gname}{x^{1/2}} *
-                           P(x) * (\hoare{R * P(x)}{f(x)}{v.\,R * Q(x, v)}) * \gamma \mapstoprop Q(x) * \dia_i * \bullet_i\\
+                           P(x) * (\hoare{R * P(x)}{f(x)}{v.\,R * Q(x, v)}) * \kappa \mapstoprop Q(x) * \dia_i * \bullet_i\\
 \lor &\Exists x.          &&p \fmapsto[1/2] \injL(-, x) * \ownGhost{\gname}{x^{1/4}} * \bdia * \bullet_i\\
-\lor &\Exists x, y.       &&p \fmapsto[1/2] \injR(y) * \ownGhost{\gname}{x^{1/2}} * \gamma \mapstoprop Q(x) * Q(x, y) * \dia_i * \bullet_i
+\lor &\Exists x, y.       &&p \fmapsto[1/2] \injR(y) * \ownGhost{\gname}{x^{1/2}} * \kappa \mapstoprop Q(x) * Q(x, y) * \dia_i * \bullet_i
 \end{align*}
 
-Here is the per-item (i.e. request slot) invariant, which have four branches.
 
-Note how f x P Q are all hidden under existential qualification, while (Q x) is saved under some name. It means that only post-condition matter to waiting client.
+Note how $f, x, P, Q$ are all hidden under existential qualification, and $Q(x)$ is saved under some constant name $\kappa$. Note how only post-condition matters to waiting client.
 
-This is basically the core of flat combiner proofs. There are just a couple of critical points, the rest are all boilerplates like open/close invariant. A nicer per-item spec could improve it I guess.
-
-\[\alpha = \alpha_a * \alpha_o, \alpha = \alpha_a' * \alpha_o\]
-\[\alpha = \alpha_o * \alpha_a, \alpha_a' * \alpha_o = \beta\]
-\[\alpha = \alpha_a * \alpha_o, \alpha = \alpha_a' * \alpha_o\]
 
 \end{document}
