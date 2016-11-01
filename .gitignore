@@ -8,5 +8,6 @@
 .\#*
 *~
 *.bak
+Makefile.coq
 .coq-native/
 
