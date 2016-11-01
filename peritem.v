@@ -1,7 +1,8 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import frac auth upred gmap dec_agree upred_big_op csum.
+From iris.algebra Require Import frac auth gmap dec_agree csum.
+From iris.base_logic Require Import big_op.
 From iris_atomic Require Export treiber misc evmap.
 
 Section defs.
@@ -50,27 +51,27 @@ Section defs.
   Proof. apply _. Qed.
 
   Lemma dup_is_list' γ : ∀ xs hd,
-    heap_ctx ★ is_list' γ hd xs ⊢ |=r=> is_list' γ hd xs ★ is_list' γ hd xs.
+    heap_ctx ★ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ★ is_list' γ hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
       simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
     - iIntros (hd) "(#? & Hs)". simpl.
       iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & #Hev & Hs')".
-      iDestruct (IHxs' with "[Hs']") as "==>[Hs1 Hs2]"; first by iFrame.
-      iVsIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
+      iDestruct (IHxs' with "[Hs']") as ">[Hs1 Hs2]"; first by iFrame.
+      iModIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
   Lemma extract_is_list γ : ∀ xs hd,
-    heap_ctx ★ is_list' γ hd xs ⊢ |=r=> is_list' γ hd xs ★ is_list hd xs.
+    heap_ctx ★ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ★ is_list hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
       simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
     - iIntros (hd) "(#? & Hs)". simpl.
       iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & Hev & Hs')".
-      iDestruct (IHxs' with "[Hs']") as "==>[Hs1 Hs2]"; first by iFrame.
-      iVsIntro. iSplitL "Hhd Hs1 Hev"; iExists hd', (q / 2)%Qp; by iFrame.
+      iDestruct (IHxs' with "[Hs']") as ">[Hs1 Hs2]"; first by iFrame.
+      iModIntro. iSplitL "Hhd Hs1 Hev"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
   Definition f_spec γ (xs: list val) (s: loc) (f: val) (Rf RI: iProp Σ) :=
@@ -92,7 +93,7 @@ Lemma new_stack_spec' Φ RI:
     ⊢ WP new_stack #() {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & HR & HΦ)".
-    iVs (own_alloc (● (∅: evmapR loc val unitR) ⋅ ◯ ∅)) as (γ) "[Hm Hm']".
+    iMod (own_alloc (● (∅: evmapR loc val unitR) ⋅ ◯ ∅)) as (γ) "[Hm Hm']".
     { apply auth_valid_discrete_2. done. }
     wp_seq. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc s as "Hs".
@@ -100,7 +101,7 @@ Lemma new_stack_spec' Φ RI:
     { iFrame. iExists [], l. iFrame. simpl. iSplitL "Hl".
       - eauto.
       - iExists ∅. iSplitL. iFrame. by iApply (big_sepM_empty (fun hd v => perR R hd v)). }
-    iVs (inv_alloc N _ ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']") as "#?"; first eauto.
+    iMod (inv_alloc N _ ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']") as "#?"; first eauto.
     by iApply "HΦ".
   Qed.
     
@@ -114,10 +115,10 @@ Lemma new_stack_spec' Φ RI:
     induction xs as [|x xs' IHxs'].
     - simpl. iIntros (hd f f' HN ? ?) "(#Hh & #? & Hxs1 & HRf & HΦ)".
       iDestruct "Hxs1" as (q) "Hhd".
-      wp_rec. wp_value. iVsIntro. wp_let. wp_load. wp_match. by iApply "HΦ".
+      wp_rec. wp_value. iModIntro. wp_let. wp_load. wp_match. by iApply "HΦ".
     - simpl. iIntros (hd f f' HN Hf ?) "(#Hh & #? & Hxs1 & HRf & HΦ)".
       iDestruct "Hxs1" as (hd2 q) "(Hhd & Hev & Hhd2)".
-      wp_rec. wp_value. iVsIntro. wp_let. wp_load. wp_match. wp_proj.
+      wp_rec. wp_value. iModIntro. wp_let. wp_load. wp_match. wp_proj.
       wp_bind (f' _). iApply Hf=>//. iFrame "#".
       iSplitL "Hev"; first eauto. iFrame. iIntros "HRf".
       wp_seq. wp_proj. iApply (IHxs' with "[-]")=>//.
@@ -137,20 +138,20 @@ Lemma new_stack_spec' Φ RI:
       (* open the invariant *)
       iInv N as "[IH1 ?]" "Hclose".
       iDestruct "IH1" as (xs hd) "[>Hs [>Hxs HR]]".
-      iDestruct (extract_is_list with "[Hxs]") as "==>[Hxs Hxs']"; first by iFrame.
+      iDestruct (extract_is_list with "[Hxs]") as ">[Hxs Hxs']"; first by iFrame.
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs'1 Hxs'2]"; first by iFrame.
       (* mask magic *)
-      iVs (pvs_intro_mask' (⊤ ∖ nclose N) heapN) as "Hvs"; first set_solver.
-      iVsIntro. iExists (xs, hd).
+      iMod (fupd_intro_mask' (⊤ ∖ nclose N) heapN) as "Hvs"; first set_solver.
+      iModIntro. iExists (xs, hd).
       iFrame "Hs Hxs'1". iSplit.
       + (* provide a way to rollback *)
         iIntros "[Hs Hl']".
-        iVs "Hvs". iVs ("Hclose" with "[-Rx]"); last done.
+        iMod "Hvs". iMod ("Hclose" with "[-Rx]"); last done.
         { iNext. iFrame. iExists xs. iExists hd. by iFrame. }
       + (* provide a way to commit *)
         iIntros (v) "Hs".
         iDestruct "Hs" as (hd') "[% [Hs [[Hhd'1 Hhd'2] Hxs']]]". subst.
-        iVs "Hvs".
+        iMod "Hvs".
         iDestruct "HR" as (m) "[>Hom HRm]".
         destruct (m !! hd') eqn:Heqn.
         * iDestruct (big_sepM_delete_later (perR R) m with "HRm") as "[Hx ?]"=>//.
@@ -161,9 +162,9 @@ Lemma new_stack_spec' Φ RI:
           iApply (bogus_heap hd' 1%Qp q); first apply Qp_not_plus_q_ge_1.
           iFrame "#". iFrame.
         * iAssert (evs γ hd' x ★ ▷ (allR R γ))%I
-                  with "==>[Rx Hom HRm Hhd'1]" as "[#Hox ?]".
+                  with ">[Rx Hom HRm Hhd'1]" as "[#Hox ?]".
           {
-            iDestruct (evmap_alloc _ _ _ m with "[Hom]") as "==>[Hom Hox]"=>//.
+            iDestruct (evmap_alloc _ _ _ m with "[Hom]") as ">[Hom Hox]"=>//.
             iDestruct (big_sepM_insert_later (perR R) m) as "H"=>//.
             iSplitL "Hox".
             { rewrite /evs /ev. eauto. }
@@ -171,12 +172,12 @@ Lemma new_stack_spec' Φ RI:
             iFrame. iApply "H". iFrame. iExists x.
             iFrame. rewrite /allocated. iSplitR "Hhd'1"; auto.
           }
-          iVs ("Hclose" with "[-]").
+          iMod ("Hclose" with "[-]").
           { iNext. iFrame. iExists (x::xs).
             iExists hd'. iFrame.
             iExists hd, (1/2)%Qp. by iFrame.
           }
-        iVsIntro. iSplitL; last auto. by iExists hd'.
+        iModIntro. iSplitL; last auto. by iExists hd'.
     - iApply wp_wand_r. iSplitL "HRx Hpush".
       + by iApply "Hpush".
       + iIntros (?) "H". iDestruct "H" as (_) "[? %]". subst.

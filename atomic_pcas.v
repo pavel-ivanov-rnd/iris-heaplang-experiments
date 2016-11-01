@@ -35,7 +35,7 @@ Section atomic_pair.
   
   Lemma pcas_seq_spec: seq_spec N pcas_seq ϕ α β ⊤.
   Proof.
-    iIntros (_ l) "!# _". wp_seq. iVsIntro. iPureIntro.
+    iIntros (_ l) "!# _". wp_seq. iModIntro. iPureIntro.
     iIntros (x Φ g HN) "(#Hh & Hg & #Hα & HΦ)".
     iDestruct "Hg" as (l1 l2 x1 x2) "(% & % & Hl1 & Hl2)".
     iDestruct "Hα" as (a b) "%".

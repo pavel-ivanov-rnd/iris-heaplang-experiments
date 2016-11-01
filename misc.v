@@ -2,9 +2,9 @@
 
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
-From iris.algebra Require Import auth frac gmap dec_agree upred_big_op.
+From iris.algebra Require Import auth frac gmap dec_agree.
 From iris.prelude Require Import countable.
-From iris.program_logic Require Import auth.
+From iris.base_logic Require Import big_op auth.
 Import uPred.
 
 Section lemmas.

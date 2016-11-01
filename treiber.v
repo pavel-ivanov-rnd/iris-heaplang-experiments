@@ -1,7 +1,8 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import frac auth upred gmap dec_agree upred_big_op csum.
+From iris.algebra Require Import frac auth gmap dec_agree csum.
+From iris.base_logic Require Import big_op.
 From iris_atomic Require Import atomic misc.
 
 Definition new_stack: val := λ: <>, ref (ref NONE).
@@ -123,20 +124,20 @@ Section proof.
     iIntros (P Q) "#Hvs".
     iLöb as "IH". iIntros "!# HP". wp_rec.
     wp_let. wp_bind (! _)%E.
-    iVs ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] [Hvs' _]]".
-    wp_load. iVs ("Hvs'" with "[Hs Hhd]") as "HP"; first by iFrame.
-    iVsIntro. wp_let. wp_alloc l as "Hl". wp_let.
+    iMod ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] [Hvs' _]]".
+    wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by iFrame.
+    iModIntro. wp_let. wp_alloc l as "Hl". wp_let.
     wp_bind (CAS _ _ _)%E.
-    iVs ("Hvs" with "HP") as ([xs' hd']) "[[Hs Hhd'] Hvs']".
+    iMod ("Hvs" with "HP") as ([xs' hd']) "[[Hs Hhd'] Hvs']".
     destruct (decide (hd = hd')) as [->|Hneq].
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
-      iVs ("Hvs'" $! #() with "[-]") as "HQ".
+      iMod ("Hvs'" $! #() with "[-]") as "HQ".
       { iExists l. iSplitR; first done. by iFrame. }
-      iVsIntro. wp_if. iVsIntro. eauto.
+      iModIntro. wp_if. iModIntro. eauto.
     * wp_cas_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
-      iVs ("Hvs'" with "[-]") as "HP"; first by iFrame.
-      iVsIntro. wp_if. by iApply "IH".
+      iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
+      iModIntro. wp_if. by iApply "IH".
   Qed.
 
   Definition pop_triple (s: loc) :=
@@ -159,24 +160,24 @@ Section proof.
     iIntros (P Q) "#Hvs".
     iLöb as "IH". iIntros "!# HP". wp_rec.
     wp_bind (! _)%E.
-    iVs ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] Hvs']".
+    iMod ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] Hvs']".
     destruct xs as [|y' xs'].
     - simpl. wp_load. iDestruct "Hvs'" as "[_ Hvs']".
       iDestruct "Hhd" as (q) "[Hhd Hhd']".
-      iVs ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
+      iMod ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
       { iLeft. iSplit=>//. iSplit=>//. iFrame. eauto. }
-      iVsIntro. wp_let. wp_load. wp_match.
-      iVsIntro. eauto.
+      iModIntro. wp_let. wp_load. wp_match.
+      iModIntro. eauto.
     - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".
-      iVs ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
+      iMod ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
       { iFrame. iExists hd', (q / 2)%Qp. by iFrame. }
-      iVsIntro. wp_let. wp_load. wp_match. wp_proj.
-      wp_bind (CAS _ _ _). iVs ("Hvs" with "HP") as ([xs hd'']) "[[Hs Hhd''] Hvs']".
+      iModIntro. wp_let. wp_load. wp_match. wp_proj.
+      wp_bind (CAS _ _ _). iMod ("Hvs" with "HP") as ([xs hd'']) "[[Hs Hhd''] Hvs']".
       destruct (decide (hd = hd'')) as [->|Hneq].
       + wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
-        iVs ("Hvs'" $! (SOMEV y') with "[-]") as "HQ".
+        iMod ("Hvs'" $! (SOMEV y') with "[-]") as "HQ".
         { iRight. iExists y', (q / 2 / 2)%Qp, hd', xs'.
           destruct xs as [|x' xs''].
           - simpl. iDestruct "Hhd''" as (?) "H".
@@ -190,10 +191,10 @@ Section proof.
             iDestruct (uniq_is_list with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
             repeat (iSplitR "Hxs1 Hs"; first done).
             iFrame. }
-        iVsIntro. wp_if. wp_proj. eauto.
+        iModIntro. wp_if. wp_proj. eauto.
       + wp_cas_fail. iDestruct "Hvs'" as "[Hvs' _]".
-        iVs ("Hvs'" with "[-]") as "HP"; first by iFrame.
-        iVsIntro. wp_if. by iApply "IH".
+        iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
+        iModIntro. wp_if. by iApply "IH".
   Qed.
 
 End proof.

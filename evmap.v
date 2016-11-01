@@ -1,5 +1,6 @@
 (* evmap.v -- generalized heap-like monoid composite *)
-From iris.program_logic Require Export invariants weakestpre.
+From iris.base_logic Require Export invariants.
+From iris.program_logic Require Export weakestpre.
 From iris.algebra Require Export auth frac gmap dec_agree.
 From iris.proofmode Require Import tactics.
 
@@ -58,7 +59,7 @@ Section evmapR.
   (* Alloc a new mapsto *)
   Lemma evmap_alloc γm m k v:
     m !! k = None →
-    own γm (● m) ⊢ |=r=> own γm (● (<[ k := ((), DecAgree v) ]> m) ⋅ ◯ {[ k := ((), DecAgree v) ]}).
+    own γm (● m) ⊢ |==> own γm (● (<[ k := ((), DecAgree v) ]> m) ⋅ ◯ {[ k := ((), DecAgree v) ]}).
   Proof.
     iIntros (?) "Hm".
     iDestruct (own_update with "Hm") as "?"; last by iAssumption.

@@ -54,7 +54,7 @@ Section atomic_sync.
         ⊢ WP (sync mk_syncer) f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
   Proof.
     iIntros (g0 HN Hseq Hsync) "[#Hh Hϕ]".
-    iVs (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
+    iMod (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite pair_op dec_agree_idemp. }
     repeat wp_let. wp_bind (mk_syncer _).
     iApply (Hsync (∃ g: A, ϕ l g ★ gHalf γ g)%I)=>//. iFrame "Hh".
@@ -75,23 +75,23 @@ Section atomic_sync.
     - iApply ("Hsynced" with "[]")=>//.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
       (* we should view shift at this point *)
-      iDestruct ("Hvss" with "HP") as "Hvss'". iApply pvs_wp.
-      iVs "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
+      iDestruct ("Hvss" with "HP") as "Hvss'". iApply fupd_wp.
+      iMod "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
       iDestruct (m_frag_agree with "[Hg1 Hg2]") as %Heq; first iFrame. subst.
-      iVs ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
-      iVsIntro. iApply H=>//.
+      iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
+      iModIntro. iApply H=>//.
       iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
-      iVs ("Hvss" with "HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
+      iMod ("Hvss" with "HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
       iSpecialize ("Hvs2" $! ret).
       iDestruct (m_frag_agree' with "[Hg'' Hg1]") as "[Hg %]"; first iFrame. subst.
       rewrite Qp_div_2.
-      iAssert (|=r=> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I
-              with "[Hg]" as "==>[Hg1 Hg2]".
+      iAssert (|==> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I
+              with "[Hg]" as ">[Hg1 Hg2]".
       { iApply own_update; last by iAssumption.
         apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }
-      iVs ("Hvs2" with "[Hg1 Hβ]").
+      iMod ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
-      iVsIntro. iSplitL "Hg2 Hϕ'"; last done.
+      iModIntro. iSplitL "Hg2 Hϕ'"; last done.
       iExists g'. by iFrame.
     - iIntros (?) "?". by iExists g0.
   Qed.

@@ -1,12 +1,16 @@
 (* Logically atomic triple *)
 
-From iris.program_logic Require Export hoare weakestpre pviewshifts.
+From iris.base_logic Require Export fancy_updates.
+From iris.program_logic Require Export hoare weakestpre.
 From iris.prelude Require Export coPset.
 Import uPred.
 
 Section atomic.
   Context `{irisG Λ Σ} (A: Type).
 
+  (* TODO RJ: IMHO it would make more sense to have the outer mask first, after all, that's what the shifts "starts" with. *)
+  (* TODO RJ: Don't define atomic_triple_base; everybody should only ever use atomic_triple anyway. *)
+  (* TODO RJ: We probably will want to make `A` an implicit parameter. *)
   Definition atomic_triple_base
              (α: A → iProp Σ) (* atomic pre-condition *)
              (β: A → val _ → iProp Σ) (* atomic post-condition *)
