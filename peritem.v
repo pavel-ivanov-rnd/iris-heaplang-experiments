@@ -133,7 +133,7 @@ Lemma new_stack_spec' Φ RI:
   Proof.
     iIntros (HN) "(#Hh & HRx & #? & HΦ)".
     iDestruct (push_atomic_spec N s x with "Hh") as "Hpush"=>//.
-    iSpecialize ("Hpush" $! (R x) (fun _ ret => (∃ hd, evs γ hd x) ★ ret = #())%I with "[]").
+    iSpecialize ("Hpush" $! (R x) (fun ret => (∃ hd, evs γ hd x) ★ ret = #())%I with "[]").
     - iIntros "!# Rx".
       (* open the invariant *)
       iInv N as "[IH1 ?]" "Hclose".
@@ -180,7 +180,7 @@ Lemma new_stack_spec' Φ RI:
         iModIntro. iSplitL; last auto. by iExists hd'.
     - iApply wp_wand_r. iSplitL "HRx Hpush".
       + by iApply "Hpush".
-      + iIntros (?) "H". iDestruct "H" as (_) "[? %]". subst.
+      + iIntros (?) "[? %]". subst.
         by iApply "HΦ".
   Qed.
 

@@ -57,9 +57,9 @@ Section atomic_sync.
     iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
     iIntros (f') "#Hsynced {Hsyncer}".
     iAlways. iIntros (α β x) "#Hseq".
-    iIntros (P Q) "#Hvss !# HP". 
+    iIntros (P Q) "#Hvss !# HP".
     (* TODO: Why can't I iApply "Hsynced"? *)
-    iSpecialize ("Hsynced" $! P (fun v => ∃ x, Q x v)%I x).
+    iSpecialize ("Hsynced" $! P Q x).
     iApply wp_wand_r. iSplitL "HP".
     - iApply ("Hsynced" with "[]")=>//.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
@@ -81,7 +81,7 @@ Section atomic_sync.
         apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }
       iMod ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
-      iModIntro. iSplitL "Hg2 Hϕ'"; last by iExists g''.
+      iModIntro. iSplitL "Hg2 Hϕ'"; last done.
       iExists g'. by iFrame.
     - iIntros (?) "?". done.
   Qed.

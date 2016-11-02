@@ -18,6 +18,6 @@ Section atomic.
     (∀ P Q, (P ={Eo, Ei}=> ∃ x:A,
                        α x ★
                        ((α x ={Ei, Eo}=★ P) ∧
-                        (∀ v, β x v ={Ei, Eo}=★ Q x v))
-     ) -★ {{ P }} e @ ⊤ {{ v, (∃ x: A, Q x v) }})%I.
+                        (∀ v, β x v ={Ei, Eo}=★ Q v))
+     ) -★ {{ P }} e @ ⊤ {{ Q }})%I.
 End atomic.

@@ -46,7 +46,7 @@ Section incr.
       iSpecialize ("Hvs'" $! #x').
       wp_cas_suc.
       iMod ("Hvs'" with "[Hl]") as "HQ"; first by iFrame.
-      iModIntro. wp_if. by iExists x'.
+      iModIntro. wp_if. done.
     - iDestruct "Hvs'" as "[Hvs' _]".
       wp_cas_fail.
       iMod ("Hvs'" with "[Hl]") as "HP"; first by iFrame.
@@ -80,7 +80,7 @@ Section user.
     (* prove worker triple *)
     iDestruct (incr_atomic_spec N l with "Hh") as "Hincr"=>//.
     rewrite /incr_triple /atomic_triple.
-    iSpecialize ("Hincr"  $! True%I (fun _ _ => True%I) with "[]").
+    iSpecialize ("Hincr"  $! True%I (fun _ => True%I) with "[]").
     - iIntros "!# _".
       (* open the invariant *)
       iInv N as (x') ">Hl'" "Hclose".
