@@ -15,62 +15,52 @@ Proof. by intros ?%subG_inG. Qed.
 Section atomic_sync.
   Context `{EqDecision A, !heapG Σ, !lockG Σ, !inG Σ (prodR fracR (dec_agreeR A))} (N : namespace).
 
+  (* TODO: Rename and make opaque; the fact that this is a half should not be visible
+           to the user. *)
   Definition gHalf (γ: gname) g : iProp Σ := own γ ((1/2)%Qp, DecAgree g).
 
-  Definition atomic_triple'
-             (α: val → A → iProp Σ)
-             (β: val → A → A → val → iProp Σ)
-             (Ei Eo: coPset)
-             (f x: val) γ : iProp Σ :=
-    (∀ P Q, atomic_triple_base A (fun g => gHalf γ g ★ □ α x g)
-                                 (fun g v => ∃ g':A, gHalf γ g' ★ β x g g' v)
-                                 Ei Eo
-                                (f x) (P x) (fun _ => Q x))%I.
+  Definition atomic_seq_spec (ϕ: A → iProp Σ) α β (f x: val) :=
+    (∀ g, {{ ϕ g ★ α g }} f x {{ v, ∃ g', ϕ g' ★ β g g' v }})%I.
 
-  Definition sync (mk_syncer: val) : val :=
-    λ: "f_seq" "l",
-       let: "s" := mk_syncer #() in
-       "s" ("f_seq" "l").
+  (* TODO: Provide better masks. ∅ as inner mask is pretty weak. *)
+  Definition atomic_synced (ϕ: A → iProp Σ) γ (f f': val) :=
+    (□ ∀ α β (x: val), atomic_seq_spec ϕ α β f x →
+                       atomic_triple (fun g => gHalf γ g ★ □ α g)%I
+                                     (fun g v => ∃ g', gHalf γ g' ★ β g g' v)%I
+                                     ∅ ⊤ (f' x))%I.
 
-  Definition seq_spec (f: val) (ϕ: val → A → iProp Σ) α β (E: coPset) :=
-      ∀ (Φ: val → iProp Σ) (l: val),
-         {{ True }} f l {{ f', ■ (∀ (x: val) (Φ: val → iProp Σ) (g: A),
-                               heapN ⊥ N →
-                               heap_ctx ★ ϕ l g ★ □ α x g ★
-                               (∀ (v: val) (g': A),
-                                  ϕ l g' -★ β x g g' v ={E}=★ Φ v)
-                               ⊢ WP f' x @ E {{ Φ }} )}}.
-  (* The linear view shift in the above post-condition is for the final step
-     of computation. The client side of such triple will have to prove that the
-     specific post-condition he wants can be lvs'd from whatever threaded together
-     by magic wands. The library side, when proving seq_spec, will always have
-     a view shift at the end of evalutation, which is exactly what we need.  *)
+  (* TODO: Use our usual style with a generic post-condition. *)
+  (* TODO: We could get rid of the x, and hard-code a unit. That would
+     be no loss in expressiveness, but probably more annoying to apply.
+     How much more annoying? And how much to we gain in terms of things
+     becomign easier to prove? *)
+  (* This is really the core of the spec: It says that executing `s` on `f`
+     turns the sequential spec with f, α, β into the concurrent triple with f', α, β. *)
+  Definition is_atomic_syncer (ϕ: A → iProp Σ) γ (s: val) := 
+    (□ ∀ (f: val), WP s f {{ f', atomic_synced ϕ γ f f' }})%I.
 
-  Lemma atomic_spec (mk_syncer f_seq l: val) (ϕ: val → A → iProp Σ) α β Ei:
-      ∀ (g0: A),
-        heapN ⊥ N → seq_spec f_seq ϕ α β ⊤ →
-        mk_syncer_spec N mk_syncer →
-        heap_ctx ★ ϕ l g0
-        ⊢ WP (sync mk_syncer) f_seq l {{ f, ∃ γ, gHalf γ g0 ★ ∀ x, □ atomic_triple' α β Ei ⊤ f x γ  }}.
+  Definition atomic_syncer_spec (mk_syncer: val) :=
+    ∀ (g0: A) (ϕ: A → iProp Σ),
+      heapN ⊥ N →
+      {{{ heap_ctx ★ ϕ g0 }}} mk_syncer #() {{{ γ s, RET s; gHalf γ g0 ★ is_atomic_syncer ϕ γ s }}}.
+
+  Lemma atomic_spec (mk_syncer: val):
+      mk_syncer_spec N mk_syncer → atomic_syncer_spec mk_syncer.
   Proof.
-    iIntros (g0 HN Hseq Hsync) "[#Hh Hϕ]".
+    iIntros (Hsync g0 ϕ HN ret) "[#Hh Hϕ] Hret".
     iMod (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite pair_op dec_agree_idemp. }
-    repeat wp_let. wp_bind (mk_syncer _).
-    iApply (Hsync (∃ g: A, ϕ l g ★ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
+    iApply (Hsync (∃ g: A, ϕ g ★ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
     { iExists g0. by iFrame. }
-    iNext. iIntros (s) "#Hsyncer".
-    wp_let. wp_bind (f_seq _). iApply wp_wand_r.
-    iSplitR; first iApply Hseq=>//; auto.
-    iIntros (f) "%".
-    iApply wp_wand_r.
-    iSplitR; first iApply "Hsyncer".
-    iIntros (f') "#Hsynced".
-    iExists γ. iFrame.
-    iIntros (x). iAlways.
-    iIntros (P Q) "#Hvss".
-    iSpecialize ("Hsynced" $! (P x) (Q x) x).
-    iIntros "!# HP". iApply wp_wand_r. iSplitL "HP".
+    iNext. iIntros (s) "#Hsyncer". iApply "Hret".
+    iSplitL "Hg2"; first done. iIntros "!#".
+    iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
+    iIntros (f') "#Hsynced {Hsyncer}".
+    iAlways. iIntros (α β x) "#Hseq".
+    iIntros (P Q) "#Hvss !# HP". 
+    (* TODO: Why can't I iApply "Hsynced"? *)
+    iSpecialize ("Hsynced" $! P (fun v => ∃ x, Q x v)%I x).
+    iApply wp_wand_r. iSplitL "HP".
     - iApply ("Hsynced" with "[]")=>//.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
       (* we should view shift at this point *)
@@ -78,10 +68,11 @@ Section atomic_sync.
       iMod "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
       iDestruct (m_frag_agree with "[Hg1 Hg2]") as %Heq; first iFrame. subst.
       iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
-      iModIntro. iApply H=>//.
-      iFrame "Hh Hϕ". iSplitR; first done. iIntros (ret g') "Hϕ' Hβ".
+      iModIntro. iApply wp_fupd. iApply wp_wand_r. iSplitL "Hϕ".
+      { iApply "Hseq". iFrame. done. }
+      iIntros (v) "H". iDestruct "H" as (g') "[Hϕ' Hβ]".
       iMod ("Hvss" with "HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
-      iSpecialize ("Hvs2" $! ret).
+      iSpecialize ("Hvs2" $! v).
       iDestruct (m_frag_agree' with "[Hg'' Hg1]") as "[Hg %]"; first iFrame. subst.
       rewrite Qp_div_2.
       iAssert (|==> own γ (((1 / 2)%Qp, DecAgree g') ⋅ ((1 / 2)%Qp, DecAgree g')))%I
@@ -90,9 +81,9 @@ Section atomic_sync.
         apply cmra_update_exclusive. by rewrite pair_op dec_agree_idemp. }
       iMod ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
-      iModIntro. iSplitL "Hg2 Hϕ'"; last done.
+      iModIntro. iSplitL "Hg2 Hϕ'"; last by iExists g''.
       iExists g'. by iFrame.
-    - iIntros (?) "?". by iExists g0.
+    - iIntros (?) "?". done.
   Qed.
 
 End atomic_sync.

@@ -19,11 +19,11 @@ Section incr.
 
   (* TODO: Can we have a more WP-style definition and avoid the equality? *)
   Definition incr_triple (l: loc) :=
-    atomic_triple _ (fun (v: Z) => l ↦ #v)%I
-                    (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
-                    (nclose heapN)
-                    ⊤
-                    (incr #l).
+    atomic_triple (fun (v: Z) => l ↦ #v)%I
+                  (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
+                  (nclose heapN)
+                  ⊤
+                  (incr #l).
 
   Lemma incr_atomic_spec: ∀ (l: loc), heapN ⊥ N → heap_ctx ⊢ incr_triple l.
   Proof.
