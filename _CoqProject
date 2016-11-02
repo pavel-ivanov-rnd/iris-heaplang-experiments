@@ -1,5 +1,4 @@
 -Q . iris_atomic
--Q iris iris
 atomic.v
 sync.v
 atomic_incr.v

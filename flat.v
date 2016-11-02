@@ -305,9 +305,9 @@ Section proof.
     iIntros (?) "(#? & #? & #? & HΦ)".
     wp_seq. wp_let.
     wp_bind (try_acquire _). iApply try_acquire_spec.
-    iFrame "#". iSplit; last by wp_if.
+    iFrame "#". iNext. iIntros ([]); last by (iIntros; wp_if).
     (* acquired the lock *)
-    iIntros "Hlocked [Ho2 HR]".
+    iIntros "[Hlocked [Ho2 HR]]".
     wp_if. wp_bind (! _)%E.
     iInv N as "[H >Hm]" "Hclose".
     iDestruct "H" as (xs' hd') "[>Hs [>Hxs HRs]]".
