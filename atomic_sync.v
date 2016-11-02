@@ -57,10 +57,9 @@ Section atomic_sync.
     iMod (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite pair_op dec_agree_idemp. }
     repeat wp_let. wp_bind (mk_syncer _).
-    iApply (Hsync (∃ g: A, ϕ l g ★ gHalf γ g)%I)=>//. iFrame "Hh".
-    iSplitL "Hg1 Hϕ".
+    iApply (Hsync (∃ g: A, ϕ l g ★ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
     { iExists g0. by iFrame. }
-    iIntros (s) "#Hsyncer".
+    iNext. iIntros (s) "#Hsyncer".
     wp_let. wp_bind (f_seq _). iApply wp_wand_r.
     iSplitR; first iApply Hseq=>//; auto.
     iIntros (f) "%".
@@ -70,7 +69,7 @@ Section atomic_sync.
     iExists γ. iFrame.
     iIntros (x). iAlways.
     iIntros (P Q) "#Hvss".
-    iSpecialize ("Hsynced" $! P Q x).
+    iSpecialize ("Hsynced" $! (P x) (Q x) x).
     iIntros "!# HP". iApply wp_wand_r. iSplitL "HP".
     - iApply ("Hsynced" with "[]")=>//.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".

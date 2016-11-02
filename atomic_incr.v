@@ -46,7 +46,7 @@ Section incr.
       iSpecialize ("Hvs'" $! #x').
       wp_cas_suc.
       iMod ("Hvs'" with "[Hl]") as "HQ"; first by iFrame.
-      iModIntro. wp_if. iModIntro. by iExists x'.
+      iModIntro. wp_if. by iExists x'.
     - iDestruct "Hvs'" as "[Hvs' _]".
       wp_cas_fail.
       iMod ("Hvs'" with "[Hl]") as "HP"; first by iFrame.

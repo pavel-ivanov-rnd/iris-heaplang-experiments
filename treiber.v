@@ -133,7 +133,7 @@ Section proof.
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" $! #() with "[-]") as "HQ".
       { iExists l. iSplitR; first done. by iFrame. }
-      iModIntro. wp_if. iModIntro. eauto.
+      iModIntro. wp_if. eauto.
     * wp_cas_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
       iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
@@ -167,7 +167,7 @@ Section proof.
       iMod ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
       { iLeft. iSplit=>//. iSplit=>//. iFrame. eauto. }
       iModIntro. wp_let. wp_load. wp_match.
-      iModIntro. eauto.
+      eauto.
     - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".
