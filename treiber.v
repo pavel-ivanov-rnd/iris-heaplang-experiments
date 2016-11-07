@@ -107,15 +107,15 @@ Section proof.
   Qed.
 
   Definition push_triple (s: loc) (x: val) :=
-  atomic_triple _ (fun xs_hd: list val * loc =>
-                       let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
-                  (fun xs_hd ret =>
-                     let '(xs, hd) := xs_hd in 
-                     ∃ hd': loc,
-                       ret = #() ★ s ↦ #hd' ★ hd' ↦ SOMEV (x, #hd) ★ is_list hd xs)%I
-                  (nclose heapN)
-                  ⊤
-                  (push #s x).
+  atomic_triple (fun xs_hd: list val * loc =>
+                     let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
+                (fun xs_hd ret =>
+                   let '(xs, hd) := xs_hd in 
+                   ∃ hd': loc,
+                     ret = #() ★ s ↦ #hd' ★ hd' ↦ SOMEV (x, #hd) ★ is_list hd xs)%I
+                (nclose heapN)
+                ⊤
+                (push #s x).
   
   Lemma push_atomic_spec (s: loc) (x: val) :
     heapN ⊥ N → heap_ctx ⊢ push_triple s x.
@@ -133,7 +133,7 @@ Section proof.
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" $! #() with "[-]") as "HQ".
       { iExists l. iSplitR; first done. by iFrame. }
-      iModIntro. wp_if. iModIntro. eauto.
+      iModIntro. wp_if. eauto.
     * wp_cas_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
       iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
@@ -141,16 +141,16 @@ Section proof.
   Qed.
 
   Definition pop_triple (s: loc) :=
-  atomic_triple _ (fun xs_hd: list val * loc =>
-                     let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
-                  (fun xs_hd ret =>
-                     let '(xs, hd) := xs_hd in
-                     (ret = NONEV ★ xs = [] ★ s ↦ #hd ★ is_list hd []) ∨
-                     (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ★ ret = SOMEV x ★
-                                            xs = x :: xs' ★ s ↦ #hd' ★ is_list hd' xs'))%I
-                  (nclose heapN)
-                  ⊤
-                  (pop #s).
+  atomic_triple (fun xs_hd: list val * loc =>
+                   let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
+                (fun xs_hd ret =>
+                   let '(xs, hd) := xs_hd in
+                   (ret = NONEV ★ xs = [] ★ s ↦ #hd ★ is_list hd []) ∨
+                   (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ★ ret = SOMEV x ★
+                                          xs = x :: xs' ★ s ↦ #hd' ★ is_list hd' xs'))%I
+                (nclose heapN)
+                ⊤
+                (pop #s).
 
   Lemma pop_atomic_spec (s: loc):
     heapN ⊥ N → heap_ctx ⊢ pop_triple s.
@@ -167,7 +167,7 @@ Section proof.
       iMod ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
       { iLeft. iSplit=>//. iSplit=>//. iFrame. eauto. }
       iModIntro. wp_let. wp_load. wp_match.
-      iModIntro. eauto.
+      eauto.
     - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".

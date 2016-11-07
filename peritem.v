@@ -92,7 +92,7 @@ Lemma new_stack_spec' Φ RI:
     heap_ctx ★ RI ★ (∀ γ s : loc, inv N ((∃ xs, is_stack' R γ xs s) ★ RI) -★ Φ #s)
     ⊢ WP new_stack #() {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & HR & HΦ)".
+    iIntros (HN) "(#Hh & HR & HΦ)". iApply wp_fupd.
     iMod (own_alloc (● (∅: evmapR loc val unitR) ⋅ ◯ ∅)) as (γ) "[Hm Hm']".
     { apply auth_valid_discrete_2. done. }
     wp_seq. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
@@ -115,10 +115,10 @@ Lemma new_stack_spec' Φ RI:
     induction xs as [|x xs' IHxs'].
     - simpl. iIntros (hd f f' HN ? ?) "(#Hh & #? & Hxs1 & HRf & HΦ)".
       iDestruct "Hxs1" as (q) "Hhd".
-      wp_rec. wp_value. iModIntro. wp_let. wp_load. wp_match. by iApply "HΦ".
+      wp_rec. wp_value. wp_let. wp_load. wp_match. by iApply "HΦ".
     - simpl. iIntros (hd f f' HN Hf ?) "(#Hh & #? & Hxs1 & HRf & HΦ)".
       iDestruct "Hxs1" as (hd2 q) "(Hhd & Hev & Hhd2)".
-      wp_rec. wp_value. iModIntro. wp_let. wp_load. wp_match. wp_proj.
+      wp_rec. wp_value. wp_let. wp_load. wp_match. wp_proj.
       wp_bind (f' _). iApply Hf=>//. iFrame "#".
       iSplitL "Hev"; first eauto. iFrame. iIntros "HRf".
       wp_seq. wp_proj. iApply (IHxs' with "[-]")=>//.
@@ -133,7 +133,7 @@ Lemma new_stack_spec' Φ RI:
   Proof.
     iIntros (HN) "(#Hh & HRx & #? & HΦ)".
     iDestruct (push_atomic_spec N s x with "Hh") as "Hpush"=>//.
-    iSpecialize ("Hpush" $! (R x) (fun _ ret => (∃ hd, evs γ hd x) ★ ret = #())%I with "[]").
+    iSpecialize ("Hpush" $! (R x) (fun ret => (∃ hd, evs γ hd x) ★ ret = #())%I with "[]").
     - iIntros "!# Rx".
       (* open the invariant *)
       iInv N as "[IH1 ?]" "Hclose".
@@ -180,7 +180,7 @@ Lemma new_stack_spec' Φ RI:
         iModIntro. iSplitL; last auto. by iExists hd'.
     - iApply wp_wand_r. iSplitL "HRx Hpush".
       + by iApply "Hpush".
-      + iIntros (?) "H". iDestruct "H" as (_) "[? %]". subst.
+      + iIntros (?) "[? %]". subst.
         by iApply "HΦ".
   Qed.
 

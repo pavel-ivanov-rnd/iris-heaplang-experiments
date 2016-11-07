@@ -130,9 +130,9 @@ Section proof.
       by iApply "HΦ".
   Qed.
 
-  Definition installed_recp (ts: toks) (x: val) (Q: val → val → iProp Σ) :=
+  Definition installed_recp (ts: toks) (x: val) (Q: val → iProp Σ) :=
     let '(γx, _, γ3, _, γq) := ts in
-    (own γ3 (Excl ()) ★ own γx ((1/2)%Qp, DecAgree x) ★ saved_prop_own γq (Q x))%I.
+    (own γ3 (Excl ()) ★ own γx ((1/2)%Qp, DecAgree x) ★ saved_prop_own γq Q)%I.
 
   Lemma install_spec
         R P Q
@@ -140,7 +140,7 @@ Section proof.
         (Φ: val → iProp Σ):
     heapN ⊥ N →
     heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
-    P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
+    P ★ ({{ R ★ P }} f x {{ v, R ★ Q v }}) ★
     (∀ (p: loc) (ts: toks), installed_recp ts x Q -★ evm γm p ts -★(∃ hd, evs γs hd #p) -★ Φ #p)
     ⊢ WP install f x #s {{ Φ }}.
   Proof.
@@ -151,7 +151,7 @@ Section proof.
     iMod (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iMod (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
     iMod (own_alloc (1%Qp, DecAgree x)) as (γx) "Hx"; first done.
-    iMod (saved_prop_alloc (F:=(cofe_funCF val idCF)) (Q x)%I) as (γq) "#?".
+    iMod (saved_prop_alloc (F:=(cofe_funCF val idCF)) Q) as (γq) "#?".
     iInv N as "[Hrs >Hm]" "Hclose".
     iDestruct "Hm" as (m) "[Hm HRm]".
     destruct (m !! p) eqn:Heqn.
@@ -170,8 +170,10 @@ Section proof.
         iApply install_push_spec=>//.
         iFrame "#". rewrite /evm /installed_s. iFrame.
         iSplitL "Hpx Hf".
-        { iExists P, Q. by iFrame. }
-        iIntros "Hhd". wp_seq. iModIntro.
+        { (* TODO: Something somewhere can be simplified so that we don't have
+             to add these dummy arguments any more. *)
+          iExists (fun _ => P), (fun _ => Q). by iFrame. }
+        iIntros "Hhd". wp_seq. 
         iSpecialize ("HΦ" $! p (γx, γ1, γ3, γ4, γq) with "[-Hhd]")=>//.
         { rewrite /installed_recp. iFrame. iFrame "#". }
         by iApply ("HΦ" with "[]").
@@ -206,7 +208,7 @@ Section proof.
           iFrame "Hom". iDestruct (big_sepM_delete _ m with "[-]") as "?"=>//.
           iFrame. iExists #p''. iSplitR; first done. iExists ts, p''.
           iSplitR; first done. iFrame "#". iLeft. iExists y. iFrame. }
-        iModIntro. wp_match. iModIntro. iApply ("HΦ'" with "[Hor HR]"). iFrame.
+        iModIntro. wp_match. iApply ("HΦ'" with "[Hor HR]"). iFrame.
       + iDestruct "Hp" as (f' x') "(Hp & Hs)".
         wp_load. destruct ts as [[[[γx γ1] γ3] γ4] γq].
         iDestruct "Hs" as (P Q) "(Hx & Hpx & Hf' & HoQ & Ho1 & Ho4)".
@@ -227,7 +229,7 @@ Section proof.
         wp_bind (f' _). iApply wp_wand_r. iSplitL "Hpx Hf' HR".
         { iApply "Hf'". iFrame. }
         iIntros (v) "[HR HQ]".
-        wp_value. iModIntro. iInv N as "[Hs >Hm]" "Hclose".
+        wp_value. iInv N as "[Hs >Hm]" "Hclose".
         iDestruct "Hs" as (xs'' hd''') "[>Hhd [>Hxs HRs]]".
         iDestruct "HRs" as (m') "[>Hom HRs]".
         iDestruct (ev_map_witness _ _ _ m' with "[Hevm Hom]") as %?; first by iFrame.
@@ -304,8 +306,8 @@ Section proof.
   Proof.
     iIntros (?) "(#? & #? & #? & HΦ)".
     wp_seq. wp_let.
-    wp_bind (try_acquire _). iApply try_acquire_spec.
-    iFrame "#". iNext. iIntros ([]); last by (iIntros; wp_if).
+    wp_bind (try_acquire _). iApply (try_acquire_spec with "[]"); first done.
+    iNext. iIntros ([]); last by (iIntros; wp_if).
     (* acquired the lock *)
     iIntros "[Hlocked [Ho2 HR]]".
     wp_if. wp_bind (! _)%E.
@@ -320,8 +322,8 @@ Section proof.
     { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ★ R ★ v = #()))%I=>//.      
       iFrame "#". iFrame. iIntros "? ?". by iFrame. }
     iIntros (f') "[Ho [HR %]]". subst.
-    wp_let. iApply release_spec. iFrame "#".
-    iFrame. iNext. iIntros. done.
+    wp_let. iApply (release_spec with "[Hlocked Ho HR]"); first iFrame "#★".
+    iNext. iIntros. done.
   Qed.
 
   Lemma loop_spec R (p s: loc) (lk: val)
@@ -390,20 +392,20 @@ Section proof.
 
   Lemma mk_flat_spec: mk_syncer_spec N mk_flat.
   Proof.
-    iIntros (R Φ HN) "(#Hh & HR & HΦ)".
+    iIntros (R HN Φ) "(#Hh & HR) HΦ".
     iMod (own_alloc (Excl ())) as (γr) "Ho2"; first done.
     iMod (own_alloc (● (∅: tokmR) ⋅ ◯ ∅)) as (γm) "[Hm _]"; first by rewrite -auth_both_op.
     iAssert (srv_tokm_inv γm) with "[Hm]" as "Hm"; first eauto.
     { iExists ∅. iFrame. by rewrite big_sepM_empty. }
     wp_seq. wp_bind (newlock _).
-    iApply (newlock_spec _ (own γr (Excl ()) ★ R))%I=>//.
-    iFrame "Hh Ho2 HR". iNext. iIntros (lk γlk) "#Hlk".
+    iApply (newlock_spec _ (own γr (Excl ()) ★ R)%I with "[$Hh $Ho2 $HR]")=>//.
+    iNext. iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
     iApply (new_stack_spec' _ (p_inv _ γm γr))=>//.
     iFrame "Hh Hm". iIntros (γ s) "#Hss".
-    wp_let. iModIntro. iApply "HΦ". rewrite /synced.
+    wp_let. iApply "HΦ". rewrite /synced.
     iAlways.
-    iIntros (f). wp_let. iModIntro. iAlways.
+    iIntros (f). wp_let. iAlways.
     iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_let.
     wp_bind (install _ _ _).

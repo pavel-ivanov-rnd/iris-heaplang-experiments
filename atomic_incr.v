@@ -19,11 +19,11 @@ Section incr.
 
   (* TODO: Can we have a more WP-style definition and avoid the equality? *)
   Definition incr_triple (l: loc) :=
-    atomic_triple _ (fun (v: Z) => l ↦ #v)%I
-                    (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
-                    (nclose heapN)
-                    ⊤
-                    (incr #l).
+    atomic_triple (fun (v: Z) => l ↦ #v)%I
+                  (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
+                  (nclose heapN)
+                  ⊤
+                  (incr #l).
 
   Lemma incr_atomic_spec: ∀ (l: loc), heapN ⊥ N → heap_ctx ⊢ incr_triple l.
   Proof.
@@ -46,7 +46,7 @@ Section incr.
       iSpecialize ("Hvs'" $! #x').
       wp_cas_suc.
       iMod ("Hvs'" with "[Hl]") as "HQ"; first by iFrame.
-      iModIntro. wp_if. iModIntro. by iExists x'.
+      iModIntro. wp_if. done.
     - iDestruct "Hvs'" as "[Hvs' _]".
       wp_cas_fail.
       iMod ("Hvs'" with "[Hl]") as "HP"; first by iFrame.
@@ -80,7 +80,7 @@ Section user.
     (* prove worker triple *)
     iDestruct (incr_atomic_spec N l with "Hh") as "Hincr"=>//.
     rewrite /incr_triple /atomic_triple.
-    iSpecialize ("Hincr"  $! True%I (fun _ _ => True%I) with "[]").
+    iSpecialize ("Hincr"  $! True%I (fun _ => True%I) with "[]").
     - iIntros "!# _".
       (* open the invariant *)
       iInv N as (x') ">Hl'" "Hclose".

@@ -23,20 +23,19 @@ Section syncer.
   
   Lemma mk_sync_spec: mk_syncer_spec N mk_sync.
   Proof.
-    iIntros (R Φ HN) "(#Hh & HR & HΦ)".
+    iIntros (R HN Φ) "(#Hh & HR) HΦ".
     wp_seq. wp_bind (newlock _).
-    iApply newlock_spec; first done.
-    iSplitL "HR"; first by iFrame. iNext.
+    iApply (newlock_spec _ R with "[$Hh $HR]"); first done. iNext.
     iIntros (lk γ) "#Hl". wp_let. iApply "HΦ". iIntros "!#".
-    iIntros (f). wp_let. iModIntro. iAlways.
+    iIntros (f). wp_let. iAlways.
     iIntros (P Q x) "#Hf !# HP".
     wp_let. wp_bind (acquire _).
-    iApply acquire_spec. iSplit; first done. iNext.
+    iApply (acquire_spec with "Hl"). iNext.
     iIntros "[Hlocked R]". wp_seq. wp_bind (f _).
-    iDestruct ("Hf" with "[R HP]") as "Hf'"; first by iFrame.
-    iApply wp_wand_r.  iSplitL "Hf'"; first done.
+    iSpecialize ("Hf" with "[R HP]"); first by iFrame.
+    iApply wp_wand_r.  iSplitL "Hf"; first done.
     iIntros (v') "[HR HQv]". wp_let. wp_bind (release _).
-    iApply release_spec. iFrame "HR Hl Hlocked".
+    iApply (release_spec with "[$HR $Hl $Hlocked]").
     iNext. iIntros "_". by wp_seq.
   Qed.
 End syncer.
