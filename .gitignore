@@ -10,4 +10,5 @@
 *.bak
 Makefile.coq
 .coq-native/
+iris-enabled
 
