@@ -1,12 +1,13 @@
--Q . iris_atomic
-atomic.v
-sync.v
-atomic_incr.v
-simple_sync.v
-flat.v
-atomic_sync.v
-treiber.v
-misc.v
-evmap.v
-peritem.v
-atomic_pcas.v
+-Q theories iris_atomic
+-Q iris-enabled iris
+theories/atomic.v
+theories/sync.v
+theories/atomic_incr.v
+theories/simple_sync.v
+theories/flat.v
+theories/atomic_sync.v
+theories/treiber.v
+theories/misc.v
+theories/evmap.v
+theories/peritem.v
+theories/atomic_pcas.v
