@@ -12,7 +12,7 @@ Section sync.
      How much more annoying? And how much to we gain in terms of things
      becomign easier to prove? *)
   Definition synced R (f f': val) :=
-    (□ ∀ P Q (x: val), {{ R ★ P }} f x {{ v, R ★ Q v }} →
+    (□ ∀ P Q (x: val), {{ R ∗ P }} f x {{ v, R ∗ Q v }} →
                        {{ P }} f' x {{ Q }})%I.
 
   (* Notice that `s f` is *unconditionally safe* to execute, and only 
@@ -24,5 +24,5 @@ Section sync.
 
   Definition mk_syncer_spec (mk_syncer: val) :=
     ∀ (R: iProp Σ), heapN ⊥ N →
-      {{{ heap_ctx ★ R }}} mk_syncer #() {{{ s, RET s; is_syncer R s }}}.
+      {{{ heap_ctx ∗ R }}} mk_syncer #() {{{ s, RET s; is_syncer R s }}}.
 End sync.

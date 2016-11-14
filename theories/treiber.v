@@ -41,11 +41,11 @@ Section proof.
   Fixpoint is_list (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
     | [] => (∃ q, hd ↦{ q } NONEV)%I
-    | x :: xs => (∃ (hd': loc) q, hd ↦{ q } SOMEV (x, #hd') ★ is_list hd' xs)%I
+    | x :: xs => (∃ (hd': loc) q, hd ↦{ q } SOMEV (x, #hd') ∗ is_list hd' xs)%I
     end.
 
   Lemma dup_is_list : ∀ xs hd,
-    heap_ctx ★ is_list hd xs ⊢ is_list hd xs ★ is_list hd xs.
+    heap_ctx ∗ is_list hd xs ⊢ is_list hd xs ∗ is_list hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
@@ -57,7 +57,7 @@ Section proof.
   Qed.
 
   Lemma uniq_is_list:
-    ∀ xs ys hd, heap_ctx ★ is_list hd xs ★ is_list hd ys ⊢ xs = ys.
+    ∀ xs ys hd, heap_ctx ∗ is_list hd xs ∗ is_list hd ys ⊢ xs = ys.
   Proof.
     induction xs as [|x xs' IHxs'].
     - induction ys as [|y ys' IHys'].
@@ -86,7 +86,7 @@ Section proof.
         by subst.
   Qed.
 
-  Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ★ is_list hd xs)%I.
+  Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ∗ is_list hd xs)%I.
 
   Global Instance is_list_timeless xs hd: TimelessP (is_list hd xs).
   Proof. generalize hd. induction xs; apply _. Qed.
@@ -97,7 +97,7 @@ Section proof.
   Lemma new_stack_spec:
     ∀ (Φ: val → iProp Σ),
       heapN ⊥ N →
-      heap_ctx ★ (∀ s, is_stack s [] -★ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
+      heap_ctx ∗ (∀ s, is_stack s [] -∗ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
   Proof.
     iIntros (Φ HN) "[#Hh HΦ]". wp_seq.
     wp_bind (ref NONE)%E. wp_alloc l as "Hl".
@@ -108,11 +108,11 @@ Section proof.
 
   Definition push_triple (s: loc) (x: val) :=
   atomic_triple (fun xs_hd: list val * loc =>
-                     let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
+                     let '(xs, hd) := xs_hd in s ↦ #hd ∗ is_list hd xs)%I
                 (fun xs_hd ret =>
                    let '(xs, hd) := xs_hd in 
                    ∃ hd': loc,
-                     ret = #() ★ s ↦ #hd' ★ hd' ↦ SOMEV (x, #hd) ★ is_list hd xs)%I
+                     ret = #() ∗ s ↦ #hd' ∗ hd' ↦ SOMEV (x, #hd) ∗ is_list hd xs)%I
                 (nclose heapN)
                 ⊤
                 (push #s x).
@@ -142,12 +142,12 @@ Section proof.
 
   Definition pop_triple (s: loc) :=
   atomic_triple (fun xs_hd: list val * loc =>
-                   let '(xs, hd) := xs_hd in s ↦ #hd ★ is_list hd xs)%I
+                   let '(xs, hd) := xs_hd in s ↦ #hd ∗ is_list hd xs)%I
                 (fun xs_hd ret =>
                    let '(xs, hd) := xs_hd in
-                   (ret = NONEV ★ xs = [] ★ s ↦ #hd ★ is_list hd []) ∨
-                   (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ★ ret = SOMEV x ★
-                                          xs = x :: xs' ★ s ↦ #hd' ★ is_list hd' xs'))%I
+                   (ret = NONEV ∗ xs = [] ∗ s ↦ #hd ∗ is_list hd []) ∨
+                   (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ∗ ret = SOMEV x ∗
+                                          xs = x :: xs' ∗ s ↦ #hd' ∗ is_list hd' xs'))%I
                 (nclose heapN)
                 ⊤
                 (pop #s).

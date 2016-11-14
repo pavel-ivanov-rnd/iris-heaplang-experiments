@@ -20,13 +20,13 @@ Section atomic_sync.
   Definition gHalf (γ: gname) g : iProp Σ := own γ ((1/2)%Qp, DecAgree g).
 
   Definition atomic_seq_spec (ϕ: A → iProp Σ) α β (f x: val) :=
-    (∀ g, {{ ϕ g ★ α g }} f x {{ v, ∃ g', ϕ g' ★ β g g' v }})%I.
+    (∀ g, {{ ϕ g ∗ α g }} f x {{ v, ∃ g', ϕ g' ∗ β g g' v }})%I.
 
   (* TODO: Provide better masks. ∅ as inner mask is pretty weak. *)
   Definition atomic_synced (ϕ: A → iProp Σ) γ (f f': val) :=
     (□ ∀ α β (x: val), atomic_seq_spec ϕ α β f x →
-                       atomic_triple (fun g => gHalf γ g ★ □ α g)%I
-                                     (fun g v => ∃ g', gHalf γ g' ★ β g g' v)%I
+                       atomic_triple (fun g => gHalf γ g ∗ □ α g)%I
+                                     (fun g v => ∃ g', gHalf γ g' ∗ β g g' v)%I
                                      ∅ ⊤ (f' x))%I.
 
   (* TODO: Use our usual style with a generic post-condition. *)
@@ -42,7 +42,7 @@ Section atomic_sync.
   Definition atomic_syncer_spec (mk_syncer: val) :=
     ∀ (g0: A) (ϕ: A → iProp Σ),
       heapN ⊥ N →
-      {{{ heap_ctx ★ ϕ g0 }}} mk_syncer #() {{{ γ s, RET s; gHalf γ g0 ★ is_atomic_syncer ϕ γ s }}}.
+      {{{ heap_ctx ∗ ϕ g0 }}} mk_syncer #() {{{ γ s, RET s; gHalf γ g0 ∗ is_atomic_syncer ϕ γ s }}}.
 
   Lemma atomic_spec (mk_syncer: val):
       mk_syncer_spec N mk_syncer → atomic_syncer_spec mk_syncer.
@@ -50,7 +50,7 @@ Section atomic_sync.
     iIntros (Hsync g0 ϕ HN ret) "[#Hh Hϕ] Hret".
     iMod (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite pair_op dec_agree_idemp. }
-    iApply (Hsync (∃ g: A, ϕ g ★ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
+    iApply (Hsync (∃ g: A, ϕ g ∗ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
     { iExists g0. by iFrame. }
     iNext. iIntros (s) "#Hsyncer". iApply "Hret".
     iSplitL "Hg2"; first done. iIntros "!#".

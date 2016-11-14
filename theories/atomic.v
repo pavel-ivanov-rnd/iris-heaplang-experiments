@@ -16,8 +16,8 @@ Section atomic.
              (Ei Eo: coPset) (* inside/outside masks *)
              (e: expr _) : iProp Σ :=
     (∀ P Q, (P ={Eo, Ei}=> ∃ x:A,
-                       α x ★
-                       ((α x ={Ei, Eo}=★ P) ∧
-                        (∀ v, β x v ={Ei, Eo}=★ Q v))
-     ) -★ {{ P }} e @ ⊤ {{ Q }})%I.
+                       α x ∗
+                       ((α x ={Ei, Eo}=∗ P) ∧
+                        (∀ v, β x v ={Ei, Eo}=∗ Q v))
+     ) -∗ {{ P }} e @ ⊤ {{ Q }})%I.
 End atomic.
