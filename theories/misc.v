@@ -21,7 +21,7 @@ End lemmas.
 Section excl.
   Context `{!inG Σ (exclR unitC)}.
   Lemma excl_falso γ Q':
-    own γ (Excl ()) ★ own γ (Excl ()) ⊢ Q'.
+    own γ (Excl ()) ∗ own γ (Excl ()) ⊢ Q'.
   Proof.
     iIntros "[Ho1 Ho2]". iCombine "Ho1" "Ho2" as "Ho".
     iExFalso. by iDestruct (own_valid with "Ho") as "%".
@@ -33,7 +33,7 @@ Section heap_extra.
 
   Lemma bogus_heap p (q1 q2: Qp) a b:
     ~((q1 + q2)%Qp ≤ 1%Qp)%Qc →
-    heap_ctx ★ p ↦{q1} a ★ p ↦{q2} b ⊢ False.
+    heap_ctx ∗ p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
   Proof.
     iIntros (?) "(#Hh & Hp1 & Hp2)".
     iCombine "Hp1" "Hp2" as "Hp".
@@ -52,12 +52,12 @@ Section big_op_later.
 
   Lemma big_sepM_delete_later Φ m i x :
     m !! i = Some x →
-    ▷ ([★ map] k↦y ∈ m, Φ k y) ⊣⊢ ▷ Φ i x ★ ▷ [★ map] k↦y ∈ delete i m, Φ k y.
+    ▷ ([∗ map] k↦y ∈ m, Φ k y) ⊣⊢ ▷ Φ i x ∗ ▷ [∗ map] k↦y ∈ delete i m, Φ k y.
   Proof. intros ?. rewrite big_sepM_delete=>//. apply later_sep. Qed.
 
   Lemma big_sepM_insert_later Φ m i x :
     m !! i = None →
-    ▷ ([★ map] k↦y ∈ <[i:=x]> m, Φ k y) ⊣⊢ ▷ Φ i x ★ ▷ [★ map] k↦y ∈ m, Φ k y.
+    ▷ ([∗ map] k↦y ∈ <[i:=x]> m, Φ k y) ⊣⊢ ▷ Φ i x ∗ ▷ [∗ map] k↦y ∈ m, Φ k y.
   Proof. intros ?. rewrite big_sepM_insert=>//. apply later_sep. Qed.
 End big_op_later.
 
@@ -65,7 +65,7 @@ Section pair.
   Context `{EqDecision A, !inG Σ (prodR fracR (dec_agreeR A))}.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ★ own γm (q2, DecAgree a2) ⊢ (a1 = a2).
+    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2) ⊢ (a1 = a2).
   Proof.
     iIntros "[Ho Ho']".
     destruct (decide (a1 = a2)) as [->|Hneq]=>//.
@@ -76,8 +76,8 @@ Section pair.
   Qed.
   
   Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ★ own γm (q2, DecAgree a2)
-    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ★ (a1 = a2).
+    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2)
+    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ∗ (a1 = a2).
   Proof.
     iIntros "[Ho Ho']".
     iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.

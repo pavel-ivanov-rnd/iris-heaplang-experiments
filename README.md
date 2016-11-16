@@ -24,3 +24,7 @@ version), run `make iris-local`.  Run this command again later to update the
 local Iris, in case the preferred Iris version changed.
 
 Now run `make` to build the full development.
+
+## Update local dependency by tracking Iris `master`
+
+   git submodule update --remote

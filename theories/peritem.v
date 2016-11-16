@@ -16,13 +16,13 @@ Section defs.
   Fixpoint is_list' (γ: gname) (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
     | [] => (∃ q, hd ↦{ q } NONEV)%I
-    | x :: xs => (∃ (hd': loc) q, hd ↦{q} SOMEV (x, #hd') ★ evs γ hd x ★ is_list' γ hd' xs)%I
+    | x :: xs => (∃ (hd': loc) q, hd ↦{q} SOMEV (x, #hd') ∗ evs γ hd x ∗ is_list' γ hd' xs)%I
     end.
 
   Lemma in_list' γ x xs:
     ∀ hd, x ∈ xs →
           is_list' γ hd xs
-          ⊢ ∃ (hd' hd'': loc) q, hd' ↦{q} SOMEV (x, #hd'') ★ evs γ hd' x.
+          ⊢ ∃ (hd' hd'': loc) q, hd' ↦{q} SOMEV (x, #hd'') ∗ evs γ hd' x.
   Proof.
     induction xs as [|x' xs' IHxs'].
     - intros ? Hin. inversion Hin.
@@ -36,13 +36,13 @@ Section defs.
         iApply IHxs'=>//.
   Qed.
 
-  Definition perR' hd v v' := (v = ((∅: unitR), DecAgree v') ★ R v' ★ allocated hd)%I.
+  Definition perR' hd v v' := (v = ((∅: unitR), DecAgree v') ∗ R v' ∗ allocated hd)%I.
   Definition perR  hd v := (∃ v', perR' hd v v')%I.
   
-  Definition allR γ := (∃ m : evmapR loc val unitR, own γ (● m) ★ [★ map] hd ↦ v ∈ m, perR hd v)%I.
+  Definition allR γ := (∃ m : evmapR loc val unitR, own γ (● m) ∗ [∗ map] hd ↦ v ∈ m, perR hd v)%I.
 
   Definition is_stack' γ xs s :=
-    (∃ hd: loc, s ↦ #hd ★ is_list' γ hd xs ★ allR γ)%I.
+    (∃ hd: loc, s ↦ #hd ∗ is_list' γ hd xs ∗ allR γ)%I.
 
   Global Instance is_list'_timeless γ hd xs: TimelessP (is_list' γ hd xs).
   Proof. generalize hd. induction xs; apply _. Qed.
@@ -51,7 +51,7 @@ Section defs.
   Proof. apply _. Qed.
 
   Lemma dup_is_list' γ : ∀ xs hd,
-    heap_ctx ★ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ★ is_list' γ hd xs.
+    heap_ctx ∗ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ∗ is_list' γ hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
@@ -63,7 +63,7 @@ Section defs.
   Qed.
 
   Lemma extract_is_list γ : ∀ xs hd,
-    heap_ctx ★ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ★ is_list hd xs.
+    heap_ctx ∗ is_list' γ hd xs ⊢ |==> is_list' γ hd xs ∗ is_list hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
     - iIntros (hd) "(#? & Hs)".
@@ -78,8 +78,8 @@ Section defs.
     (* Rf, RI is some frame *)
     ∀ Φ (x: val),
       heapN ⊥ N →
-      heap_ctx ★ inv N ((∃ xs, is_stack' γ xs s) ★ RI) ★ (∃ hd, evs γ hd x) ★
-      Rf ★ (Rf -★ Φ #())
+      heap_ctx ∗ inv N ((∃ xs, is_stack' γ xs s) ∗ RI) ∗ (∃ hd, evs γ hd x) ∗
+      Rf ∗ (Rf -∗ Φ #())
       ⊢ WP f x {{ Φ }}.
 End defs.
 
@@ -89,7 +89,7 @@ Section proofs.
 
 Lemma new_stack_spec' Φ RI:
     heapN ⊥ N →
-    heap_ctx ★ RI ★ (∀ γ s : loc, inv N ((∃ xs, is_stack' R γ xs s) ★ RI) -★ Φ #s)
+    heap_ctx ∗ RI ∗ (∀ γ s : loc, inv N ((∃ xs, is_stack' R γ xs s) ∗ RI) -∗ Φ #s)
     ⊢ WP new_stack #() {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & HR & HΦ)". iApply wp_fupd.
@@ -97,19 +97,19 @@ Lemma new_stack_spec' Φ RI:
     { apply auth_valid_discrete_2. done. }
     wp_seq. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc s as "Hs".
-    iAssert ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']" as "Hinv".
+    iAssert ((∃ xs : list val, is_stack' R γ xs s) ∗ RI)%I with "[-HΦ Hm']" as "Hinv".
     { iFrame. iExists [], l. iFrame. simpl. iSplitL "Hl".
       - eauto.
       - iExists ∅. iSplitL. iFrame. by iApply (big_sepM_empty (fun hd v => perR R hd v)). }
-    iMod (inv_alloc N _ ((∃ xs : list val, is_stack' R γ xs s) ★ RI)%I with "[-HΦ Hm']") as "#?"; first eauto.
+    iMod (inv_alloc N _ ((∃ xs : list val, is_stack' R γ xs s) ∗ RI)%I with "[-HΦ Hm']") as "#?"; first eauto.
     by iApply "HΦ".
   Qed.
     
   Lemma iter_spec Φ γ s (Rf RI: iProp Σ):
     ∀ xs hd (f: expr) (f': val),
       heapN ⊥ N → f_spec N R γ xs s f' Rf RI → to_val f = Some f' →
-      heap_ctx ★ inv N ((∃ xs, is_stack' R γ xs s) ★ RI) ★
-      is_list' γ hd xs ★ Rf ★ (Rf -★ Φ #())
+      heap_ctx ∗ inv N ((∃ xs, is_stack' R γ xs s) ∗ RI) ∗
+      is_list' γ hd xs ∗ Rf ∗ (Rf -∗ Φ #())
       ⊢ WP (iter #hd) f {{ v, Φ v }}.
   Proof.
     induction xs as [|x xs' IHxs'].
@@ -128,12 +128,12 @@ Lemma new_stack_spec' Φ RI:
   
   Lemma push_spec Φ γ (s: loc) (x: val) RI:
     heapN ⊥ N →
-    heap_ctx ★ R x ★ inv N ((∃ xs, is_stack' R γ xs s) ★ RI) ★ ((∃ hd, evs γ hd x) -★ Φ #())
+    heap_ctx ∗ R x ∗ inv N ((∃ xs, is_stack' R γ xs s) ∗ RI) ∗ ((∃ hd, evs γ hd x) -∗ Φ #())
     ⊢ WP push #s x {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & HRx & #? & HΦ)".
     iDestruct (push_atomic_spec N s x with "Hh") as "Hpush"=>//.
-    iSpecialize ("Hpush" $! (R x) (fun ret => (∃ hd, evs γ hd x) ★ ret = #())%I with "[]").
+    iSpecialize ("Hpush" $! (R x) (fun ret => (∃ hd, evs γ hd x) ∗ ret = #())%I with "[]").
     - iIntros "!# Rx".
       (* open the invariant *)
       iInv N as "[IH1 ?]" "Hclose".
@@ -161,7 +161,7 @@ Lemma new_stack_spec' Φ RI:
           iDestruct "Hhd''" as (q v) "Hhd''". iExFalso.
           iApply (bogus_heap hd' 1%Qp q); first apply Qp_not_plus_q_ge_1.
           iFrame "#". iFrame.
-        * iAssert (evs γ hd' x ★ ▷ (allR R γ))%I
+        * iAssert (evs γ hd' x ∗ ▷ (allR R γ))%I
                   with ">[Rx Hom HRm Hhd'1]" as "[#Hox ?]".
           {
             iDestruct (evmap_alloc _ _ _ m with "[Hom]") as ">[Hom Hox]"=>//.

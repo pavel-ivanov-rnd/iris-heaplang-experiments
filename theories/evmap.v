@@ -69,7 +69,7 @@ Section evmapR.
   (* Some other supporting lemmas *)
   Lemma map_agree_none' γm (m: evmapR K A unitR) hd x:
     m !! hd = None →
-    own γm (● m) ★ ev γm hd x ⊢ False.
+    own γm (● m) ∗ ev γm hd x ⊢ False.
   Proof.
     iIntros (?) "[Hom Hev]".
     iCombine "Hom" "Hev" as "Hauth".
@@ -80,7 +80,7 @@ Section evmapR.
 
   Lemma map_agree_eq' γm m hd x agy:
     m !! hd = Some ((), agy) →
-    ev γm hd x ★ own γm (● m) ⊢ DecAgree x = agy.
+    ev γm hd x ∗ own γm (● m) ⊢ DecAgree x = agy.
   Proof.
     iIntros (?) "[#Hev Hom]".
     iCombine "Hom" "Hev" as "Hauth".
@@ -99,7 +99,7 @@ Section evmapR.
 
   (* Evidence is the witness of membership *)
   Lemma ev_map_witness γm m hd x:
-    ev γm hd x ★ own γm (● m) ⊢ m !! hd = Some (∅, DecAgree x).
+    ev γm hd x ∗ own γm (● m) ⊢ m !! hd = Some (∅, DecAgree x).
   Proof.
     iIntros "[#Hev Hom]".
     destruct (m !! hd) as [[[] agy]|] eqn:Heqn.
@@ -109,7 +109,7 @@ Section evmapR.
   
   (* Two evidences coincides *)
   Lemma evmap_frag_agree_split γm p (a1 a2: A):
-    ev γm p a1 ★ ev γm p a2 ⊢ a1 = a2.
+    ev γm p a1 ∗ ev γm p a2 ⊢ a1 = a2.
   Proof.
     iIntros "[Ho Ho']".
     destruct (decide (a1 = a2)) as [->|Hneq].

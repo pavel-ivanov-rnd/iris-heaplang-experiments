@@ -23,7 +23,7 @@ Section atomic_pair.
   
   Definition ϕ (ls: val) (xs: val) : iProp Σ :=
     (∃ (l1 l2: loc) (x1 x2: val),
-       ls = (#l1, #l2)%V ★ xs = (x1, x2)%V ★ l1 ↦ x1 ★ l2 ↦ x2)%I.
+       ls = (#l1, #l2)%V ∗ xs = (x1, x2)%V ∗ l1 ↦ x1 ∗ l2 ↦ x2)%I.
 
   Definition β (ab: val) (xs xs': val) (v: val) : iProp Σ :=
     (■ ∃ a b x1 x2 x1' x2': val,
@@ -69,8 +69,8 @@ Section atomic_pair.
 
   Lemma pcas_atomic_spec (mk_syncer: val) (l1 l2: loc) (x1 x2: val) :
     heapN ⊥ N → mk_syncer_spec N mk_syncer →
-    heap_ctx ★ l1 ↦ x1 ★ l2 ↦ x2
-    ⊢ WP sync mk_syncer pcas_seq (LitV l1, LitV l2)%V {{ f, ∃ γ, gHalf γ (x1, x2)%V ★ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
+    heap_ctx ∗ l1 ↦ x1 ∗ l2 ↦ x2
+    ⊢ WP sync mk_syncer pcas_seq (LitV l1, LitV l2)%V {{ f, ∃ γ, gHalf γ (x1, x2)%V ∗ ∀ x, □ atomic_triple' α β ⊤ ⊤ f x γ  }}.
   Proof.
     iIntros (HN Hmk_syncer) "(#Hh & Hl1 & Hl2)".
     iDestruct (atomic_spec with "[Hl1 Hl2]") as "Hspec"=>//.

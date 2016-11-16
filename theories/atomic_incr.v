@@ -20,7 +20,7 @@ Section incr.
   (* TODO: Can we have a more WP-style definition and avoid the equality? *)
   Definition incr_triple (l: loc) :=
     atomic_triple (fun (v: Z) => l ↦ #v)%I
-                  (fun v ret => ret = #v ★ l ↦ #(v + 1))%I
+                  (fun v ret => ret = #v ∗ l ↦ #(v + 1))%I
                   (nclose heapN)
                   ⊤
                   (incr #l).
@@ -61,7 +61,7 @@ Section user.
   Definition incr_2 : val :=
     λ: "x",
        let: "l" := ref "x" in
-       incr "l" || incr "l";;
+       incr "l" ||| incr "l";;
        !"l".
 
   (* prove that incr is safe w.r.t. data race. TODO: prove a stronger post-condition *)
@@ -74,8 +74,8 @@ Section user.
     wp_alloc l as "Hl".
     iMod (inv_alloc N _ (∃x':Z, l ↦ #x')%I with "[Hl]") as "#?"; first eauto.
     wp_let.
-    wp_bind (_ || _)%E.
-    iApply (wp_par (λ _, True%I) (λ _, True%I)).
+    wp_bind (_ ||| _)%E.
+    iApply (wp_par (λ _, True%I) (λ _, True%I) with "[]").
     iFrame "Hh".
     (* prove worker triple *)
     iDestruct (incr_atomic_spec N l with "Hh") as "Hincr"=>//.

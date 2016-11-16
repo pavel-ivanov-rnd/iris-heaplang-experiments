@@ -71,55 +71,55 @@ Section proof.
   Context `{!heapG Σ, !lockG Σ, !evidenceG loc val unitR Σ, !flatG Σ} (N : namespace).
 
   Definition init_s (ts: toks) :=
-    let '(_, γ1, γ3, _, _) := ts in (own γ1 (Excl ()) ★ own γ3 (Excl ()))%I.
+    let '(_, γ1, γ3, _, _) := ts in (own γ1 (Excl ()) ∗ own γ3 (Excl ()))%I.
 
   Definition installed_s R (ts: toks) (f x: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ (P: val → iProp Σ) Q,
-       own γx ((1/2)%Qp, DecAgree x) ★ P x ★ ({{ R ★ P x }} f x {{ v, R ★ Q x v }}) ★
-       saved_prop_own γq (Q x) ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))%I.
+       own γx ((1/2)%Qp, DecAgree x) ∗ P x ∗ ({{ R ∗ P x }} f x {{ v, R ∗ Q x v }}) ∗
+       saved_prop_own γq (Q x) ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition received_s (ts: toks) (x: val) γr :=
     let '(γx, _, _, γ4, _) := ts in
-    (own γx ((1/2/2)%Qp, DecAgree x) ★ own γr (Excl ()) ★ own γ4 (Excl ()))%I.
+    (own γx ((1/2/2)%Qp, DecAgree x) ∗ own γr (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition finished_s (ts: toks) (x y: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ Q: val → val → iProp Σ,
-       own γx ((1/2)%Qp, DecAgree x) ★ saved_prop_own γq (Q x) ★
-       Q x y ★ own γ1 (Excl ()) ★ own γ4 (Excl ()))%I.
+       own γx ((1/2)%Qp, DecAgree x) ∗ saved_prop_own γq (Q x) ∗
+       Q x y ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition evm := ev loc toks.
   
   (* p slot invariant *)
   Definition p_inv R (γm γr: gname) (v: val) :=
     (∃ (ts: toks) (p : loc),
-       v = #p ★ evm γm p ts ★
+       v = #p ∗ evm γm p ts ∗
        ((* INIT *)
-        (∃ y: val, p ↦{1/2} InjRV y ★ init_s ts)∨
+        (∃ y: val, p ↦{1/2} InjRV y ∗ init_s ts)∨
         (* INSTALLED *)
-        (∃ f x: val, p ↦{1/2} InjLV (f, x) ★ installed_s R ts f x) ∨
+        (∃ f x: val, p ↦{1/2} InjLV (f, x) ∗ installed_s R ts f x) ∨
         (* RECEIVED *)
-        (∃ f x: val, p ↦{1/2} InjLV (f, x) ★ received_s ts x γr) ∨
+        (∃ f x: val, p ↦{1/2} InjLV (f, x) ∗ received_s ts x γr) ∨
         (* FINISHED *)
-        (∃ x y: val, p ↦{1/2} InjRV y ★ finished_s ts x y)))%I.
+        (∃ x y: val, p ↦{1/2} InjRV y ∗ finished_s ts x y)))%I.
 
   Definition srv_stack_inv R γs γm γr s := (∃ xs, is_stack' (p_inv R γm γr) γs xs s)%I.
 
-  Definition srv_tokm_inv γm := (∃ m : tokmR, own γm (● m) ★ [★ map] p ↦ _ ∈ m, ∃ v, p ↦{1/2} v)%I.
+  Definition srv_tokm_inv γm := (∃ m : tokmR, own γm (● m) ∗ [∗ map] p ↦ _ ∈ m, ∃ v, p ↦{1/2} v)%I.
 
   Lemma install_push_spec R
         (p: loc) (γs γm γr: gname) (ts: toks)
         (s: loc) (f x: val) (Φ: val → iProp Σ) :
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
-    evm γm p ts ★ installed_s R ts f x ★
-    p ↦{1/2} InjLV (f, x) ★ ((∃ hd, evs γs hd #p) -★ Φ #())
+    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    evm γm p ts ∗ installed_s R ts f x ∗
+    p ↦{1/2} InjLV (f, x) ∗ ((∃ hd, evs γs hd #p) -∗ Φ #())
     ⊢ WP push #s #p {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & Hpm & Hs & Hp & HΦ)".
     rewrite /srv_stack_inv.
-    iDestruct (push_spec N (p_inv R γm γr) (fun v => (∃ hd, evs γs hd #p) ★ v = #())%I
+    iDestruct (push_spec N (p_inv R γm γr) (fun v => (∃ hd, evs γs hd #p) ∗ v = #())%I
                with "[-HΦ]") as "Hpush"=>//.
     - iFrame "Hh". iSplitL "Hp Hs Hpm"; last eauto.
       iExists ts. iExists p. iSplit=>//. iFrame "Hpm".
@@ -132,16 +132,16 @@ Section proof.
 
   Definition installed_recp (ts: toks) (x: val) (Q: val → iProp Σ) :=
     let '(γx, _, γ3, _, γq) := ts in
-    (own γ3 (Excl ()) ★ own γx ((1/2)%Qp, DecAgree x) ★ saved_prop_own γq Q)%I.
+    (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, DecAgree x) ∗ saved_prop_own γq Q)%I.
 
   Lemma install_spec
         R P Q
         (f x: val) (γs γm γr: gname) (s: loc)
         (Φ: val → iProp Σ):
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
-    P ★ ({{ R ★ P }} f x {{ v, R ★ Q v }}) ★
-    (∀ (p: loc) (ts: toks), installed_recp ts x Q -★ evm γm p ts -★(∃ hd, evs γs hd #p) -★ Φ #p)
+    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    P ∗ ({{ R ∗ P }} f x {{ v, R ∗ Q v }}) ∗
+    (∀ (p: loc) (ts: toks), installed_recp ts x Q -∗ evm γm p ts -∗(∃ hd, evs γs hd #p) -∗ Φ #p)
     ⊢ WP install f x #s {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & Hpx & Hf & HΦ)".
@@ -181,14 +181,14 @@ Section proof.
 
   Lemma loop_iter_doOp_spec R (s hd: loc) (γs γm γr: gname) xs Φ:
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★ own γr (Excl ()) ★ R ★
-    is_list' γs hd xs ★ (own γr (Excl ()) -★ R -★ Φ #())
+    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗ own γr (Excl ()) ∗ R ∗
+    is_list' γs hd xs ∗ (own γr (Excl ()) -∗ R -∗ Φ #())
     ⊢ WP iter #hd doOp {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hf & #? & Ho2 & HR & Hlist' & HΦ)".
     iApply (iter_spec N (p_inv R γm γr) Φ
-                      (* (fun v => v = #() ★ own γr (Excl ()) ★ R)%I *)
-                      γs s (own γr (Excl ()) ★ R)%I (srv_tokm_inv γm) xs hd doOp doOp
+                      (* (fun v => v = #() ∗ own γr (Excl ()) ∗ R)%I *)
+                      γs s (own γr (Excl ()) ∗ R)%I (srv_tokm_inv γm) xs hd doOp doOp
             with "[-]")=>//.
     - rewrite /f_spec.
       iIntros (Φ' x _) "(#Hh & #? & Hev & [Hor HR] & HΦ')".
@@ -296,12 +296,12 @@ Section proof.
   Definition own_γ3 (ts: toks) := let '(_, _, γ3, _, _) := ts in own γ3 (Excl ()).
   Definition finished_recp (ts: toks) (x y: val) :=
     let '(γx, _, _, _, γq) := ts in
-    (∃ Q, own γx ((1 / 2)%Qp, DecAgree x) ★ saved_prop_own γq (Q x) ★ Q x y)%I.
+    (∃ Q, own γx ((1 / 2)%Qp, DecAgree x) ∗ saved_prop_own γq (Q x) ∗ Q x y)%I.
 
   Lemma try_srv_spec R (s: loc) (lk: val) (γs γr γm γlk: gname) Φ :
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
-    is_lock N γlk lk (own γr (Excl ()) ★ R) ★ Φ #()
+    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗ Φ #()
     ⊢ WP try_srv lk #s {{ Φ }}.
   Proof.
     iIntros (?) "(#? & #? & #? & HΦ)".
@@ -319,20 +319,20 @@ Section proof.
     iModIntro. wp_let.
     wp_bind (iter _ _).
     iApply wp_wand_r. iSplitL "HR Ho2 Hxs2".
-    { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ★ R ★ v = #()))%I=>//.      
+    { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ∗ R ∗ v = #()))%I=>//.      
       iFrame "#". iFrame. iIntros "? ?". by iFrame. }
     iIntros (f') "[Ho [HR %]]". subst.
-    wp_let. iApply (release_spec with "[Hlocked Ho HR]"); first iFrame "#★".
+    wp_let. iApply (release_spec with "[Hlocked Ho HR]"); first iFrame "#∗".
     iNext. iIntros. done.
   Qed.
 
   Lemma loop_spec R (p s: loc) (lk: val)
         (γs γr γm γlk: gname) (ts: toks) Φ:
     heapN ⊥ N →
-    heap_ctx ★ inv N (srv_stack_inv R γs γm γr s ★ srv_tokm_inv γm) ★
-    is_lock N γlk lk (own γr (Excl ()) ★ R) ★
-    own_γ3 ts ★ evm γm p ts ★
-    (∃ hd, evs γs hd #p) ★ (∀ x y, finished_recp ts x y -★ Φ y)
+    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗
+    own_γ3 ts ∗ evm γm p ts ∗
+    (∃ hd, evs γs hd #p) ∗ (∀ x y, finished_recp ts x y -∗ Φ y)
     ⊢ WP loop #p #s lk {{ Φ }}.
   Proof.
     iIntros (HN) "(#Hh & #? & #? & Ho3 & #Hev & Hhd & HΦ)".
@@ -398,7 +398,7 @@ Section proof.
     iAssert (srv_tokm_inv γm) with "[Hm]" as "Hm"; first eauto.
     { iExists ∅. iFrame. by rewrite big_sepM_empty. }
     wp_seq. wp_bind (newlock _).
-    iApply (newlock_spec _ (own γr (Excl ()) ★ R)%I with "[$Hh $Ho2 $HR]")=>//.
+    iApply (newlock_spec _ (own γr (Excl ()) ∗ R)%I with "[$Hh $Ho2 $HR]")=>//.
     iNext. iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
     iApply (new_stack_spec' _ (p_inv _ γm γr))=>//.
