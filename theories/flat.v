@@ -245,8 +245,7 @@ Section proof.
             iDestruct (ev_map_witness _ _ _ m2 with "[Hevm Hom2]") as %?; first by iFrame.
             iDestruct (big_sepM_delete _ m2 with "HRp") as "[HRk HRp]"=>//.
             iDestruct "HRk" as (?) "HRk".
-            (* FIXME: Giving the types here should not be necessary. *)
-            iDestruct (@mapsto_agree loc val with "[$HRk $Hp]") as %->.
+            iDestruct (@mapsto_agree with "[$HRk $Hp]") as %->.
             iCombine "HRk" "Hp" as "Hp". wp_store.
             (* now close the invariant *)
             iDestruct (m_frag_agree' with "[Hx Hx2]") as "[Hx %]"; first iFrame.

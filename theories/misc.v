@@ -36,8 +36,7 @@ Section heap_extra.
     p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
   Proof.
     iIntros (?) "Hp". 
-    (* FIXME: If I dont give the types here, it loops. *)
-    iDestruct (@mapsto_valid_2 loc val with "Hp") as %H'. done.
+    iDestruct (@mapsto_valid_2 with "Hp") as %H'. done.
   Qed.
 
 End heap_extra.

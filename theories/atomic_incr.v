@@ -32,14 +32,12 @@ Section incr.
     iLöb as "IH".
     iIntros "!# HP".
     wp_rec.
-    (* FIXME: I should not have to apply wp_atomic manually here and below. *)
-    wp_bind (! _)%E. iApply (wp_atomic _ ∅); first by eauto.
+    wp_bind (! _)%E.
     iMod ("Hvs" with "HP") as (x) "[Hl [Hvs' _]]".
-    iModIntro. wp_load.
+    wp_load.
     iMod ("Hvs'" with "Hl") as "HP".
     iModIntro. wp_let. wp_bind (CAS _ _ _). wp_op.
-    iApply (wp_atomic _ ∅); first by eauto.
-    iMod ("Hvs" with "HP") as (x') "[Hl Hvs']". iModIntro.
+    iMod ("Hvs" with "HP") as (x') "[Hl Hvs']".
     destruct (decide (x = x')).
     - subst.
       iDestruct "Hvs'" as "[_ Hvs']".
@@ -68,7 +66,7 @@ Section user.
   Lemma incr_2_safe:
     ∀ (x: Z), (WP incr_2 #x {{ _, True }})%I.
   Proof.
-    iIntros (x). iProof. (* FIXME: I did iIntros, this should not be needed. *)
+    iIntros (x) "". (* FIXME: I did iIntros, this should not be needed. *)
     rewrite /incr_2 /=.
     wp_lam.
     wp_alloc l as "Hl".
