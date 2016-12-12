@@ -6,25 +6,26 @@ Atomicity related verification based on Iris logic.
 
 This version is known to compile with:
 
- - Coq 8.5pl2
+ - Coq 8.5pl3
  - Ssreflect 1.6
+ - A development version of [Iris](https://gitlab.mpi-sws.org/FP/iris-coq/)
 
-You will furthermore need an up-to-date version of
-[Iris](https://gitlab.mpi-sws.org/FP/iris-coq/).  Run `git submodule status` to
-see which git commit of Iris is known to work.  You can pick between using a
-system-installed Iris (from Coq's `user-contrib`) or a version of Iris locally
-compiled for lambda-Rust.
+The easiest way to install the correct versions of the dependencies is through
+opam.  Once you got opam set up, just run `make build-dep` to install the right
+versions of the dependencies.  When the dependencies change (e.g., a newer
+version of Iris is needed), just run `make build-dep` again.
+
+Alternatively, you can manually determine the required Iris commit by consulting
+the `opam.pins` file.
 
 ## Building Instructions
 
-To use the system-installed Iris (which is the default), run `make iris-system`.
-This only works if you previously built and installed a compatible version of the
-Iris Coq formalization.  To use a local Iris (which will always be the right
-version), run `make iris-local`.  Run this command again later to update the
-local Iris, in case the preferred Iris version changed.
+Run `make` to build the full development.
 
-Now run `make` to build the full development.
+## For Developers: How to update the Iris dependency
 
-## Update local dependency by tracking Iris `master`
-
-   git submodule update --remote
+- Do the change in Iris, push it.
+- In iris-atomic, change opam.pins to point to the new commit.
+- Run "make build-dep" (in iris-atomic) to install the new version of Iris.
+- You may have to do "make clean" as Coq will likely complain about .vo file
+  mismatches.
