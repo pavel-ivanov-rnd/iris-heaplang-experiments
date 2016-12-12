@@ -1,5 +1,4 @@
 -Q theories iris_atomic
--Q iris-enabled iris
 theories/atomic.v
 theories/sync.v
 theories/atomic_incr.v
