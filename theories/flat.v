@@ -47,21 +47,19 @@ Definition mk_flat : val :=
       let: "r" := loop "p" "s" "lk" in
       "r".
 
-Global Opaque doOp try_srv install loop mk_flat.
-
 Definition reqR := prodR fracR (dec_agreeR val). (* request x should be kept same *)
 Definition toks : Type := gname * gname * gname * gname * gname. (* a bunch of tokens to do state transition *)
 Definition tokmR : ucmraT := evmapR loc toks unitR. (* tie each slot to tokens *)
 Class flatG Σ := FlatG {
   req_G :> inG Σ reqR;
   tok_G :> inG Σ (authR tokmR);
-  sp_G  :> savedPropG Σ (cofe_funCF val idCF)
+  sp_G  :> savedPropG Σ (ofe_funCF val idCF)
 }.
 
 Definition flatΣ : gFunctors :=
   #[ GFunctor (constRF reqR);
      GFunctor (constRF (authR tokmR));
-     savedPropΣ (cofe_funCF val idCF)
+     savedPropΣ (ofe_funCF val idCF)
    ].
 
 Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
@@ -94,7 +92,7 @@ Section proof.
   (* p slot invariant *)
   Definition p_inv R (γm γr: gname) (v: val) :=
     (∃ (ts: toks) (p : loc),
-       v = #p ∗ evm γm p ts ∗
+       ⌜v = #p⌝ ∗ evm γm p ts ∗
        ((* INIT *)
         (∃ y: val, p ↦{1/2} InjRV y ∗ init_s ts)∨
         (* INSTALLED *)
@@ -111,17 +109,16 @@ Section proof.
   Lemma install_push_spec R
         (p: loc) (γs γm γr: gname) (ts: toks)
         (s: loc) (f x: val) (Φ: val → iProp Σ) :
-    heapN ⊥ N →
-    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
     evm γm p ts ∗ installed_s R ts f x ∗
     p ↦{1/2} InjLV (f, x) ∗ ((∃ hd, evs γs hd #p) -∗ Φ #())
     ⊢ WP push #s #p {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & #? & Hpm & Hs & Hp & HΦ)".
+    iIntros "(#? & Hpm & Hs & Hp & HΦ)".
     rewrite /srv_stack_inv.
-    iDestruct (push_spec N (p_inv R γm γr) (fun v => (∃ hd, evs γs hd #p) ∗ v = #())%I
+    iDestruct (push_spec N (p_inv R γm γr) (fun v => (∃ hd, evs γs hd #p) ∗ ⌜v = #()⌝)%I
                with "[-HΦ]") as "Hpush"=>//.
-    - iFrame "Hh". iSplitL "Hp Hs Hpm"; last eauto.
+    - iSplitL "Hp Hs Hpm"; last eauto.
       iExists ts. iExists p. iSplit=>//. iFrame "Hpm".
       iRight. iLeft. iExists f, x. iFrame.
     - iApply wp_wand_r.
@@ -138,26 +135,25 @@ Section proof.
         R P Q
         (f x: val) (γs γm γr: gname) (s: loc)
         (Φ: val → iProp Σ):
-    heapN ⊥ N →
-    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
     P ∗ ({{ R ∗ P }} f x {{ v, R ∗ Q v }}) ∗
     (∀ (p: loc) (ts: toks), installed_recp ts x Q -∗ evm γm p ts -∗(∃ hd, evs γs hd #p) -∗ Φ #p)
     ⊢ WP install f x #s {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & #? & Hpx & Hf & HΦ)".
+    iIntros "(#? & Hpx & Hf & HΦ)".
     wp_seq. wp_let. wp_let. wp_alloc p as "Hl".
     iApply fupd_wp.
     iMod (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iMod (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iMod (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
     iMod (own_alloc (1%Qp, DecAgree x)) as (γx) "Hx"; first done.
-    iMod (saved_prop_alloc (F:=(cofe_funCF val idCF)) Q) as (γq) "#?".
+    iMod (saved_prop_alloc (F:=(ofe_funCF val idCF)) Q) as (γq) "#?".
     iInv N as "[Hrs >Hm]" "Hclose".
     iDestruct "Hm" as (m) "[Hm HRm]".
     destruct (m !! p) eqn:Heqn.
     - (* old name *)
       iDestruct (big_sepM_delete (fun p _ => ∃ v : val, p ↦{1 / 2} v)%I m with "HRm") as "[Hp HRm]"=>//.
-      iDestruct "Hp" as (?) "Hp". iExFalso. iApply bogus_heap; last by iFrame "Hh Hl Hp". auto.
+      iDestruct "Hp" as (?) "Hp". iExFalso. iApply bogus_heap; last by iFrame "Hl Hp". auto.
     - (* fresh name *)
       iDestruct (evmap_alloc _ _ _ m p (γx, γ1, γ3, γ4, γq) with "[Hm]") as ">[Hm1 #Hm2]"=>//.
       iDestruct "Hl" as "[Hl1 Hl2]".
@@ -180,18 +176,17 @@ Section proof.
   Qed.
 
   Lemma loop_iter_doOp_spec R (s hd: loc) (γs γm γr: gname) xs Φ:
-    heapN ⊥ N →
-    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗ own γr (Excl ()) ∗ R ∗
+    inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗ own γr (Excl ()) ∗ R ∗
     is_list' γs hd xs ∗ (own γr (Excl ()) -∗ R -∗ Φ #())
     ⊢ WP iter #hd doOp {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hf & #? & Ho2 & HR & Hlist' & HΦ)".
+    iIntros "(#? & Ho2 & HR & Hlist' & HΦ)".
     iApply (iter_spec N (p_inv R γm γr) Φ
                       (* (fun v => v = #() ∗ own γr (Excl ()) ∗ R)%I *)
                       γs s (own γr (Excl ()) ∗ R)%I (srv_tokm_inv γm) xs hd doOp doOp
             with "[-]")=>//.
     - rewrite /f_spec.
-      iIntros (Φ' x _) "(#Hh & #? & Hev & [Hor HR] & HΦ')".
+      iIntros (Φ' x) "(#? & Hev & [Hor HR] & HΦ')".
       iDestruct "Hev" as (xhd) "#Hev".
       wp_rec.  wp_bind (! _)%E. iInv N as "[Hs >Hm]" "Hclose".
       iDestruct "Hs" as (gxs ghd) "[>Hghd [>Hgxs HRs]]". (* global xs, hd *)
@@ -250,8 +245,9 @@ Section proof.
             iDestruct (ev_map_witness _ _ _ m2 with "[Hevm Hom2]") as %?; first by iFrame.
             iDestruct (big_sepM_delete _ m2 with "HRp") as "[HRk HRp]"=>//.
             iDestruct "HRk" as (?) "HRk".
-            iDestruct (heap_mapsto_op_1 with "[HRk Hp]") as "[% Hp]"; first by iFrame.
-            rewrite Qp_div_2. wp_store.
+            (* FIXME: Giving the types here should not be necessary. *)
+            iDestruct (@mapsto_agree loc val with "[$HRk $Hp]") as %->.
+            iCombine "HRk" "Hp" as "Hp". wp_store.
             (* now close the invariant *)
             iDestruct (m_frag_agree' with "[Hx Hx2]") as "[Hx %]"; first iFrame.
             subst. rewrite Qp_div_2. iMod ("Hclose" with "[-HR Hor HΦ']").
@@ -259,6 +255,7 @@ Section proof.
               iAssert (srv_tokm_inv γm) with "[Hp1 HRp Hom2]" as "HRp".
               { iExists m2. iFrame. iApply (big_sepM_delete _ m2)=>//.
                 iFrame. eauto. }
+              (* FIXME: These iFrame are really slow. *)
               iFrame. iExists xs''. iFrame. iExists hd'''. iFrame.
               iExists m'. iFrame.
               iDestruct (big_sepM_delete _ m' with "[-]") as "?"=>//.
@@ -299,12 +296,11 @@ Section proof.
     (∃ Q, own γx ((1 / 2)%Qp, DecAgree x) ∗ saved_prop_own γq (Q x) ∗ Q x y)%I.
 
   Lemma try_srv_spec R (s: loc) (lk: val) (γs γr γm γlk: gname) Φ :
-    heapN ⊥ N →
-    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
     is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗ Φ #()
     ⊢ WP try_srv lk #s {{ Φ }}.
   Proof.
-    iIntros (?) "(#? & #? & #? & HΦ)".
+    iIntros "(#? & #? & HΦ)".
     wp_seq. wp_let.
     wp_bind (try_acquire _). iApply (try_acquire_spec with "[]"); first done.
     iNext. iIntros ([]); last by (iIntros; wp_if).
@@ -319,7 +315,7 @@ Section proof.
     iModIntro. wp_let.
     wp_bind (iter _ _).
     iApply wp_wand_r. iSplitL "HR Ho2 Hxs2".
-    { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ∗ R ∗ v = #()))%I=>//.      
+    { iApply (loop_iter_doOp_spec R _ _ _ _ _ _ (fun v => own γr (Excl ()) ∗ R ∗ ⌜v = #()⌝))%I=>//.      
       iFrame "#". iFrame. iIntros "? ?". by iFrame. }
     iIntros (f') "[Ho [HR %]]". subst.
     wp_let. iApply (release_spec with "[Hlocked Ho HR]"); first iFrame "#∗".
@@ -328,14 +324,13 @@ Section proof.
 
   Lemma loop_spec R (p s: loc) (lk: val)
         (γs γr γm γlk: gname) (ts: toks) Φ:
-    heapN ⊥ N →
-    heap_ctx ∗ inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
+    inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
     is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗
     own_γ3 ts ∗ evm γm p ts ∗
     (∃ hd, evs γs hd #p) ∗ (∀ x y, finished_recp ts x y -∗ Φ y)
     ⊢ WP loop #p #s lk {{ Φ }}.
   Proof.
-    iIntros (HN) "(#Hh & #? & #? & Ho3 & #Hev & Hhd & HΦ)".
+    iIntros "(#? & #? & Ho3 & #Hev & Hhd & HΦ)".
     iLöb as "IH". wp_rec. repeat wp_let.
     wp_bind (! _)%E. iInv N as "[Hinv >?]" "Hclose".
     iDestruct "Hinv" as (xs hd) "[>Hs [>Hxs HRs]]".
@@ -390,19 +385,19 @@ Section proof.
       rewrite /ev. eauto.
   Qed.
 
-  Lemma mk_flat_spec: mk_syncer_spec N mk_flat.
+  Lemma mk_flat_spec: mk_syncer_spec mk_flat.
   Proof.
-    iIntros (R HN Φ) "(#Hh & HR) HΦ".
+    iIntros (R Φ) "HR HΦ".
     iMod (own_alloc (Excl ())) as (γr) "Ho2"; first done.
     iMod (own_alloc (● (∅: tokmR) ⋅ ◯ ∅)) as (γm) "[Hm _]"; first by rewrite -auth_both_op.
     iAssert (srv_tokm_inv γm) with "[Hm]" as "Hm"; first eauto.
     { iExists ∅. iFrame. by rewrite big_sepM_empty. }
     wp_seq. wp_bind (newlock _).
-    iApply (newlock_spec _ (own γr (Excl ()) ∗ R)%I with "[$Hh $Ho2 $HR]")=>//.
+    iApply (newlock_spec _ (own γr (Excl ()) ∗ R)%I with "[$Ho2 $HR]")=>//.
     iNext. iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
     iApply (new_stack_spec' _ (p_inv _ γm γr))=>//.
-    iFrame "Hh Hm". iIntros (γ s) "#Hss".
+    iFrame "Hm". iIntros (γ s) "#Hss".
     wp_let. iApply "HΦ". rewrite /synced.
     iAlways.
     iIntros (f). wp_let. iAlways.

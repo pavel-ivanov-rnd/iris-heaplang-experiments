@@ -4,7 +4,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import auth frac gmap dec_agree.
 From iris.prelude Require Import countable.
-From iris.base_logic Require Import big_op auth.
+From iris.base_logic Require Import big_op auth fractional.
 Import uPred.
 
 Section lemmas.
@@ -33,13 +33,11 @@ Section heap_extra.
 
   Lemma bogus_heap p (q1 q2: Qp) a b:
     ~((q1 + q2)%Qp ≤ 1%Qp)%Qc →
-    heap_ctx ∗ p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
+    p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
   Proof.
-    iIntros (?) "(#Hh & Hp1 & Hp2)".
-    iCombine "Hp1" "Hp2" as "Hp".
-    iDestruct (heap_mapsto_op_1 with "Hp") as "[_ Hp]".
-    rewrite heap_mapsto_eq. iDestruct (auth_own_valid with "Hp") as %H'.    
-    apply singleton_valid in H'. by destruct H' as [H' _].
+    iIntros (?) "Hp". 
+    (* FIXME: If I dont give the types here, it loops. *)
+    iDestruct (@mapsto_valid_2 loc val with "Hp") as %H'. done.
   Qed.
 
 End heap_extra.
@@ -65,7 +63,7 @@ Section pair.
   Context `{EqDecision A, !inG Σ (prodR fracR (dec_agreeR A))}.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2) ⊢ (a1 = a2).
+    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2) ⊢ ⌜a1 = a2⌝.
   Proof.
     iIntros "[Ho Ho']".
     destruct (decide (a1 = a2)) as [->|Hneq]=>//.
@@ -77,7 +75,7 @@ Section pair.
   
   Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
     own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2)
-    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ∗ (a1 = a2).
+    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ∗ ⌜a1 = a2⌝.
   Proof.
     iIntros "[Ho Ho']".
     iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.

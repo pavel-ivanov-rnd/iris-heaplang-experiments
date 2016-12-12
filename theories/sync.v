@@ -23,6 +23,6 @@ Section sync.
     (□ ∀ (f : val), WP s f {{ f', synced R f f' }})%I.
 
   Definition mk_syncer_spec (mk_syncer: val) :=
-    ∀ (R: iProp Σ), heapN ⊥ N →
-      {{{ heap_ctx ∗ R }}} mk_syncer #() {{{ s, RET s; is_syncer R s }}}.
+    ∀ (R: iProp Σ),
+      {{{ R }}} mk_syncer #() {{{ s, RET s; is_syncer R s }}}.
 End sync.

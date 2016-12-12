@@ -15,31 +15,31 @@ Section incr.
          then "oldv" (* return old value if success *)
          else "incr" "l".
 
-  Global Opaque incr.
-
   (* TODO: Can we have a more WP-style definition and avoid the equality? *)
   Definition incr_triple (l: loc) :=
     atomic_triple (fun (v: Z) => l ↦ #v)%I
-                  (fun v ret => ret = #v ∗ l ↦ #(v + 1))%I
-                  (nclose heapN)
+                  (fun v ret => ⌜ret = #v⌝ ∗ l ↦ #(v + 1))%I
+                  ∅
                   ⊤
                   (incr #l).
 
-  Lemma incr_atomic_spec: ∀ (l: loc), heapN ⊥ N → heap_ctx ⊢ incr_triple l.
+  Lemma incr_atomic_spec: ∀ (l: loc), incr_triple l.
   Proof.
-    iIntros (l HN) "#?".
+    iIntros (l).
     rewrite /incr_triple.
     rewrite /atomic_triple.
     iIntros (P Q) "#Hvs".
     iLöb as "IH".
     iIntros "!# HP".
     wp_rec.
-    wp_bind (! _)%E.
+    (* FIXME: I should not have to apply wp_atomic manually here and below. *)
+    wp_bind (! _)%E. iApply (wp_atomic _ ∅); first by eauto.
     iMod ("Hvs" with "HP") as (x) "[Hl [Hvs' _]]".
-    wp_load.
+    iModIntro. wp_load.
     iMod ("Hvs'" with "Hl") as "HP".
     iModIntro. wp_let. wp_bind (CAS _ _ _). wp_op.
-    iMod ("Hvs" with "HP") as (x') "[Hl Hvs']".
+    iApply (wp_atomic _ ∅); first by eauto.
+    iMod ("Hvs" with "HP") as (x') "[Hl Hvs']". iModIntro.
     destruct (decide (x = x')).
     - subst.
       iDestruct "Hvs'" as "[_ Hvs']".
@@ -66,38 +66,36 @@ Section user.
 
   (* prove that incr is safe w.r.t. data race. TODO: prove a stronger post-condition *)
   Lemma incr_2_safe:
-    ∀ (x: Z), heapN ⊥ N -> heap_ctx ⊢ WP incr_2 #x {{ _, True }}.
+    ∀ (x: Z), (WP incr_2 #x {{ _, True }})%I.
   Proof.
-    iIntros (x HN) "#Hh".
-    rewrite /incr_2.
-    wp_let.
+    iIntros (x). iProof. (* FIXME: I did iIntros, this should not be needed. *)
+    rewrite /incr_2 /=.
+    wp_lam.
     wp_alloc l as "Hl".
     iMod (inv_alloc N _ (∃x':Z, l ↦ #x')%I with "[Hl]") as "#?"; first eauto.
     wp_let.
     wp_bind (_ ||| _)%E.
-    iApply (wp_par (λ _, True%I) (λ _, True%I) with "[]").
-    iFrame "Hh".
-    (* prove worker triple *)
-    iDestruct (incr_atomic_spec N l with "Hh") as "Hincr"=>//.
-    rewrite /incr_triple /atomic_triple.
-    iSpecialize ("Hincr"  $! True%I (fun _ => True%I) with "[]").
-    - iIntros "!# _".
-      (* open the invariant *)
-      iInv N as (x') ">Hl'" "Hclose".
-      (* mask magic *)
-      iMod (fupd_intro_mask' (⊤ ∖ nclose N) heapN) as "Hvs"; first set_solver.
-      iModIntro. iExists x'. iFrame "Hl'". iSplit.
-      + (* provide a way to rollback *)
-        iIntros "Hl'".
-        iMod "Hvs". iMod ("Hclose" with "[Hl']"); eauto.
-      + (* provide a way to commit *)
-        iIntros (v) "[Heq Hl']".
-        iMod "Hvs". iMod ("Hclose" with "[Hl']"); eauto.
-    - iDestruct "Hincr" as "#HIncr".
-      iSplitL; [|iSplitL];
-        try (iApply wp_wand_r; iSplitL; [by iApply "HIncr"|auto]).
-      iIntros (v1 v2) "_ !>".
-      wp_seq. iInv N as (x') ">Hl" "Hclose".
-      wp_load. iApply "Hclose". eauto.
+    iAssert (□ WP incr #l {{ _, True }})%I as "#?".
+    { (* prove worker triple *)
+      iDestruct (incr_atomic_spec l) as "Hincr"=>//.
+      rewrite /incr_triple /atomic_triple.
+      iSpecialize ("Hincr"  $! True%I (fun _ => True%I) with "[]").
+      - iIntros "!# _".
+        (* open the invariant *)
+        iInv N as (x') ">Hl'" "Hclose".
+        (* mask magic *)
+        iMod (fupd_intro_mask' _ ∅) as "Hvs"; first set_solver.
+        iModIntro. iExists x'. iFrame "Hl'". iSplit.
+        + (* provide a way to rollback *)
+          iIntros "Hl'".
+          iMod "Hvs". iMod ("Hclose" with "[Hl']"); eauto.
+        + (* provide a way to commit *)
+          iIntros (v) "[Heq Hl']".
+          iMod "Hvs". iMod ("Hclose" with "[Hl']"); eauto.
+      - iDestruct "Hincr" as "#HIncr". iAlways. by iApply "HIncr". }
+    iApply (wp_par (λ _, True%I) (λ _, True%I) with "[] []"); [done..|].
+    iIntros (v1 v2) "_ !>".
+    wp_seq. iInv N as (x') ">Hl" "Hclose".
+    wp_load. iApply "Hclose". eauto.
   Qed.
 End user.

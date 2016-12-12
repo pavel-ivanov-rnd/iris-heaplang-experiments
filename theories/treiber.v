@@ -33,8 +33,6 @@ Definition iter: val :=
       | SOME "cell" => "f" (Fst "cell") ;; "iter" (Snd "cell") "f"
       end.
 
-Global Opaque new_stack push pop iter.
-
 Section proof.
   Context `{!heapG Σ} (N: namespace).
 
@@ -45,43 +43,38 @@ Section proof.
     end.
 
   Lemma dup_is_list : ∀ xs hd,
-    heap_ctx ∗ is_list hd xs ⊢ is_list hd xs ∗ is_list hd xs.
+    is_list hd xs ⊢ is_list hd xs ∗ is_list hd xs.
   Proof.
     induction xs as [|y xs' IHxs'].
-    - iIntros (hd) "(#? & Hs)".
+    - iIntros (hd) "Hs".
       simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
-    - iIntros (hd) "(#? & Hs)". simpl.
+    - iIntros (hd) "Hs". simpl.
       iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & Hs')".
       iDestruct (IHxs' with "[Hs']") as "[Hs1 Hs2]"; first by iFrame.
       iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
 
   Lemma uniq_is_list:
-    ∀ xs ys hd, heap_ctx ∗ is_list hd xs ∗ is_list hd ys ⊢ xs = ys.
+    ∀ xs ys hd, is_list hd xs ∗ is_list hd ys ⊢ ⌜xs = ys⌝.
   Proof.
     induction xs as [|x xs' IHxs'].
     - induction ys as [|y ys' IHys'].
       + auto.
-      + iIntros (hd) "(#? & Hxs & Hys)".
+      + iIntros (hd) "(Hxs & Hys)".
         simpl. iDestruct "Hys" as (hd' ?) "(Hhd & Hys')".
         iExFalso. iDestruct "Hxs" as (?) "Hhd'".
-        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
-        { iSplitL "Hhd"; done. }
-        done.
+        (* FIXME: If I dont give the types here and below through this file, it loops. *)
+        by iDestruct (@mapsto_agree loc val with "[$Hhd $Hhd']") as %?.
     - induction ys as [|y ys' IHys'].
-      + iIntros (hd) "(#? & Hxs & Hys)".
+      + iIntros (hd) "(Hxs & Hys)".
         simpl.
         iExFalso. iDestruct "Hxs" as (? ?) "(Hhd & _)".
         iDestruct "Hys" as (?) "Hhd'".
-        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
-        { iSplitL "Hhd"; done. }
-        done.
-      + iIntros (hd) "(#? & Hxs & Hys)".
+        by iDestruct (@mapsto_agree loc val with "[$Hhd $Hhd']") as %?.
+      + iIntros (hd) "(Hxs & Hys)".
         simpl. iDestruct "Hxs" as (? ?) "(Hhd & Hxs')".
         iDestruct "Hys" as (? ?) "(Hhd' & Hys')".
-        iDestruct (heap_mapsto_op_1 with "[Hhd Hhd']") as "[% _]".
-        { iSplitL "Hhd"; done. }
-        inversion H3. (* FIXME: name *)
+        iDestruct (@mapsto_agree loc val with "[$Hhd $Hhd']") as %[= Heq].
         subst. iDestruct (IHxs' with "[Hxs' Hys']") as "%"; first by iFrame.
         by subst.
   Qed.
@@ -96,10 +89,9 @@ Section proof.
 
   Lemma new_stack_spec:
     ∀ (Φ: val → iProp Σ),
-      heapN ⊥ N →
-      heap_ctx ∗ (∀ s, is_stack s [] -∗ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
+      (∀ s, is_stack s [] -∗ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
   Proof.
-    iIntros (Φ HN) "[#Hh HΦ]". wp_seq.
+    iIntros (Φ) "HΦ". wp_seq.
     wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc l' as "Hl'".
     iApply "HΦ". rewrite /is_stack. iExists l.
@@ -112,24 +104,27 @@ Section proof.
                 (fun xs_hd ret =>
                    let '(xs, hd) := xs_hd in 
                    ∃ hd': loc,
-                     ret = #() ∗ s ↦ #hd' ∗ hd' ↦ SOMEV (x, #hd) ∗ is_list hd xs)%I
-                (nclose heapN)
+                     ⌜ret = #()⌝ ∗ s ↦ #hd' ∗ hd' ↦ SOMEV (x, #hd) ∗ is_list hd xs)%I
+                ∅
                 ⊤
                 (push #s x).
   
   Lemma push_atomic_spec (s: loc) (x: val) :
-    heapN ⊥ N → heap_ctx ⊢ push_triple s x.
+    push_triple s x.
   Proof.
-    iIntros (HN) "#?". rewrite /push_triple /atomic_triple.
+    iProof. rewrite /push_triple /atomic_triple.
     iIntros (P Q) "#Hvs".
     iLöb as "IH". iIntros "!# HP". wp_rec.
     wp_let. wp_bind (! _)%E.
-    iMod ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] [Hvs' _]]".
+    (* FIXME: I should not have to apply wp_atomic manually here and below. *)
+    iApply (wp_atomic _ ∅); first by eauto.
+    iMod ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] [Hvs' _]]". iModIntro.
     wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by iFrame.
     iModIntro. wp_let. wp_alloc l as "Hl". wp_let.
     wp_bind (CAS _ _ _)%E.
+    iApply (wp_atomic _ ∅); first by eauto.
     iMod ("Hvs" with "HP") as ([xs' hd']) "[[Hs Hhd'] Hvs']".
-    destruct (decide (hd = hd')) as [->|Hneq].
+    iModIntro. destruct (decide (hd = hd')) as [->|Hneq].
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" $! #() with "[-]") as "HQ".
       { iExists l. iSplitR; first done. by iFrame. }
@@ -145,23 +140,25 @@ Section proof.
                    let '(xs, hd) := xs_hd in s ↦ #hd ∗ is_list hd xs)%I
                 (fun xs_hd ret =>
                    let '(xs, hd) := xs_hd in
-                   (ret = NONEV ∗ xs = [] ∗ s ↦ #hd ∗ is_list hd []) ∨
-                   (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ∗ ret = SOMEV x ∗
-                                          xs = x :: xs' ∗ s ↦ #hd' ∗ is_list hd' xs'))%I
-                (nclose heapN)
+                   (⌜ret = NONEV⌝ ∗ ⌜xs = []⌝ ∗ s ↦ #hd ∗ is_list hd []) ∨
+                   (∃ x q (hd': loc) xs', hd ↦{q} SOMEV (x, #hd') ∗ ⌜ret = SOMEV x⌝ ∗
+                                          ⌜xs = x :: xs'⌝ ∗ s ↦ #hd' ∗ is_list hd' xs'))%I
+                ∅
                 ⊤
                 (pop #s).
 
   Lemma pop_atomic_spec (s: loc):
-    heapN ⊥ N → heap_ctx ⊢ pop_triple s.
+    pop_triple s.
   Proof.
-    iIntros (HN) "#?".
+    iProof.
     rewrite /pop_triple /atomic_triple.
     iIntros (P Q) "#Hvs".
     iLöb as "IH". iIntros "!# HP". wp_rec.
     wp_bind (! _)%E.
+    (* FIXME: I should not have to apply wp_atomic manually here and below. *)
+    iApply (wp_atomic _ ∅); first by eauto.
     iMod ("Hvs" with "HP") as ([xs hd]) "[[Hs Hhd] Hvs']".
-    destruct xs as [|y' xs'].
+    iModIntro. destruct xs as [|y' xs'].
     - simpl. wp_load. iDestruct "Hvs'" as "[_ Hvs']".
       iDestruct "Hhd" as (q) "[Hhd Hhd']".
       iMod ("Hvs'" $! NONEV with "[-Hhd]") as "HQ".
@@ -174,20 +171,20 @@ Section proof.
       iMod ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
       { iFrame. iExists hd', (q / 2)%Qp. by iFrame. }
       iModIntro. wp_let. wp_load. wp_match. wp_proj.
-      wp_bind (CAS _ _ _). iMod ("Hvs" with "HP") as ([xs hd'']) "[[Hs Hhd''] Hvs']".
-      destruct (decide (hd = hd'')) as [->|Hneq].
+      wp_bind (CAS _ _ _).
+      (* FIXME: I should not have to apply wp_atomic manually here and below. *)
+      iApply (wp_atomic _ ∅); first by eauto.
+      iMod ("Hvs" with "HP") as ([xs hd'']) "[[Hs Hhd''] Hvs']".
+      iModIntro. destruct (decide (hd = hd'')) as [->|Hneq].
       + wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
         iMod ("Hvs'" $! (SOMEV y') with "[-]") as "HQ".
         { iRight. iExists y', (q / 2 / 2)%Qp, hd', xs'.
           destruct xs as [|x' xs''].
           - simpl. iDestruct "Hhd''" as (?) "H".
-            iExFalso. iDestruct (heap_mapsto_op_1 with "[Hhd1 H]") as "[% _]".
-            { iSplitL "Hhd1"; done. }
-            done.
+            iExFalso. by iDestruct (@mapsto_agree loc val with "[$Hhd1 $H]") as %?.
           - simpl. iDestruct "Hhd''" as (hd''' ?) "(Hhd'' & Hxs'')".
-            iDestruct (heap_mapsto_op_1 with "[Hhd1 Hhd'']") as "[% _]".
-            { iSplitL "Hhd1"; done. }
-            inversion H0. (* FIXME: bad naming *) subst.
+            iDestruct (@mapsto_agree loc val with "[$Hhd1 $Hhd'']") as %[=].
+            subst.
             iDestruct (uniq_is_list with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
             repeat (iSplitR "Hxs1 Hs"; first done).
             iFrame. }

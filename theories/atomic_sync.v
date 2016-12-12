@@ -13,7 +13,7 @@ Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
 Proof. by intros ?%subG_inG. Qed.
 
 Section atomic_sync.
-  Context `{EqDecision A, !heapG Σ, !lockG Σ, !inG Σ (prodR fracR (dec_agreeR A))} (N : namespace).
+  Context `{EqDecision A, !heapG Σ, !lockG Σ, !inG Σ (prodR fracR (dec_agreeR A))}.
 
   (* TODO: Rename and make opaque; the fact that this is a half should not be visible
            to the user. *)
@@ -41,16 +41,15 @@ Section atomic_sync.
 
   Definition atomic_syncer_spec (mk_syncer: val) :=
     ∀ (g0: A) (ϕ: A → iProp Σ),
-      heapN ⊥ N →
-      {{{ heap_ctx ∗ ϕ g0 }}} mk_syncer #() {{{ γ s, RET s; gHalf γ g0 ∗ is_atomic_syncer ϕ γ s }}}.
+      {{{ ϕ g0 }}} mk_syncer #() {{{ γ s, RET s; gHalf γ g0 ∗ is_atomic_syncer ϕ γ s }}}.
 
   Lemma atomic_spec (mk_syncer: val):
-      mk_syncer_spec N mk_syncer → atomic_syncer_spec mk_syncer.
+      mk_syncer_spec mk_syncer → atomic_syncer_spec mk_syncer.
   Proof.
-    iIntros (Hsync g0 ϕ HN ret) "[#Hh Hϕ] Hret".
+    iIntros (Hsync g0 ϕ ret) "Hϕ Hret".
     iMod (own_alloc (((1 / 2)%Qp, DecAgree g0) ⋅ ((1 / 2)%Qp, DecAgree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite pair_op dec_agree_idemp. }
-    iApply (Hsync (∃ g: A, ϕ g ∗ gHalf γ g)%I with "[$Hh Hg1 Hϕ]")=>//.
+    iApply (Hsync (∃ g: A, ϕ g ∗ gHalf γ g)%I with "[Hg1 Hϕ]")=>//.
     { iExists g0. by iFrame. }
     iNext. iIntros (s) "#Hsyncer". iApply "Hret".
     iSplitL "Hg2"; first done. iIntros "!#".
