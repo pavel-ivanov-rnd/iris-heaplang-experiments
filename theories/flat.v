@@ -4,11 +4,9 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import auth frac agree excl deprecated gset gmap.
+From iris.algebra Require Import auth frac agree excl agree gset gmap.
 From iris.base_logic Require Import big_op saved_prop.
 From iris_atomic Require Import misc peritem sync evmap.
-
-Import dec_agree.
 
 Definition doOp : val :=
   λ: "p",
@@ -49,7 +47,7 @@ Definition mk_flat : val :=
       let: "r" := loop "p" "s" "lk" in
       "r".
 
-Definition reqR := prodR fracR (dec_agreeR val). (* request x should be kept same *)
+Definition reqR := prodR fracR (agreeR valC). (* request x should be kept same *)
 Definition toks : Type := gname * gname * gname * gname * gname. (* a bunch of tokens to do state transition *)
 Definition tokmR : ucmraT := evmapR loc toks unitR. (* tie each slot to tokens *)
 Class flatG Σ := FlatG {
@@ -76,17 +74,17 @@ Section proof.
   Definition installed_s R (ts: toks) (f x: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ (P: val → iProp Σ) Q,
-       own γx ((1/2)%Qp, DecAgree x) ∗ P x ∗ ({{ R ∗ P x }} f x {{ v, R ∗ Q x v }}) ∗
+       own γx ((1/2)%Qp, to_agree x) ∗ P x ∗ ({{ R ∗ P x }} f x {{ v, R ∗ Q x v }}) ∗
        saved_prop_own γq (Q x) ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition received_s (ts: toks) (x: val) γr :=
     let '(γx, _, _, γ4, _) := ts in
-    (own γx ((1/2/2)%Qp, DecAgree x) ∗ own γr (Excl ()) ∗ own γ4 (Excl ()))%I.
+    (own γx ((1/2/2)%Qp, to_agree x) ∗ own γr (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition finished_s (ts: toks) (x y: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ Q: val → val → iProp Σ,
-       own γx ((1/2)%Qp, DecAgree x) ∗ saved_prop_own γq (Q x) ∗
+       own γx ((1/2)%Qp, to_agree x) ∗ saved_prop_own γq (Q x) ∗
        Q x y ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition evm := ev loc toks.
@@ -131,7 +129,7 @@ Section proof.
 
   Definition installed_recp (ts: toks) (x: val) (Q: val → iProp Σ) :=
     let '(γx, _, γ3, _, γq) := ts in
-    (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, DecAgree x) ∗ saved_prop_own γq Q)%I.
+    (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, to_agree x) ∗ saved_prop_own γq Q)%I.
 
   Lemma install_spec
         R P Q
@@ -148,7 +146,7 @@ Section proof.
     iMod (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iMod (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iMod (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
-    iMod (own_alloc (1%Qp, DecAgree x)) as (γx) "Hx"; first done.
+    iMod (own_alloc (1%Qp, to_agree x)) as (γx) "Hx"; first done.
     iMod (saved_prop_alloc (F:=(ofe_funCF val idCF)) Q) as (γq) "#?".
     iInv N as "[Hrs >Hm]" "Hclose".
     iDestruct "Hm" as (m) "[Hm HRm]".
@@ -209,8 +207,8 @@ Section proof.
       + iDestruct "Hp" as (f' x') "(Hp & Hs)".
         wp_load. destruct ts as [[[[γx γ1] γ3] γ4] γq].
         iDestruct "Hs" as (P Q) "(Hx & Hpx & Hf' & HoQ & Ho1 & Ho4)".
-        iAssert (|==> own γx (((1/2/2)%Qp, DecAgree x') ⋅
-                               ((1/2/2)%Qp, DecAgree x')))%I with "[Hx]" as ">[Hx1 Hx2]".
+        iAssert (|==> own γx (((1/2/2)%Qp, to_agree x') ⋅
+                               ((1/2/2)%Qp, to_agree x')))%I with "[Hx]" as ">[Hx1 Hx2]".
         { iDestruct (own_update with "Hx") as "?"; last by iAssumption.
           rewrite -{1}(Qp_div_2 (1/2)%Qp).
           by apply pair_l_frac_op'. }
@@ -294,7 +292,7 @@ Section proof.
   Definition own_γ3 (ts: toks) := let '(_, _, γ3, _, _) := ts in own γ3 (Excl ()).
   Definition finished_recp (ts: toks) (x y: val) :=
     let '(γx, _, _, _, γq) := ts in
-    (∃ Q, own γx ((1 / 2)%Qp, DecAgree x) ∗ saved_prop_own γq (Q x) ∗ Q x y)%I.
+    (∃ Q, own γx ((1 / 2)%Qp, to_agree x) ∗ saved_prop_own γq (Q x) ∗ Q x y)%I.
 
   Lemma try_srv_spec R (s: loc) (lk: val) (γs γr γm γlk: gname) Φ :
     inv N (srv_stack_inv R γs γm γr s ∗ srv_tokm_inv γm) ∗
@@ -419,7 +417,8 @@ Section proof.
       iSpecialize ("Heq" $! a0). by iRewrite "Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
-      rewrite pair_op //= dec_agree_ne in H1=>//.
+      rewrite pair_op //=  in H1=>//. apply to_agree_comp_valid in H1.
+      fold_leibniz. done.
   Qed.
 
 End proof.

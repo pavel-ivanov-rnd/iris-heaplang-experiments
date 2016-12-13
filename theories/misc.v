@@ -2,20 +2,20 @@
 
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
-From iris.algebra Require Import auth frac gmap deprecated.
+From iris.algebra Require Import auth frac gmap agree.
 From iris.prelude Require Import countable.
 From iris.base_logic Require Import big_op auth fractional.
 
-Import uPred dec_agree.
+Import uPred.
 
 Section lemmas.
   Lemma pair_l_frac_op' (p q: Qp) (g g': val):
-     ((p + q)%Qp, DecAgree g') ~~> (((p, DecAgree g') ⋅ (q, DecAgree g'))).
-  Proof. by rewrite pair_op dec_agree_idemp frac_op'. Qed.
+     ((p + q)%Qp, to_agree g') ~~> (((p, to_agree g') ⋅ (q, to_agree g'))).
+  Proof. by rewrite pair_op agree_idemp frac_op'. Qed.
 
   Lemma pair_l_frac_op_1' (g g': val):
-     (1%Qp, DecAgree g') ~~> (((1/2)%Qp, DecAgree g') ⋅ ((1/2)%Qp, DecAgree g')).
-  Proof. by rewrite pair_op dec_agree_idemp frac_op' Qp_div_2. Qed.
+     (1%Qp, to_agree g') ~~> (((1/2)%Qp, to_agree g') ⋅ ((1/2)%Qp, to_agree g')).
+  Proof. by rewrite pair_op agree_idemp frac_op' Qp_div_2. Qed.
   
 End lemmas.
 
@@ -60,26 +60,27 @@ Section big_op_later.
 End big_op_later.
 
 Section pair.
-  Context `{EqDecision A, !inG Σ (prodR fracR (dec_agreeR A))}.
+  Context {A : ofeT} `{EqDecision A, !Discrete A, !LeibnizEquiv A, !inG Σ (prodR fracR (agreeR A))}.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2) ⊢ ⌜a1 = a2⌝.
+    own γm (q1, to_agree a1) ∗ own γm (q2, to_agree a2) ⊢ ⌜a1 = a2⌝.
   Proof.
     iIntros "[Ho Ho']".
     destruct (decide (a1 = a2)) as [->|Hneq]=>//.
     iCombine "Ho" "Ho'" as "Ho".
     iDestruct (own_valid with "Ho") as %Hvalid.
     exfalso. destruct Hvalid as [_ Hvalid].
-    simpl in Hvalid. apply dec_agree_op_inv in Hvalid. inversion Hvalid. subst. auto.
+    simpl in Hvalid. apply agree_op_inv in Hvalid. apply (inj to_agree) in Hvalid.
+    apply Hneq. by fold_leibniz.
   Qed.
   
   Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, DecAgree a1) ∗ own γm (q2, DecAgree a2)
-    ⊢ own γm ((q1 + q2)%Qp, DecAgree a1) ∗ ⌜a1 = a2⌝.
+    own γm (q1, to_agree a1) ∗ own γm (q2, to_agree a2)
+    ⊢ own γm ((q1 + q2)%Qp, to_agree a1) ∗ ⌜a1 = a2⌝.
   Proof.
     iIntros "[Ho Ho']".
     iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.
     subst. iCombine "Ho" "Ho'" as "Ho".
-    rewrite pair_op frac_op' dec_agree_idemp. by iFrame.
+    rewrite pair_op frac_op' agree_idemp. by iFrame.
   Qed.
 End pair.
