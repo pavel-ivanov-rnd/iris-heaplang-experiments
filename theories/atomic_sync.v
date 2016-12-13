@@ -2,8 +2,10 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import dec_agree frac.
+From iris.algebra Require Import deprecated frac.
 From iris_atomic Require Import atomic sync misc.
+
+Import dec_agree.
 
 Definition syncR := prodR fracR (dec_agreeR val). (* track the local knowledge of ghost state *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.

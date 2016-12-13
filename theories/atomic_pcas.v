@@ -1,13 +1,13 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import dec_agree frac.
+From iris.algebra Require Import agree frac.
 From iris_atomic Require Import sync atomic_sync.
 Import uPred.
 
 Section atomic_pair.
   Context `{!heapG Σ, !lockG Σ, !syncG Σ,
-            !inG Σ (prodR fracR (dec_agreeR (val * val)))} (N : namespace).
+            !inG Σ (prodR fracR (agreeR (prodC valC valC)))} (N : namespace).
   
   Definition pcas_seq : val :=
     λ: "ls" "ab",

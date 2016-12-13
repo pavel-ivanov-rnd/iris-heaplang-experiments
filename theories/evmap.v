@@ -1,8 +1,11 @@
 (* evmap.v -- generalized heap-like monoid composite *)
 From iris.base_logic Require Export invariants.
 From iris.program_logic Require Export weakestpre.
-From iris.algebra Require Export auth frac gmap dec_agree.
+From iris.algebra Require Export auth frac gmap.
+From iris.algebra Require deprecated.
 From iris.proofmode Require Import tactics.
+
+Export deprecated.dec_agree.
 
 Section evmap.
   Context (K A: Type) (Q: cmraT) `{Countable K, EqDecision A}.

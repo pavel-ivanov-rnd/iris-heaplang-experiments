@@ -2,10 +2,11 @@
 
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
-From iris.algebra Require Import auth frac gmap dec_agree.
+From iris.algebra Require Import auth frac gmap deprecated.
 From iris.prelude Require Import countable.
 From iris.base_logic Require Import big_op auth fractional.
-Import uPred.
+
+Import uPred dec_agree.
 
 Section lemmas.
   Lemma pair_l_frac_op' (p q: Qp) (g g': val):

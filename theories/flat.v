@@ -4,9 +4,11 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import auth frac agree excl dec_agree gset gmap.
+From iris.algebra Require Import auth frac agree excl deprecated gset gmap.
 From iris.base_logic Require Import big_op saved_prop.
 From iris_atomic Require Import misc peritem sync evmap.
+
+Import dec_agree.
 
 Definition doOp : val :=
   λ: "p",

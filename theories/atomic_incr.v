@@ -66,7 +66,7 @@ Section user.
   Lemma incr_2_safe:
     ∀ (x: Z), (WP incr_2 #x {{ _, True }})%I.
   Proof.
-    iIntros (x) "". (* FIXME: I did iIntros, this should not be needed. *)
+    iIntros (x).
     rewrite /incr_2 /=.
     wp_lam.
     wp_alloc l as "Hl".
