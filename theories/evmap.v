@@ -6,6 +6,11 @@ From iris.algebra Require deprecated.
 From iris.proofmode Require Import tactics.
 
 Export deprecated.dec_agree.
+(* Porting this to algebra.agree does not really work well because the
+   map from K to (Q * agree A) is part of the interface of this file.
+   This file should either be ditched or raised to a higher level
+   of abstraction, i.e., work on a map from K to A and use fmap
+   for the thing that's owned. *)
 
 Section evmap.
   Context (K A: Type) (Q: cmraT) `{Countable K, EqDecision A}.
