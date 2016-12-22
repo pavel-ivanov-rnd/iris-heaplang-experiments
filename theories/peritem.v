@@ -30,6 +30,12 @@ Section defs.
       iDestruct (IHxs' with "[Hs']") as ">[Hs1 Hs2]"; first by iFrame.
       iModIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
   Qed.
+
+  Definition f_spec (R: iProp Σ) (f: val) (Rf: iProp Σ) x :=
+    {{{ inv N R ∗ Rf }}}
+      f x
+    {{{ RET #(); Rf }}}.
+
 End defs.
 
 Section proofs.

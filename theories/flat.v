@@ -130,13 +130,8 @@ Section proof.
     iFrame. iFrame "#".
   Qed.
 
-  Definition f_spec (R: iProp Σ) (f: val) (Rf: iProp Σ) x :=
-    {{{ inv N R ∗ Rf }}}
-      f x
-    {{{ RET #(); Rf }}}.
-
   Lemma doOp_f_spec R γm γr (p: loc) ts:
-    f_spec (p_inv R γm γr ts p) doOp (own γr (Excl ()) ∗ R)%I #p.
+    f_spec N (p_inv R γm γr ts p) doOp (own γr (Excl ()) ∗ R)%I #p.
   Proof.
     iIntros (Φ) "(#H1 & Hor & HR) HΦ".
     wp_rec. wp_bind (! _)%E.
