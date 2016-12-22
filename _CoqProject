@@ -7,6 +7,5 @@ theories/flat.v
 theories/atomic_sync.v
 theories/treiber.v
 theories/misc.v
-theories/evmap.v
 theories/peritem.v
 theories/atomic_pcas.v
