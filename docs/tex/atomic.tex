@@ -256,34 +256,22 @@ But if we want to iterate over it using \texttt{iter} using a per-item style spe
 \section{Per-item spec}
 
 \begin{align*}
-  fSpec &(\gname, xs, s, f, Rf, RI) \eqdef\\
-    &\All x.
-      \hoare{(\Exists hd. evs(\gname, hd, x)) * \knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * Rf}{f(x)}{ v.\, v = () * Rf}
+  fSpec (R, f, Rf, x) \eqdef \hoare{\knowInv\iname{R} * Rf}{f(x)}{ v.\, v = () * Rf}
 \end{align*}
 
-The $fSpec$ specifies that $f$ can access the per-item resource predicate associated with $x$ through open/close the global invariants. The $evs(\gname, hd, x)$ provides the \emph{evidence} that $x$ is part of the stack.
+Note that $R$ is \emph{not} parametric, while this spec is parametric with $x$. So, the $R$ here is expected to be a fully applied invariant. During the proof, we will actually only need to consider one such item, then inductively prove the iteration's property.
+So such a bizarre design can work. And most importantly, any item-associated thing, like ghost tokens, can be exposed.
 
-The first $\exists hd$ can be interpreted as ``We don't care which cell pointer points to the item $x$ in stack"; The second $\exists xs$ can be interpreted as ``We don't care what $s$ is \emph{currently} pointing to, since the previously existing elements still exist in the stack now".
-
-Now, let's observe the \texttt{iter}'s spec and \texttt{push}'s spec (in a per-item setting):
-
-\begin{align*}
-  iterSpec&(\gname, s, Rf, RI) \eqdef\\
-    &\All xs, hd, f.\\
-         &fSpec(\gname, xs, s, f, Rf, RI) \ra\\
-         &\hoare{\knowInv\iname{\Exists xs. stack'(\gname, xs, s) * RI} * list'(\gname, hd, xs) * Rf}{iter(hd, f)}{ v.\, v = () * Rf}
-\end{align*}
+Now, let's observe the \texttt{push}'s spec (in a per-item setting):
 
 \begin{align*}
-  pushSpec&(\gname, s, x, RI) \eqdef\\
-  &\hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s) * RI}}{push(s, x)}{v.\, v = () * (\Exists hd. ev(\gname, hd, x))}
+  pushSpec(s, x) \eqdef \hoare{R(x) * \knowInv\iname{\Exists xs. stack'(xs, s)}}{push(s, x)}{v.\, v = () * \knowInv\iname{R(x)}}
 \end{align*}
 
 Okay, back to the per-item spec, why do you need to make sure that the stack is growth-only, and governed by a global invariant?
 
-Answer: because we need to iterate thought it non-atomically. I mean, the process of iteration is not atomic. The single operation f still needs to atomically access any resource related x.
-
-However, my current $fSpec$ is quite bad actually ... first, CaReSL has a smaller, nicer per-item spec; second, it doesn't sound perfectly legitimate that we can't pop things out ... I just need to make sure that the things \emph{currrently in} the stack conforms to certain resource predicate. So, if the structure of linking allows us to control validities of all possible references into certain item, then popping out an element can be atomic, thus doesn't compromise the basic invariant.
+Answer: because we need to iterate thought it non-atomically. I mean, the process of iteration is not atomic.
+The single operation \texttt{f} still needs to atomically access any resource related \texttt{x}.
 
 \section{Flat combiner}
 
@@ -345,7 +333,7 @@ Also, another problem that exists both in my, CaReSL, and FCSL’s example code,
   \caption{Helping protocol illustration. Note that this graph is heavily simplified to reflect how I encode protocol with bare exclusive monoids.}
 \end{figure}
 
-The black diamond is a token owned by server lock; The other three kinds of token are all tagged with i, which is similar to thread id in CaReSL’s reasoning, but in my case, it is the slot address (In some sense it is more flexible since in that way, the same thread can initiate several operations at the same time).
+The black diamond is a token owned by server lock; The other three kinds of token are all tagged with i, which is similar to thread id in CaReSL’s reasoning, but in my case, it is more flexible by using a simple existential qualification.
 
 Here is the per-item (i.e. request slot) invariant, which have four branches.
 
