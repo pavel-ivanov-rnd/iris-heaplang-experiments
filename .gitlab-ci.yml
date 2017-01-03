@@ -1,15 +1,34 @@
 image: ralfjung/opam-ci:latest
 
 iris_atomic-coq8.5.3:
+  tags:
+  - coq
   script:
   # prepare
-  - . build/opam-ci.sh 'coq 8.5.3' 'coq-mathcomp-ssreflect 1.6'
+  - . build/opam-ci.sh 'coq 8.5.3' 'coq-mathcomp-ssreflect 1.6.1'
   # build
   - 'time make -j8'
   cache:
-    key: "coq8.5"
+    key: "coq8.5.3"
     paths:
     - opamroot/
   only:
   - master
   - ci
+
+iris-coq8.6:
+  tags:
+  - coq
+  script:
+  # prepare
+  - . build/opam-ci.sh 'coq 8.6' 'coq-mathcomp-ssreflect 1.6.1'
+  # build
+  - 'time make -j8'
+  cache:
+    key: "coq8.6"
+    paths:
+    - opamroot/
+  only:
+  - master
+  - ci
+  - timing
