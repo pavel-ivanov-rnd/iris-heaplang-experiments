@@ -6,8 +6,8 @@ Atomicity related verification based on Iris logic.
 
 This version is known to compile with:
 
- - Coq 8.5pl3
- - Ssreflect 1.6
+ - Coq 8.6
+ - Ssreflect 1.6.1
  - A development version of [Iris](https://gitlab.mpi-sws.org/FP/iris-coq/)
 
 The easiest way to install the correct versions of the dependencies is through
