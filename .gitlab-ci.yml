@@ -16,7 +16,7 @@ iris_atomic-coq8.5.3:
   - master
   - ci
 
-iris-coq8.6:
+iris_atomic-coq8.6:
   tags:
   - coq
   script:
