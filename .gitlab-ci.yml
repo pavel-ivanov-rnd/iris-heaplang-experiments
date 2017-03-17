@@ -3,22 +3,6 @@ image: ralfjung/opam-ci:latest
 variables:
   CPU_CORES: "9"
 
-iris_atomic-coq8.5.3:
-  tags:
-  - fp-timing
-  script:
-  # prepare
-  - . build/opam-ci.sh coq 8.5.3 coq-mathcomp-ssreflect 1.6.1
-  # build
-  - 'time make -j$CPU_CORES'
-  cache:
-    key: "coq8.5.3"
-    paths:
-    - opamroot/
-  only:
-  - master
-  - /^ci/
-
 iris_atomic-coq8.6:
   tags:
   - fp-timing
