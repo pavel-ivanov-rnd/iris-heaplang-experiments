@@ -64,17 +64,17 @@ Section proof.
         simpl. iDestruct "Hys" as (hd' ?) "(Hhd & Hys')".
         iExFalso. iDestruct "Hxs" as (?) "Hhd'".
         (* FIXME: If I dont use the @ here and below through this file, it loops. *)
-        by iDestruct (@mapsto_agree with "[$Hhd $Hhd']") as %?.
+        by iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %?.
     - induction ys as [|y ys' IHys'].
       + iIntros (hd) "(Hxs & Hys)".
         simpl.
         iExFalso. iDestruct "Hxs" as (? ?) "(Hhd & _)".
         iDestruct "Hys" as (?) "Hhd'".
-        by iDestruct (@mapsto_agree with "[$Hhd $Hhd']") as %?.
+        by iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %?.
       + iIntros (hd) "(Hxs & Hys)".
         simpl. iDestruct "Hxs" as (? ?) "(Hhd & Hxs')".
         iDestruct "Hys" as (? ?) "(Hhd' & Hys')".
-        iDestruct (@mapsto_agree with "[$Hhd $Hhd']") as %[= Heq].
+        iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %[= Heq].
         subst. iDestruct (IHxs' with "[Hxs' Hys']") as "%"; first by iFrame.
         by subst.
   Qed.
@@ -173,9 +173,9 @@ Section proof.
         { iRight. iExists y', (q / 2 / 2)%Qp, hd', xs'.
           destruct xs as [|x' xs''].
           - simpl. iDestruct "Hhd''" as (?) "H".
-            iExFalso. by iDestruct (@mapsto_agree with "[$Hhd1 $H]") as %?.
+            iExFalso. by iDestruct (@mapsto_agree with "[$Hhd1] [$H]") as %?.
           - simpl. iDestruct "Hhd''" as (hd''' ?) "(Hhd'' & Hxs'')".
-            iDestruct (@mapsto_agree with "[$Hhd1 $Hhd'']") as %[=].
+            iDestruct (@mapsto_agree with "[$Hhd1] [$Hhd'']") as %[=].
             subst.
             iDestruct (uniq_is_list with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
             repeat (iSplitR "Hxs1 Hs"; first done).

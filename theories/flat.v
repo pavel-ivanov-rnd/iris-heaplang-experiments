@@ -166,7 +166,7 @@ Section proof.
         subst. rewrite Qp_div_2. iMod ("Hclose" with "[-HR Hor HΦ]").
         { iNext. iDestruct "Hp" as "[Hp1 Hp2]". iRight. iRight.
           iRight. iExists x5, v. iFrame. iExists Q. iFrame. }
-        iApply "HΦ". iFrame.
+        iApply "HΦ". iFrame. done.
       * iDestruct "Hp" as (? ?) "[? Hs]". iDestruct "Hs" as (?) "(_ & _ & _ & >Ho1' & _)".
         iApply excl_falso. iFrame.
     - destruct ts as [[[[γx γ1] γ3] γ4] γq]. iDestruct "Hp" as (? x) "(_ & _ & >Ho2' & _)".
@@ -207,7 +207,7 @@ Section proof.
       { iFrame. iFrame "#". }
       iNext. iIntros "HRf".
       wp_seq. wp_proj. iApply (IHxs with "[-HΦ]")=>//.
-      iFrame "#"; first by iFrame. eauto.
+      iFrame "#"; first by iFrame.
   Qed.
 
   Lemma try_srv_spec R (s: loc) (lk: val) (γr γm γlk: gname) Φ :
@@ -282,7 +282,7 @@ Section proof.
     iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_let. wp_bind (install _ _ _).
     iApply (install_spec R P Q f x γm γr s with "[-]")=>//.
-    { iFrame. iFrame "#". eauto. }
+    { iFrame. iFrame "#". }
     iNext. iIntros (p [[[[γx γ1] γ3] γ4] γq]) "[(Ho3 & Hx & HoQ) #?]".
     wp_let. wp_bind (loop _ _ _).
     iApply (loop_spec with "[-Hx HoQ]")=>//.
@@ -290,13 +290,13 @@ Section proof.
     iNext. iIntros (? ?) "Hs".
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
     destruct (decide (x = a)) as [->|Hneq].
-    - iDestruct (saved_prop_agree with "[HoQ HoQ']") as "Heq"; first by iFrame.
+    - iDestruct (saved_prop_agree with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
       wp_let. iDestruct (uPred.cofe_funC_equivI with "Heq") as "Heq".
-      iSpecialize ("Heq" $! a0). by iRewrite "Heq" in "HQ'".
+      iSpecialize ("Heq" $! a0). by iRewrite -"Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
-      rewrite pair_op //=  in H1=>//. apply to_agree_comp_valid in H1.
-      fold_leibniz. done.
+      rewrite //= in H1.
+      by apply agree_op_inv' in H1.
   Qed.
 
 End proof.

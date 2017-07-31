@@ -2,7 +2,6 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris_atomic Require Import atomic.
 From iris.proofmode Require Import tactics.
-From iris.prelude Require Import coPset.
 From iris.heap_lang.lib Require Import par.
 
 Section incr.
