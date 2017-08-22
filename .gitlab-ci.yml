@@ -23,7 +23,7 @@ variables:
   - master
   - /^ci/
 
-iris_atomic-coq8.6.1:
+iratomic-coq8.6.1:
   <<: *template
   variables:
     COQ_VERSION: "8.6.1"
