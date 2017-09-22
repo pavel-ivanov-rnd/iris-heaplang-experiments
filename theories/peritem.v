@@ -54,7 +54,7 @@ Section proofs.
     { iFrame. iExists [], l.
       iFrame. simpl. eauto. }
     iMod (inv_alloc N _ (∃ xs : list val, is_bag_R N R xs s)%I with "[-HΦ]") as "#?"; first eauto.
-    iApply "HΦ". iFrame "#".
+    iApply "HΦ". iFrame "#". done.
   Qed.
   
   Lemma push_spec (s: loc) (x: val):

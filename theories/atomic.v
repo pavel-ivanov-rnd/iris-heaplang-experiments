@@ -2,7 +2,6 @@
 
 From iris.base_logic Require Export fancy_updates.
 From iris.program_logic Require Export hoare weakestpre.
-From iris.prelude Require Export coPset.
 Import uPred.
 
 Section atomic.

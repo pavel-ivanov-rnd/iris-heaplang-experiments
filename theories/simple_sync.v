@@ -33,7 +33,7 @@ Section syncer.
     iSpecialize ("Hf" with "[R HP]"); first by iFrame.
     iApply wp_wand_r.  iSplitL "Hf"; first done.
     iIntros (v') "[HR HQv]". wp_let. wp_bind (release _).
-    iApply (release_spec with "[$HR $Hl $Hlocked]").
+    iApply (release_spec with "[$Hl $HR $Hlocked]").
     iNext. iIntros "_". by wp_seq.
   Qed.
 End syncer.

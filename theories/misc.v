@@ -3,7 +3,6 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import auth frac gmap agree.
-From iris.prelude Require Import countable.
 From iris.base_logic Require Import big_op auth fractional.
 
 Import uPred.
@@ -36,8 +35,9 @@ Section heap_extra.
     ~((q1 + q2)%Qp ≤ 1%Qp)%Qc →
     p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
   Proof.
-    iIntros (?) "Hp". 
-    iDestruct (@mapsto_valid_2 with "Hp") as %H'. done.
+    iIntros (?) "Hp".
+    iDestruct "Hp" as "[Hl Hr]".
+    iDestruct (@mapsto_valid_2 with "Hl Hr") as %H'. done.
   Qed.
 
 End heap_extra.
@@ -81,6 +81,6 @@ Section pair.
     iIntros "[Ho Ho']".
     iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.
     subst. iCombine "Ho" "Ho'" as "Ho".
-    rewrite pair_op frac_op' agree_idemp. by iFrame.
+    by iFrame.
   Qed.
 End pair.
