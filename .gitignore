@@ -9,6 +9,6 @@
 *~
 *.bak
 Makefile.coq
+Makefile.coq.conf
 .coq-native/
-iris-enabled
-
+build-dep

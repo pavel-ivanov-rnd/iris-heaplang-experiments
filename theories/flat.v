@@ -154,7 +154,7 @@ Section proof.
       iModIntro. wp_match. wp_proj. wp_proj.
       wp_bind (f _). iApply wp_wand_r. iSplitL "Hpx Hf' HR".
       { iApply "Hf'". iFrame. }
-      iIntros (v) "[HR HQ]". wp_value.
+      iIntros (v) "[HR HQ]".
       iInv N as "Hx" "Hclose".
       iDestruct "Hx" as "[Hp | [Hp | [Hp | Hp]]]"; subst.
       * iDestruct "Hp" as (?) "(_ & >Ho1' & _)".
@@ -191,12 +191,12 @@ Section proof.
   Proof.
     induction xs as [|x xs' IHxs].
     - iIntros (hd Φ) "[Hxs ?] HΦ".
-      simpl. wp_rec. wp_value. wp_let.
+      simpl. wp_rec. wp_let.
       iDestruct "Hxs" as (?) "Hhd".
       wp_load. wp_match. by iApply "HΦ".
     - iIntros (hd Φ) "[Hxs HRf] HΦ". simpl.
       iDestruct "Hxs" as (hd' ?) "(Hhd & #Hinv & Hxs')".
-      wp_rec. wp_value. wp_let. wp_bind (! _)%E.
+      wp_rec. wp_let. wp_bind (! _)%E.
       iInv N as "H" "Hclose".
       iDestruct "H" as (ts p) "[>% #?]". subst.
       wp_load. iMod ("Hclose" with "[]").
@@ -291,7 +291,7 @@ Section proof.
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
     destruct (decide (x = a)) as [->|Hneq].
     - iDestruct (saved_prop_agree with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
-      wp_let. iDestruct (uPred.cofe_funC_equivI with "Heq") as "Heq".
+      wp_let. iDestruct (uPred.ofe_funC_equivI with "Heq") as "Heq".
       iSpecialize ("Heq" $! a0). by iRewrite -"Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
