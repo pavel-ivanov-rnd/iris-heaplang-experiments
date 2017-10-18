@@ -45,6 +45,6 @@ build-coq8.6.1:
 build-iris.dev:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.6.1   coq-mathcomp-ssreflect version 1.6.1   coq-iris git https://gitlab.mpi-sws.org/FP/iris-coq.git#master"
+    OPAM_PINS: "coq version 8.6.1   coq-mathcomp-ssreflect version 1.6.1   coq-iris.dev git https://gitlab.mpi-sws.org/FP/iris-coq.git#master"
   only:
   - triggers
