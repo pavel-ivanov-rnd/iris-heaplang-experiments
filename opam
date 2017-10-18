@@ -7,7 +7,7 @@ bug-reports: "https://gitlab.mpi-sws.org/FP/iris-atomic/issues"
 dev-repo: "https://gitlab.mpi-sws.org/FP/iris-atomic.git"
 build: [make "-j%{jobs}%"]
 install: [make "install"]
-remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/iris_atomic" ]
+remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/iris_atomic"]
 depends: [
   "coq-iris" { (= "dev.2017-09-27.1") | (= "dev") }
 ]
