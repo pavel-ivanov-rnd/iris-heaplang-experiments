@@ -51,10 +51,11 @@ while (( "$#" )); do # while there are arguments left
     VERSION="$1" ; shift
 
     # Check if the pin is already set
-    if opam pin list | fgrep "$PACKAGE.$VERSION " > /dev/null; then
-        echo "[opam-ci] $PACKAGE already pinned to $VERSION"
+    PIN=$(opam pin list | egrep "^$PACKAGE\.")
+    if [[ "$(echo "$PIN" | cut -d ' ' -f 2)" == "$KIND" && "$(echo "$PIN" | cut -d ' ' -f 3)" == "$VERSION" ]]; then
+        echo "[opam-ci] $PACKAGE already $KIND-pinned to $VERSION"
     else
-        echo "[opam-ci] Pinning $PACKAGE to $VERSION"
+        echo "[opam-ci] $KIND-pinning $PACKAGE to $VERSION"
         run_and_print opam pin add -y -k "$KIND" "$PACKAGE" "$VERSION"
     fi
 done
