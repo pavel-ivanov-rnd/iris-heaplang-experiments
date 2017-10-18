@@ -47,6 +47,7 @@ echo
 echo
 while (( "$#" )); do # while there are arguments left
     PACKAGE="$1" ; shift
+    KIND="$1" ; shift
     VERSION="$1" ; shift
 
     # Check if the pin is already set
@@ -54,7 +55,7 @@ while (( "$#" )); do # while there are arguments left
         echo "[opam-ci] $PACKAGE already pinned to $VERSION"
     else
         echo "[opam-ci] Pinning $PACKAGE to $VERSION"
-        run_and_print opam pin add -y -k version "$PACKAGE" "$VERSION"
+        run_and_print opam pin add -y -k "$KIND" "$PACKAGE" "$VERSION"
     fi
 done
 
