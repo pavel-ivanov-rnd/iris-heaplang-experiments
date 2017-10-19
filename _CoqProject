@@ -1,0 +1,6 @@
+-Q theories iris_examples
+-arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
+theories/barrier/proof.v
+theories/barrier/specification.v
+theories/barrier/barrier.v
+theories/barrier/protocol.v
