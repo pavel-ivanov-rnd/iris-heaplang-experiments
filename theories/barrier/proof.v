@@ -1,10 +1,10 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
-From iris.heap_lang.lib.barrier Require Export barrier.
 From stdpp Require Import functions.
 From iris.base_logic Require Import big_op lib.saved_prop lib.sts.
 From iris.heap_lang Require Import proofmode.
-From iris.heap_lang.lib.barrier Require Import protocol.
+From iris_examples.barrier Require Export barrier.
+From iris_examples.barrier Require Import protocol.
 Set Default Proof Using "Type".
 
 (** The CMRAs/functors we need. *)

@@ -1,9 +1,9 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang.
 From iris.algebra Require Import excl agree csum.
-From iris.heap_lang.lib.barrier Require Import proof specification.
 From iris.heap_lang Require Import notation par proofmode.
 From iris.proofmode Require Import tactics.
+From iris_examples.barrier Require Import proof specification.
 Set Default Proof Using "Type".
 
 Definition one_shotR (Σ : gFunctors) (F : cFunctor) :=

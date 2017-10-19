@@ -1,8 +1,8 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
-From iris.heap_lang.lib.barrier Require Import proof.
 From iris.heap_lang Require Import par.
 From iris.heap_lang Require Import adequacy proofmode.
+From iris_examples.barrier Require Import proof.
 Set Default Proof Using "Type".
 
 Definition worker (n : Z) : val :=
