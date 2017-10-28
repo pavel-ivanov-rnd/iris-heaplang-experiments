@@ -49,7 +49,7 @@ Definition recv (l : loc) (R : iProp Σ) : iProp Σ :=
     saved_prop_own i Q ∗ ▷ (Q -∗ R))%I.
 
 Global Instance barrier_ctx_persistent (γ : gname) (l : loc) (P : iProp Σ) :
-  PersistentP (barrier_ctx γ l P).
+  Persistent (barrier_ctx γ l P).
 Proof. apply _. Qed.
 
 (** Setoids *)

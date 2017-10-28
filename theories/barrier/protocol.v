@@ -24,7 +24,7 @@ Definition tok (s : state) : set token :=
   (if state_phase s is High then {[ Send ]} else ∅).
 Global Arguments tok !_ /.
 
-Canonical Structure sts := sts.STS prim_step tok.
+Canonical Structure sts := sts.Sts prim_step tok.
 
 (* The set of states containing some particular i *)
 Definition i_states (i : gname) : set state := {[ s | i ∈ state_I s ]}.
