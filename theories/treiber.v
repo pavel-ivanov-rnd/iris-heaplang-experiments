@@ -81,10 +81,10 @@ Section proof.
 
   Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ∗ is_list hd xs)%I.
 
-  Global Instance is_list_timeless xs hd: TimelessP (is_list hd xs).
+  Global Instance is_list_timeless xs hd: Timeless (is_list hd xs).
   Proof. generalize hd. induction xs; apply _. Qed.
 
-  Global Instance is_stack_timeless xs hd: TimelessP (is_stack hd xs).
+  Global Instance is_stack_timeless xs hd: Timeless (is_stack hd xs).
   Proof. generalize hd. induction xs; apply _. Qed.
 
   Lemma new_stack_spec:
