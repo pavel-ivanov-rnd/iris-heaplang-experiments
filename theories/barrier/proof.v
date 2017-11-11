@@ -10,9 +10,9 @@ Set Default Proof Using "Type".
 (** The CMRAs/functors we need. *)
 Class barrierG Σ := BarrierG {
   barrier_stsG :> stsG Σ sts;
-  barrier_savedPropG :> savedPropG Σ idCF;
+  barrier_savedPropG :> savedPropG Σ;
 }.
-Definition barrierΣ : gFunctors := #[stsΣ sts; savedPropΣ idCF].
+Definition barrierΣ : gFunctors := #[stsΣ sts; savedPropΣ].
 
 Instance subG_barrierΣ {Σ} : subG barrierΣ Σ → barrierG Σ.
 Proof. solve_inG. Qed.
@@ -94,7 +94,7 @@ Proof.
   iIntros (Φ) "_ HΦ".
   rewrite -wp_fupd /newbarrier /=. wp_seq. wp_alloc l as "Hl".
   iApply ("HΦ" with "[> -]").
-  iMod (saved_prop_alloc (F:=idCF) P) as (γ) "#?".
+  iMod (saved_prop_alloc P) as (γ) "#?".
   iMod (sts_alloc (barrier_inv l P) _ N (State Low {[ γ ]}) with "[-]")
     as (γ') "[#? Hγ']"; eauto.
   { iNext. rewrite /barrier_inv /=. iFrame.
@@ -165,8 +165,8 @@ Proof.
   iIntros (?). iDestruct 1 as (γ P Q i) "(#Hsts & Hγ & #HQ & HQR)".
   iMod (sts_openS (barrier_inv l P) _ _ γ with "[Hγ]")
     as ([p I]) "(% & [Hl Hr] & Hclose)"; eauto.
-  iMod (saved_prop_alloc_strong (R1: ∙%CF (iProp Σ)) I) as (i1) "[% #Hi1]".
-  iMod (saved_prop_alloc_strong (R2: ∙%CF (iProp Σ)) (I ∪ {[i1]}))
+  iMod (saved_prop_alloc_strong I) as (i1) "[% #Hi1]".
+  iMod (saved_prop_alloc_strong (I ∪ {[i1]}))
     as (i2) "[Hi2' #Hi2]"; iDestruct "Hi2'" as %Hi2.
   rewrite ->not_elem_of_union, elem_of_singleton in Hi2; destruct Hi2.
   iMod ("Hclose" $! (State p ({[i1; i2]} ∪ I ∖ {[i]}))
