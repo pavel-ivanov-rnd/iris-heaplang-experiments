@@ -9,6 +9,7 @@ This version is known to compile with:
  - Coq 8.6.1 / 8.7.0
  - Ssreflect 1.6.4
  - A development version of [Iris](https://gitlab.mpi-sws.org/FP/iris-coq/)
+ - The coq86-devel branch of [Autosubst](https://github.com/uds-psl/autosubst)
 
 The easiest way to install the correct versions of the dependencies is through
 opam.  Once you got opam set up, just run `make build-dep` to install the right
