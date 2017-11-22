@@ -50,12 +50,12 @@ Definition reqR := prodR fracR (agreeR valC). (* request x should be kept same *
 Definition toks : Type := gname * gname * gname * gname * gname. (* a bunch of tokens to do state transition *)
 Class flatG Σ := FlatG {
   req_G :> inG Σ reqR;
-  sp_G  :> savedAnythingG Σ (▶ (ofe_funCF val idCF))
+  sp_G  :> savedPredG Σ val
 }.
 
 Definition flatΣ : gFunctors :=
   #[ GFunctor (constRF reqR);
-     savedAnythingΣ (▶ (ofe_funCF val idCF)) ].
+     savedPredΣ val ].
 
 Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
 Proof. intros [?%subG_inG [? _]%subG_inv]%subG_inv. split; apply _. Qed.
@@ -70,7 +70,7 @@ Section proof.
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ (P: val → iProp Σ) Q,
        own γx ((1/2)%Qp, to_agree x) ∗ P x ∗ ({{ R ∗ P x }} f x {{ v, R ∗ Q x v }}) ∗
-       saved_anything_own γq (Next $ Q x) ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
+       saved_pred_own γq (Q x) ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition received_s (ts: toks) (x: val) γr :=
     let '(γx, _, _, γ4, _) := ts in
@@ -79,7 +79,7 @@ Section proof.
   Definition finished_s (ts: toks) (x y: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ Q: val → val → iProp Σ,
-       own γx ((1/2)%Qp, to_agree x) ∗ saved_anything_own γq (Next $ Q x) ∗
+       own γx ((1/2)%Qp, to_agree x) ∗ saved_pred_own γq (Q x) ∗
        Q x y ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
   
   Definition p_inv R (γm γr: gname) (ts: toks) (p : loc) :=
@@ -99,7 +99,7 @@ Section proof.
 
   Definition installed_recp (ts: toks) (x: val) (Q: val → iProp Σ) :=
     let '(γx, _, γ3, _, γq) := ts in
-    (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, to_agree x) ∗ saved_anything_own γq (Next Q))%I.
+    (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, to_agree x) ∗ saved_pred_own γq Q)%I.
 
   Lemma install_spec R P Q (f x: val) (γm γr: gname) (s: loc):
     {{{ inv N (srv_bag R γm γr s) ∗ P ∗ ({{ R ∗ P }} f x {{ v, R ∗ Q v }}) }}}
@@ -113,7 +113,7 @@ Section proof.
     iMod (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
     iMod (own_alloc (Excl ())) as (γ4) "Ho4"; first done.
     iMod (own_alloc (1%Qp, to_agree x)) as (γx) "Hx"; first done.
-    iMod (saved_anything_alloc (F:=(▶ (ofe_funCF val idCF))) (Next Q)) as (γq) "#?".
+    iMod (saved_pred_alloc Q) as (γq) "#?".
     iDestruct (own_update with "Hx") as ">[Hx1 Hx2]"; first by apply pair_l_frac_op_1'.
     iModIntro. wp_let. wp_bind (push _ _).
     iMod (inv_alloc N _ (p_inv R γm γr (γx, γ1, γ3, γ4, γq) p)
@@ -181,7 +181,7 @@ Section proof.
   Definition own_γ3 (ts: toks) := let '(_, _, γ3, _, _) := ts in own γ3 (Excl ()).
   Definition finished_recp (ts: toks) (x y: val) :=
     let '(γx, _, _, _, γq) := ts in
-    (∃ Q, own γx ((1 / 2)%Qp, to_agree x) ∗ saved_anything_own γq (Next $ Q x) ∗ Q x y)%I.
+    (∃ Q, own γx ((1 / 2)%Qp, to_agree x) ∗ saved_pred_own γq (Q x) ∗ Q x y)%I.
 
   Lemma loop_iter_doOp_spec R (γm γr: gname) xs:
   ∀ (hd: loc),
@@ -290,13 +290,8 @@ Section proof.
     iNext. iIntros (? ?) "Hs".
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
     destruct (decide (x = a)) as [->|Hneq].
-    - iDestruct (saved_anything_agree with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
-      (* FIXME: 
-      iDestruct (uPred.later_equivI with "Heq") as "Heq".
-      does the wrong thing. *)
-      rewrite uPred.later_equivI.
-      wp_let. iDestruct (uPred.ofe_funC_equivI with "Heq") as "Heq".
-      iSpecialize ("Heq" $! a0). by iRewrite -"Heq" in "HQ'".
+    - iDestruct (saved_pred_agree _ _ _ a0 with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
+      wp_let. by iRewrite -"Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
       rewrite //= in H1.
