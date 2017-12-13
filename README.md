@@ -19,6 +19,6 @@ opam.  You will need the Coq and Iris opam repositories:
 Once you got opam set up, run `make build-dep` to install the right versions
 of the dependencies.
 
-## Building Instructions
+## Building
 
 Run `make` to build the full development.
