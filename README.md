@@ -12,12 +12,13 @@ This version is known to compile with:
  - The coq86-devel branch of [Autosubst](https://github.com/uds-psl/autosubst)
 
 The easiest way to install the correct versions of the dependencies is through
-opam.  Once you got opam set up, just run `make build-dep` to install the right
-versions of the dependencies.  When the dependencies change (e.g., a newer
-version of Iris is needed), just run `make build-dep` again.
+opam.  You will need the Coq and Iris opam repositories:
 
-Alternatively, you can manually determine the required Iris commit by consulting
-the `opam.pins` file.
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam repo add iris-dev https://gitlab.mpi-sws.org/FP/opam-dev.git
+
+Once you got opam set up, run `make build-dep` to install the right versions
+of the dependencies.
 
 ## Building Instructions
 
@@ -25,8 +26,10 @@ Run `make` to build the full development.
 
 ## For Developers: How to update the Iris dependency
 
-- Do the change in Iris, push it.
-- In iris-atomic, change opam.pins to point to the new commit.
-- Run "make build-dep" (in iris-example) to install the new version of Iris.
-- You may have to do "make clean" as Coq will likely complain about .vo file
+* Do the change in Iris, push it.
+* Wait for CI to publish a new Iris version on the opam archive, then run
+  `opam update iris-dev`.
+* In iris-examples, change the `opam` file to depend on the new version.
+* Run `make build-dep` (in iris-examples) to install the new version of Iris.
+  You may have to do `make clean` as Coq will likely complain about .vo file
   mismatches.
