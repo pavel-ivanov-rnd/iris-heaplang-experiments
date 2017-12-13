@@ -7,6 +7,10 @@ Import uPred.
 Section atomic.
   Context `{irisG Λ Σ} {A: Type}.
 
+  (* NOTE: This triple differs from the one described in the Iris 1.0 paper by
+  not having any laters.  That works for this case study, but would not work for
+  the case study described in the paper. *)
+
   (* TODO RJ: IMHO it would make more sense to have the outer mask first, after all, that's what the shifts "starts" with. *)
   (* logically atomic triple: <x, α> e @ E_i, E_o <v, β x v> *)
   Definition atomic_triple
