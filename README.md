@@ -28,9 +28,10 @@ Run `make` to build the full development.
 
 This repository contains the following case studies:
 
-* [barrier](theories/barrier): The implementation and proof of a barrier as
-  described in "Higher-Order Ghost State" <http://doi.acm.org/10.1145/2818638>.
-* [logrel](theories/logrel): the following logical relations from the paper <http://doi.acm.org/10.1145/3093333.3009855>:
+* [barrier](theories/barrier): Implementation and proof of a barrier as
+  described in ["Higher-Order Ghost State"](http://doi.acm.org/10.1145/2818638).
+* [logrel](theories/logrel): Logical relations from the
+  [IPM paper](http://doi.acm.org/10.1145/3093333.3009855):
   - STLC
     * Unary logical relations proving type safety
   - F_mu (System F with recursive types)
