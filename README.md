@@ -31,18 +31,18 @@ This repository contains the following case studies:
 * [barrier](theories/barrier): The implementation and proof of a barrier as
   described in "Higher-Order Ghost State" <http://doi.acm.org/10.1145/2818638>.
 * [logrel](theories/logrel): the following logical relations from the paper <http://doi.acm.org/10.1145/3093333.3009855>:
-  * STLC
-      * Unary logical relations proving type safety
-  * F_mu (System F with recursive types)
-      * Unary logical relations proving type safety
-  * F_mu_ref (System F with recursive types and references)
-      * Unary logical relations proving type safety
-	  * Binary logical relations for proving contextual refinements
-  * F_mu_ref_conc (System F with recursive types, references and concurrency)
-      * Unary logical relations proving type safety
-	  * Binary logical relations for proving contextual refinements
-	      * Proof of refinement for a pair of fine-grained/coarse-grained concurrent counter implementations
-		  * Proof of refinement for a pair of fine-grained/coarse-grained concurrent stack implementations
+  - STLC
+    * Unary logical relations proving type safety
+  - F_mu (System F with recursive types)
+    * Unary logical relations proving type safety
+  - F_mu_ref (System F with recursive types and references)
+    * Unary logical relations proving type safety
+    * Binary logical relations for proving contextual refinements
+  - F_mu_ref_conc (System F with recursive types, references and concurrency)
+    * Unary logical relations proving type safety
+    * Binary logical relations for proving contextual refinements
+      - Proof of refinement for a pair of fine-grained/coarse-grained concurrent counter implementations
+      - Proof of refinement for a pair of fine-grained/coarse-grained concurrent stack implementations
 
 ## For Developers: How to update the Iris dependency
 
