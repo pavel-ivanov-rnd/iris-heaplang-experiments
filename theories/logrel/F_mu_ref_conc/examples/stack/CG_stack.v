@@ -138,8 +138,8 @@ Section CG_Stack.
     intros HNE. iIntros "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_push.
     iMod (steps_with_lock
             _ _ j K _ _ _ _ UnitV _ _ _ with "[Hj Hx Hl]") as "Hj"; last done.
-    - iIntros (K') "[#Hspec [Hx Hj]]".
-      iApply steps_CG_push; first done. iFrame. iSplitR; trivial.
+    - iIntros (K') "[#Hspec Hxj]".
+      iApply steps_CG_push; first done. iFrame. trivial.
     - iFrame "Hspec Hj Hx"; trivial.
       Unshelve. all: trivial.
   Qed.
@@ -272,8 +272,8 @@ Section CG_Stack.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_pop.
     iMod (steps_with_lock _ _ j K _ _ _ _ (InjRV w) UnitV _ _
           with "[Hj Hx Hl]") as "Hj"; last done.
-    - iIntros (K') "[#Hspec [Hx Hj]]".
-      iApply steps_CG_pop_suc; first done. iFrame. by iSplitR.
+    - iIntros (K') "[#Hspec Hxj]".
+      iApply steps_CG_pop_suc; first done. by iFrame.
     - iFrame "Hspec Hj Hx"; trivial.
       Unshelve. all: trivial.
   Qed.
@@ -287,8 +287,8 @@ Section CG_Stack.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_pop.
     iMod (steps_with_lock _ _ j K _ _ _ _ (InjLV UnitV) UnitV _ _
           with "[Hj Hx Hl]") as "Hj"; last done.
-    - iIntros (K') "[#Hspec [Hx Hj]] /=".
-      iApply steps_CG_pop_fail; first done. iFrame. by iSplitR.
+    - iIntros (K') "[#Hspec Hxj] /=".
+      iApply steps_CG_pop_fail; first done. by iFrame.
     - iFrame "Hspec Hj Hx"; trivial.
       Unshelve. all: trivial.
   Qed.

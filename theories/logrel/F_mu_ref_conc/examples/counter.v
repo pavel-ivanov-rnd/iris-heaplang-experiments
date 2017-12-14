@@ -126,8 +126,8 @@ Section CG_Counter.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]".
     iMod (steps_with_lock
             _ _ j K _ _ _ _ UnitV UnitV _ _ with "[Hj Hx Hl]") as "Hj"; last done.
-    - iIntros (K') "[#Hspec [Hx Hj]]".
-      iApply steps_CG_increment; first done. iFrame. iSplitR; trivial.
+    - iIntros (K') "[#Hspec Hxj]".
+      iApply steps_CG_increment; first done. iFrame. trivial.
     - by iFrame "Hspec Hj Hx".
       Unshelve. all: trivial.
   Qed.
