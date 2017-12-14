@@ -24,6 +24,13 @@ of the dependencies.
 
 Run `make` to build the full development.
 
+## Case Studies
+
+This repository contains the following case studies:
+
+* [barrier](theories/barrier): The implementation and proof of a barrier as
+  described in "Higher-Order Ghost State" <http://doi.acm.org/10.1145/2818638>.
+
 ## For Developers: How to update the Iris dependency
 
 * Do the change in Iris, push it.
