@@ -44,6 +44,8 @@ This repository contains the following case studies:
     * Binary logical relations for proving contextual refinements
       - Proof of refinement for a pair of fine-grained/coarse-grained concurrent counter implementations
       - Proof of refinement for a pair of fine-grained/coarse-grained concurrent stack implementations
+* [spanning-tree](theories/spanning_tree): Proof of partial functional
+  correctness of a concurrent spanning tree algorithm.
 
 ## For Developers: How to update the Iris dependency
 
