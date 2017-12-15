@@ -48,6 +48,8 @@ This repository contains the following case studies:
         stack implementations
 * [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
   algorithm.
+* [lecture-notes](theories/lecture_notes): Coq examples for the
+  [Iris lecture notes](http://iris-project.org/tutorial-material.html).
 
 ## For Developers: How to update the Iris dependency
 
