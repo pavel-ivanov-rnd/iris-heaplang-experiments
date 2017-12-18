@@ -9,5 +9,5 @@ build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/iris_atomic"]
 depends: [
-  "coq-iris" { (= "dev.2017-11-29.4") | (= "dev") }
+  "coq-iris" { (= "dev.2017-12-18.1") | (= "dev") }
 ]
