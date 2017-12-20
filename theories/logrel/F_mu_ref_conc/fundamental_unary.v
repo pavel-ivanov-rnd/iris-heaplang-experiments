@@ -78,7 +78,7 @@ Section typed_interp.
     - (* app *)
       smart_wp_bind (AppLCtx (e2.[env_subst vs])) v "#Hv" IHtyped1.
       smart_wp_bind (AppRCtx v) w "#Hw" IHtyped2.
-      iApply wp_mono; [|iApply "Hv"]; auto.
+      by iApply "Hv".
     - (* TLam *)
       iApply wp_value.
       iAlways; iIntros (τi) "%". iApply wp_pure_step_later; auto; iNext.
