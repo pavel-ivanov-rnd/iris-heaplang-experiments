@@ -53,6 +53,8 @@ This repository contains the following case studies:
             concurrent stack implementations
 * [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
   algorithm.
+* [concurrent-stacks](theories/concurrent_stacks): Proof of an implementation of
+  concurrent stacks with helping, as described in the [report](http://iris-project.org/pdfs/2017-case-study-concurrent-stacks-with-helping.pdf).
 * [lecture-notes](theories/lecture_notes): Coq examples for the
   [Iris lecture notes](http://iris-project.org/tutorial-material.html).
 
