@@ -21,13 +21,13 @@ variables:
   only:
   - master
   - /^ci/
+  except:
+  - triggers
 
 build-coq.8.7.1:
   <<: *template
   variables:
     OPAM_PINS: "coq version 8.7.1   coq-mathcomp-ssreflect version 1.6.4"
-  except:
-  - triggers
 
 build-coq.8.6.1:
   <<: *template
@@ -37,12 +37,11 @@ build-coq.8.6.1:
     paths:
     - build-time.txt
     - build-env.txt
-  except:
-  - triggers
 
 build-iris.dev:
   <<: *template
   variables:
     OPAM_PINS: "coq version dev   coq-mathcomp-ssreflect version dev   coq-iris.dev git https://gitlab.mpi-sws.org/FP/iris-coq.git#$IRIS_REV"
+  except:
   only:
   - triggers
