@@ -24,6 +24,8 @@ variables:
   except:
   - triggers
 
+## Build jobs
+
 build-coq.8.7.1:
   <<: *template
   variables:
