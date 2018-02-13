@@ -29,7 +29,7 @@ build-coq.8.7.1:
   variables:
     OPAM_PINS: "coq version 8.7.1   coq-mathcomp-ssreflect version 1.6.4"
   tags:
-  - fp
+  - fp-timing
   artifacts:
     paths:
     - build-time.txt
