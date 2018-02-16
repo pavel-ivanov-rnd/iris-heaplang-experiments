@@ -3,6 +3,8 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 Set Default Proof Using "Type".
 
+(** Stack 3: No helping, view-shift spec. *)
+
 Definition mk_stack : val :=
   λ: "_",
   let: "r" := ref NONEV in
@@ -83,12 +85,16 @@ Section stack_works.
       injection H; intros; subst; auto.
   Qed.
 
+  (* Whole-stack invariant (P). However:
+     - The resources for the successful and failing pop must be disjoint.
+       Instead, there should be a normal conjunction between them.
+     Open question: How does this relate to a logically atomic spec? *)
   Theorem stack_works P Q Q' Q'' Φ :
     (∀ (f₁ f₂ : val) ι,
-        (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) -∗
+        (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) -∗ (* pop *)
             (P [] ={⊤∖↑ι}=∗ Q' ∗ P []) -∗
             WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ Q v') ∨ (v ≡ NONEV ∗ Q')}}))
-         -∗ (∀ (v : val),
+         -∗ (∀ (v : val), (* push *)
                □ ((∀ vs, P vs ={⊤∖↑ι}=∗ P (v :: vs) ∗ Q'') -∗
                   WP f₂ v {{ v, Q'' }}))
          -∗ Φ (f₁, f₂)%V)%I

@@ -7,6 +7,8 @@ From iris.algebra Require Import agree list.
 From iris.heap_lang Require Import assert proofmode notation.
 Set Default Proof Using "Type".
 
+(** Stack 1: No helping, bag spec. *)
+
 Definition mk_stack : val :=
   λ: "_",
   let: "r" := ref NONEV in
@@ -65,6 +67,7 @@ Section stacks.
       iSplitL; try iApply is_stack_unfold; iRight; auto.
   Qed.
 
+  (* Per-element invariant (i.e., bag spec). *)
   Theorem stack_works P Φ :
     (∀ (f₁ f₂ : val),
             (∀ (v : val), □ WP f₁ #() {{ v, P v  ∨ v ≡ #-1 }})

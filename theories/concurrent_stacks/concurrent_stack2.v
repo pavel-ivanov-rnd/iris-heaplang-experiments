@@ -3,6 +3,8 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 Set Default Proof Using "Type".
 
+(** Stack 2: With helping, bag spec. *)
+
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
 Definition revoke_offer : val :=
@@ -262,6 +264,7 @@ Section stack_works.
       iSplitL; try iApply is_stack_unfold; iRight; auto.
   Qed.
 
+  (* Per-element invariant (i.e., bag spec). *)
   Theorem stack_works {channelG0 : channelG Σ} P Φ :
     (∀ (f₁ f₂ : val),
             (□ WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ P v')  ∨ v ≡ NONEV }})

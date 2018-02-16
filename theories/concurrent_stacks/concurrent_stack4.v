@@ -2,6 +2,8 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 
+(** Stack 4: With helping, (weak) view-shift spec. *)
+
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
 Definition revoke_offer : val :=
@@ -139,6 +141,11 @@ Section stack_works.
       injection H; intros; subst; auto.
   Qed.
 
+  (* View-shift based hole-stack invariant (P). However:
+     - The resources for the successful and failing pop must be disjoint.
+       Instead, there should be a normal conjunction between them.
+     - The updating view shifts have the empty mask.
+     Open question: How does this relate to a logically atomic spec? *)
   Theorem stack_works {channelG0 : channelG Σ} P Q Q' Q'' Φ :
     (∀ (f₁ f₂ : val),
         (□((∀ v vs, P (v :: vs) ==∗ Q v ∗ P vs) -∗
