@@ -29,6 +29,7 @@ variables:
   - /^ci/
   except:
   - triggers
+  - schedules
 
 ## Build jobs
 
@@ -55,3 +56,4 @@ build-iris.dev:
   except:
   only:
   - triggers
+  - schedules
