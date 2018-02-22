@@ -2,7 +2,7 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules typing.
 From iris.algebra Require Import list.
-From iris.base_logic Require Import big_op namespaces invariants.
+From iris.base_logic Require Import big_op invariants.
 Import uPred.
 
 Definition logN : namespace := nroot .@ "logN".
