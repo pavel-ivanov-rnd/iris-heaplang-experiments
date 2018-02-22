@@ -55,7 +55,7 @@ done
 # Upgrade cached things.
 echo
 echo "[opam-ci] Upgrading opam"
-opam upgrade -y --fixup
+opam upgrade -y --fixup && opam upgrade -y
 
 # Install build-dependencies.
 echo
@@ -63,5 +63,6 @@ echo "[opam-ci] Installing build-dependencies"
 make build-dep OPAMFLAGS=-y
 
 # done
+set +x
 echo
 coqc -v
