@@ -2,7 +2,7 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 
-(** Stack 4: With helping, (weak) view-shift spec. *)
+(** Stack 3: Helping, view-shift spec. *)
 
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
@@ -67,7 +67,7 @@ Section side_channel.
   Implicit Types l : loc.
 
   Definition stages γ (P : list val → iProp Σ) (Q : iProp Σ) l (v : val):=
-    ((l ↦ #0 ∗ (∀ vs, P vs ==∗ P (v :: vs) ∗ Q))
+    ((l ↦ #0 ∗ (∀ vs, P vs ={⊤ ∖ ↑N}=∗ P (v :: vs) ∗ Q))
      ∨ (l ↦ #1 ∗ Q)
      ∨ (l ↦ #1 ∗ own γ (Excl ()))
      ∨ (l ↦ #2 ∗ own γ (Excl ())))%I.
@@ -79,7 +79,7 @@ Section side_channel.
     (∃ l, ⌜v = #l⌝ ∗ (l ↦ NONEV ∨ (∃ v' γ, l ↦ SOMEV v' ∗ is_offer γ P Q v')))%I.
 End side_channel.
 Section stack_works.
-  Context `{!heapG Σ} (N : namespace).
+  Context `{!heapG Σ}.
 
   Implicit Types l : loc.
 
@@ -141,29 +141,19 @@ Section stack_works.
       injection H; intros; subst; auto.
   Qed.
 
-  (* View-shift based hole-stack invariant (P). However:
-     - The resources for the successful and failing pop must be disjoint.
-       Instead, there should be a normal conjunction between them.
-     - The updating view shifts have the empty mask.
-     Open question: How does this relate to a logically atomic spec? *)
-  Theorem stack_works {channelG0 : channelG Σ} P Q Q' Q'' Φ :
+  (* Whole-stack invariant (P). *)
+  Theorem stack_works {channelG0 : channelG Σ} N P Q Q' Q'' Φ :
     (∀ (f₁ f₂ : val),
-        (□((∀ v vs, P (v :: vs) ==∗ Q v ∗ P vs) -∗
-            (P [] ==∗ Q' ∗ P []) -∗
+        (□(((∀ v vs, P (v :: vs) ={⊤ ∖ ↑ N}=∗ Q v ∗ P vs)
+            ∧ (P [] ={⊤ ∖ ↑ N}=∗ Q' ∗ P []) -∗
             WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ Q v') ∨ (v ≡ NONEV ∗ Q')}}))
-         -∗ (∀ (v : val),
-               □ ((∀ vs, P vs ==∗ P (v :: vs) ∗ Q'') -∗ WP f₂ v {{ v, Q'' }}))
+         ∧ (∀ (v : val),
+               □ ((∀ vs, P vs ={⊤ ∖ ↑ N}=∗ P (v :: vs) ∗ Q'') -∗ WP f₂ v {{ v, Q'' }})))
          -∗ Φ (f₁, f₂)%V)%I
     -∗ P []
     -∗ WP mk_stack #()  {{ Φ }}.
   Proof.
     iIntros "HΦ HP".
-    (* assert (exists n : namespace, hidden_eq n (nroot .@ "N")) as H *)
-    (*     by (exists (nroot .@ "N"); unfold hidden_eq; auto). *)
-    (* destruct H as (N, Neq). *)
-    (* assert (exists n : namespace, hidden_eq n (nroot .@ "N'")) as H *)
-    (*     by (exists (nroot .@ "N'"); unfold hidden_eq; auto). *)
-    (* destruct H as (N', N'eq). *)
     wp_let.
     wp_let.
     wp_alloc m as "Hm".
@@ -179,8 +169,8 @@ Section stack_works.
     iMod (inv_alloc (N .@ "stack_inv") _ (stack_inv P #l) with "[Hl HP]") as "#Istack".
     { iNext; iExists l, (InjLV #()), []; iSplit; iFrame; auto. }
     wp_let.
-    iApply "HΦ".
-    - iIntros "!# Hsucc Hfail".
+    iApply "HΦ"; iSplit.
+    - iIntros "!# Hcont".
       iLöb as "IH".
       wp_rec.
       wp_rec.
@@ -206,7 +196,10 @@ Section stack_works.
         + subst.
           iDestruct (is_stack_empty with "Hstack") as "%".
           subst.
-          iMod ("Hfail" with "HP") as "[HQ' HP]".
+          iDestruct "Hcont" as "[_ Hfail]".
+          iDestruct ("Hfail" with "HP") as "Hfail".
+          iDestruct (fupd_mask_mono with "Hfail") as "Hfail";
+          last iMod "Hfail" as "[HQ' HP]"; first by solve_ndisj.
           iMod ("Hclose" with "[Hl' Hstack HP]").
           { iExists l', (InjLV #()), []; iSplit; iFrame; auto. }
           iModIntro.
@@ -236,7 +229,10 @@ Section stack_works.
              iDestruct "H" as (ys') "%"; subst.
              iDestruct "Hstack" as (t') "[% Hstack]".
              injection H4; intros; subst.
-             iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
+             iDestruct "Hcont" as "[Hsucc _]".
+             iDestruct ("Hsucc" with "HP") as "Hsucc".
+             iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
+               last iMod "Hsucc" as "[HQ HP]"; first by solve_ndisj.
              iMod ("Hclose" with "[Hl'' Hstack HP]").
              { iExists l'', t', ys'; iSplit; iFrame; auto. }
              iModIntro.
@@ -248,7 +244,7 @@ Section stack_works.
              { iExists l'', v', ys; iSplit; iFrame; auto. }
              iModIntro.
              wp_if.
-             iApply ("IH" with "Hsucc Hfail").
+             iApply ("IH" with "Hcont").
       * iDestruct "H" as (v' γ') "[Hm' Hstages]".
         wp_load.
         iDestruct "Hstages" as (v'' l') "[% #Hstages]".
@@ -268,8 +264,15 @@ Section stack_works.
           iInv (N .@ "stack_inv") as "Hstack" "Hclose2".
           wp_cas_suc.
           iDestruct "Hstack" as (l'' v' xs) "[% [Hl'' [Hstack HP]]]".
-          iDestruct ("Hmove" with "HP") as "> [HP HQ'']".
-          iDestruct ("Hsucc" with "HP") as "> [HQ HP]".
+          iDestruct ("Hmove" with "HP") as "Hmove".
+          iDestruct (fupd_mask_mono with "Hmove") as "Hmove";
+            last iMod "Hmove" as "[HP HQ'']".
+          { apply ndisj_subseteq_difference; try solve_ndisj. }
+          iDestruct "Hcont" as "[Hsucc _]".
+          iDestruct ("Hsucc" with "HP") as "Hsucc".
+          iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
+            last (iMod "Hsucc" as "[HQ HP]").
+          { apply ndisj_subseteq_difference; try solve_ndisj. }
           iMod ("Hclose2" with "[Hl'' Hstack HP]").
           { iExists l'', v', xs; iSplit; iFrame; auto. }
           iModIntro.
@@ -301,7 +304,11 @@ Section stack_works.
           ** subst.
              iDestruct (is_stack_empty with "Hstack") as "%".
              subst.
-             iMod ("Hfail" with "HP") as "[HQ' HP]".
+             iDestruct "Hcont" as "[_ Hfail]".
+             iDestruct ("Hfail" with "HP") as "Hfail".
+             iDestruct (fupd_mask_mono with "Hfail") as "Hfail";
+               last iMod "Hfail" as "[HQ' HP]"; first by solve_ndisj.
+
              iMod ("Hclose" with "[Hl' Hstack HP]").
              { iExists l'', (InjLV #()), []; iSplit; iFrame; auto. }
              iModIntro.
@@ -328,7 +335,10 @@ Section stack_works.
                 iDestruct (is_stack_cons with "Hstack") as "[Hstack H]".
                 iDestruct "H" as (ys') "%"; subst.
                 iDestruct "Hstack" as (t') "[% Hstack]"; simplify_eq.
-                iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
+                iDestruct "Hcont" as "[Hsucc _]".
+                iDestruct ("Hsucc" with "HP") as "Hsucc".
+                iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
+                  last iMod "Hsucc" as "[HQ HP]"; first by solve_ndisj.
                 iMod ("Hclose" with "[Hl''' Hstack HP]").
                 { iExists l''', t', ys'; iSplit; iFrame; auto. }
                 iModIntro.
@@ -340,7 +350,7 @@ Section stack_works.
                 { iExists l''', v''', ys; iSplit; iFrame; auto. }
                 iModIntro.
                 wp_if.
-                iApply ("IH" with "Hsucc Hfail").
+                iApply ("IH" with "Hcont").
         + iDestruct "H" as "[Hl' Hγ']".
           wp_cas_fail.
           iMod ("Hclose" with "[Hl' Hγ']").
@@ -357,7 +367,10 @@ Section stack_works.
           ** subst.
              iDestruct (is_stack_empty with "Hstack") as "%".
              subst.
-             iMod ("Hfail" with "HP") as "[HQ' HP]".
+             iDestruct "Hcont" as "[_ Hfail]".
+             iDestruct ("Hfail" with "HP") as "Hfail".
+             iDestruct (fupd_mask_mono with "Hfail") as "Hfail";
+               last iMod "Hfail" as "[HQ HP]"; first by solve_ndisj.
              iMod ("Hclose" with "[Hl' Hstack HP]").
              { iExists l'', (InjLV #()), []; iSplit; iFrame; auto. }
              iModIntro.
@@ -384,7 +397,10 @@ Section stack_works.
                 iDestruct (is_stack_cons with "Hstack") as "[Hstack H]".
                 iDestruct "H" as (ys') "%"; subst.
                 iDestruct "Hstack" as (t') "[% Hstack]"; simplify_eq.
-                iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
+                iDestruct "Hcont" as "[Hsucc _]".
+                iDestruct ("Hsucc" with "HP") as "Hsucc".
+                iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
+                  last iMod "Hsucc" as "[HQ HP]"; first by solve_ndisj.
                 iMod ("Hclose" with "[Hl''' Hstack HP]").
                 { iExists l''', t', ys'; iSplit; iFrame; auto. }
                 iModIntro.
@@ -396,7 +412,7 @@ Section stack_works.
                 { iExists l''', v''', ys; iSplit; iFrame; auto. }
                 iModIntro.
                 wp_if.
-                iApply ("IH" with "Hsucc Hfail").
+                iApply ("IH" with "Hcont").
 
         + iDestruct "H" as "[Hl' Hγ']".
           wp_cas_fail.
@@ -414,7 +430,10 @@ Section stack_works.
           ** subst.
              iDestruct (is_stack_empty with "Hstack") as "%".
              subst.
-             iMod ("Hfail" with "HP") as "[HQ' HP]".
+             iDestruct "Hcont" as "[_ Hfail]".
+             iDestruct ("Hfail" with "HP") as "Hfail".
+             iDestruct (fupd_mask_mono with "Hfail") as "Hfail";
+               last iMod "Hfail" as "[HQ HP]"; first by solve_ndisj.
              iMod ("Hclose" with "[Hl' Hstack HP]").
              { iExists l'', (InjLV #()), []; iSplit; iFrame; auto. }
              iModIntro.
@@ -441,7 +460,10 @@ Section stack_works.
                 iDestruct (is_stack_cons with "Hstack") as "[Hstack H]".
                 iDestruct "H" as (ys') "%"; subst.
                 iDestruct "Hstack" as (t') "[% Hstack]"; simplify_eq.
-                iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
+                iDestruct "Hcont" as "[Hsucc _]".
+                iDestruct ("Hsucc" with "HP") as "Hsucc".
+                iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
+                  last iMod "Hsucc" as "[HQ HP]"; first by solve_ndisj.
                 iMod ("Hclose" with "[Hl''' Hstack HP]").
                 { iExists l''', t', ys'; iSplit; iFrame; auto. }
                 iModIntro.
@@ -453,7 +475,7 @@ Section stack_works.
                 { iExists l''', v''', ys; iSplit; iFrame; auto. }
                 iModIntro.
                 wp_if.
-                iApply ("IH" with "Hsucc Hfail").
+                iApply ("IH" with "Hcont").
     - iIntros (v) "!# Hpush".
       iLöb as "IH".
       wp_rec.
@@ -465,7 +487,7 @@ Section stack_works.
       iInv (N .@ "mailbox_inv") as "Hmail" "Hclose".
       iDestruct "Hmail" as (m') "[>% Hmail]"; simplify_eq.
       iMod (own_alloc (Excl ())) as (γ) "Hγ". done.
-      iMod (inv_alloc (N .@ "offer_inv") _ (stages γ P Q'' s v) with "[Hs Hpush]") as "#Istages".
+      iMod (inv_alloc (N .@ "offer_inv") _ (stages N γ P Q'' s v) with "[Hs Hpush]") as "#Istages".
       { iLeft; iFrame; auto. }
       iDestruct "Hmail" as "[H | H]".
       * wp_store.
@@ -502,7 +524,9 @@ Section stack_works.
           iDestruct "Hstack" as (l'' v'' xs) "[>% [Hl'' [Hstack HP]]]"; simplify_eq.
           destruct (decide (v' = v''%V)).
           ++ wp_cas_suc.
-             iDestruct ("Hpush" with "[HP]") as "> [HP HQ]"; auto.
+             iDestruct ("Hpush" with "HP") as "Hpush".
+             iDestruct (fupd_mask_mono with "Hpush") as "Hpush";
+               last iMod "Hpush" as "[HP HQ]"; first by solve_ndisj.
              iMod ("Hclose" with "[Hl'' Hstack HP]").
              { iExists l'', (InjRV (v, v')), (v :: xs); iSplit; iFrame; auto.
                iExists v'; iSplit; subst; auto. }
@@ -564,7 +588,9 @@ Section stack_works.
         iDestruct "Hstack" as (l'' v''' xs) "[>% [Hl'' [Hstack HP]]]"; simplify_eq.
         destruct (decide (v'' = v'''%V)).
         ++ wp_cas_suc.
-           iDestruct ("Hpush" with "[HP]") as "> [HP HQ]"; auto.
+           iDestruct ("Hpush" with "HP") as "Hpush".
+           iDestruct (fupd_mask_mono with "Hpush") as "Hpush";
+             last iMod "Hpush" as "[HP HQ]"; first by solve_ndisj.
            iMod ("Hclose" with "[Hl'' Hstack HP]").
            { iExists l'', (InjRV (v, v'')), (v :: xs); iSplit; iFrame; auto.
              iExists v''; iSplit; subst; auto. }
