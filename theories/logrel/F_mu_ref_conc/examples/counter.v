@@ -366,6 +366,6 @@ Theorem counter_ctx_refinement :
 Proof.
   set (Σ := #[invΣ ; gen_heapΣ loc val ; GFunctor (authR cfgUR) ]).
   set (HG := soundness_unary.HeapPreIG Σ _ _).
-  eapply (binary_soundness Σ _); auto.
+  eapply (binary_soundness Σ _); auto using FG_counter_type, CG_counter_type.
   intros. apply FG_CG_counter_refinement.
 Qed.

@@ -356,8 +356,8 @@ Section fundamental.
     iApply wp_atomic; eauto.
     iInv (logN .@ (l,l')) as ([v v']) "[Hv1 [>Hv2 #Hv]]" "Hclose".
     iModIntro.
-    iApply (wp_store with "Hv1"); auto using to_of_val. 
-    iNext. iIntros "Hw2". 
+    iApply (wp_store with "Hv1"); auto using to_of_val.
+    iNext. iIntros "Hw2".
     iMod (step_store with "[$Hs Hw Hv2]") as "[Hw Hv2]"; eauto;
     [solve_ndisj | by iFrame|].
     iMod ("Hclose" with "[Hw2 Hv2]").
@@ -381,30 +381,31 @@ Section fundamental.
       ('`IHHtyped3 _ _ _  j ((CasRCtx _ _) :: K)).
     iDestruct "Hiv" as ([l l']) "[% Hinv]"; simplify_eq/=.
     iApply wp_atomic; eauto.
-    iInv (logN .@ (l,l')) as ([v v']) "[Hv1 [>Hv2 #Hv]]" "Hclose".
+    iMod (interp_ref_open' _ _ l l' with "[]") as
+        (v v') "(>Hl & >Hl' & #Hiv & Heq & Hcl)"; eauto.
+    { iExists (_, _); eauto. }
     iModIntro.
-    iPoseProof ("Hv") as "Hv'".
-    rewrite {2}[⟦ τ ⟧ Δ (v, v')]interp_EqType_agree; trivial.
-    iMod "Hv'" as %Hv'; subst.
-    destruct (decide (v' = w)) as [|Hneq]; subst.
-    - iAssert (▷ ⌜w' = w⌝)%I as ">%".
-      { rewrite ?interp_EqType_agree; trivial. by iSimplifyEq. }
-      simpl. iApply (wp_cas_suc with "Hv1"); eauto using to_of_val.
-      iNext. iIntros "Hv1".
+    destruct (decide (v = w)) as [|Hneq]; subst.
+    - iApply (wp_cas_suc with "Hl"); eauto using to_of_val; eauto.
+      iNext. iIntros "Hl".
+      iMod ("Heq" with "Hl Hl' Hiv Hiw") as "(Hl & Hl' & Heq)".
+      iDestruct "Heq" as %[-> _]; last trivial.
       iMod (step_cas_suc
-            with "[Hu Hv2]") as "[Hw Hv2]"; simpl; eauto; first solve_ndisj.
-      iFrame. iFrame "Hs".
-      iMod ("Hclose" with "[Hv1 Hv2]").
+            with "[Hu Hl']") as "[Hw Hl']"; simpl; eauto; first solve_ndisj.
+      { iFrame. iFrame "Hs". }
+      iMod ("Hcl" with "[Hl Hl']").
       { iNext; iExists (_, _); by iFrame. }
       iExists (#♭v true); iFrame; eauto.
-    - iAssert (▷ ⌜v' ≠ w'⌝)%I as ">%".
-      { rewrite ?interp_EqType_agree; trivial. iSimplifyEq. auto. }
-      simpl. iApply (wp_cas_fail with "Hv1"); eauto.
-      iNext. iIntros "Hv1". 
+    - iApply (wp_cas_fail with "Hl"); eauto using to_of_val; eauto.
+      iNext. iIntros "Hl".
+      iMod ("Heq" with "Hl Hl' Hiv Hiw") as "(Hl & Hl' & Heq)".
+      iDestruct "Heq" as %[_ Heq].
+      assert (v' ≠ w').
+      { by intros ?; apply Hneq; rewrite Heq. }
       iMod (step_cas_fail
-            with "[$Hs Hu Hv2]") as "[Hw Hv2]"; simpl; eauto; first solve_ndisj.
+            with "[$Hs Hu Hl']") as "[Hw Hl']"; simpl; eauto; first solve_ndisj.
       iFrame.
-      iMod ("Hclose" with "[Hv1 Hv2]").
+      iMod ("Hcl" with "[Hl Hl']").
       { iNext; iExists (_, _); by iFrame. }
       iExists (#♭v false); eauto.
   Qed.

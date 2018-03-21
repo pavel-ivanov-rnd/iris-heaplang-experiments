@@ -45,11 +45,12 @@ Qed.
 
 Lemma binary_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}
     Γ e e' τ :
-  (∀ f, e.[upn (length Γ) f] = e) →
-  (∀ f, e'.[upn (length Γ) f] = e') →
+  (Γ ⊢ₜ e : τ) → (Γ ⊢ₜ e' : τ) →
   (∀ `{heapIG Σ, cfgSG Σ}, Γ ⊨ e ≤log≤ e' : τ) →
   Γ ⊨ e ≤ctx≤ e' : τ.
 Proof.
-  intros He He' Hlog K thp σ v ?. eapply (basic_soundness Σ _)=> ??.
-  eapply (bin_log_related_under_typed_ctx _ _ _ _ []); eauto.
+  intros He He' Hlog; repeat split; auto.
+  intros K thp σ v ?. eapply (basic_soundness Σ _)=> ??.
+  eapply (bin_log_related_under_typed_ctx _ _ _ _ []);
+    eauto using typed_n_closed.
 Qed.
