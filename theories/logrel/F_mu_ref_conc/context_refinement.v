@@ -187,7 +187,9 @@ Proof.
 Qed.
 
 Definition ctx_refines (Γ : list type)
-    (e e' : expr) (τ : type) := ∀ K thp σ v,
+    (e e' : expr) (τ : type) :=
+  typed Γ e τ ∧ typed Γ e' τ ∧
+  ∀ K thp σ v,
   typed_ctx K Γ τ [] TUnit →
   rtc step ([fill_ctx K e], ∅) (of_val v :: thp, σ) →
   ∃ thp' σ' v', rtc step ([fill_ctx K e'], ∅) (of_val v' :: thp', σ').

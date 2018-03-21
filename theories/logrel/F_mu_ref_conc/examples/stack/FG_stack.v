@@ -3,11 +3,14 @@ From iris_examples.logrel.F_mu_ref_conc Require Import  typing.
 Definition FG_StackType τ :=
   TRec (Tref (TSum TUnit (TProd τ.[ren (+1)] (TVar 0)))).
 
+Definition FG_Stack_Ref_Type τ :=
+  Tref (TSum TUnit (TProd τ (FG_StackType τ))).
+
 Definition FG_push (st : expr) : expr :=
   Rec (App (Rec
               (* try push *)
               (If (CAS (st.[ren (+4)]) (Var 1)
-                       (Fold (Alloc (InjR (Pair (Var 3) (Var 1)))))
+                       (Alloc (InjR (Pair (Var 3) (Fold (Var 1)))))
                   )
                   Unit (* push succeeds we return unit *)
                   (App (Var 2) (Var 3)) (* push fails, we try again *)
@@ -19,7 +22,7 @@ Definition FG_pushV (st : expr) : val :=
   RecV (App (Rec
               (* try push *)
               (If (CAS (st.[ren (+4)]) (Var 1)
-                       (Fold (Alloc (InjR (Pair (Var 3) (Var 1)))))
+                       (Alloc (InjR (Pair (Var 3) (Fold (Var 1)))))
                   )
                   Unit (* push succeeds we return unit *)
                   (App (Var 2) (Var 3)) (* push fails, we try again *)
@@ -39,8 +42,8 @@ Definition FG_pop (st : expr) : expr :=
                              If
                                (CAS
                                   (st.[ren (+7)])
-                                  (Fold (Var 4))
-                                  (Snd (Var 0))
+                                  (Var 4)
+                                  (Unfold (Snd (Var 0)))
                                )
                                (InjR (Fst (Var 0))) (* pop succeeds *)
                                (App (Var 5) (Var 6)) (* pop fails, we retry*)
@@ -52,7 +55,7 @@ Definition FG_pop (st : expr) : expr :=
                  )
               )
            )
-           (Unfold (Load st.[ren (+ 2)]))
+           (Load st.[ren (+ 2)])
       ).
 Definition FG_popV (st : expr) : val :=
   RecV
@@ -67,8 +70,8 @@ Definition FG_popV (st : expr) : val :=
                           If
                             (CAS
                                (st.[ren (+7)])
-                               (Fold (Var 4))
-                               (Snd (Var 0))
+                               (Var 4)
+                               (Unfold (Snd (Var 0)))
                             )
                             (InjR (Fst (Var 0))) (* pop succeeds *)
                             (App (Var 5) (Var 6)) (* pop fails, we retry*)
@@ -80,7 +83,7 @@ Definition FG_popV (st : expr) : val :=
               )
           )
        )
-       (Unfold (Load st.[ren (+ 2)]))
+       (Load st.[ren (+ 2)])
     ).
 
 Definition FG_iter (f : expr) : expr :=
@@ -100,14 +103,14 @@ Definition FG_iterV (f : expr) : val :=
           )
     ).
 Definition FG_read_iter (st : expr) : expr :=
-  Rec (App (FG_iter (Var 1)) (Load st.[ren (+2)])).
+  Rec (App (FG_iter (Var 1)) (Fold (Load st.[ren (+2)]))).
 
 Definition FG_stack_body (st : expr) : expr :=
   Pair (Pair (FG_push st) (FG_pop st)) (FG_read_iter st).
 
 Definition FG_stack : expr :=
   TLam (App (Rec (FG_stack_body (Var 1)))
-                (Alloc (Fold (Alloc (InjL Unit))))).
+                (Alloc (Alloc (InjL Unit)))).
 
 Section FG_stack.
   (* Fine-grained push *)
@@ -116,7 +119,7 @@ Section FG_stack.
     Rec (App (Rec
                 (* try push *)
                 (If (CAS (st.[ren (+4)]) (Var 1)
-                         (Fold (Alloc (InjR (Pair (Var 3) (Var 1)))))
+                         (Alloc (InjR (Pair (Var 3) (Fold (Var 1)))))
                     )
                     Unit (* push succeeds we return unit *)
                     (App (Var 2) (Var 3)) (* push fails, we try again *)
@@ -127,20 +130,19 @@ Section FG_stack.
   Proof. trivial. Qed.
 
   Section FG_push_type.
-    (* The following assumption is simply ** WRONG ** *)
-    (* We assume it though to just be able to prove that the
-       stack we are implementing is /type-sane/ so to speak! *)
-    Context (HEQTP : ∀ τ, EqType (FG_StackType τ)).
-
     Lemma FG_push_type st Γ τ :
-      typed Γ st (Tref (FG_StackType τ)) →
+      typed Γ st (Tref (FG_Stack_Ref_Type τ)) →
       typed Γ (FG_push st) (TArrow τ TUnit).
     Proof.
-      intros H1. repeat (econstructor; eauto using HEQTP).
+      intros HTst.
+      repeat match goal with
+               |- typed _ _ _ => econstructor; eauto
+             end; repeat econstructor; eauto.
       - eapply (context_weakening [_; _; _; _]); eauto.
       - by asimpl.
-      - eapply (context_weakening [_; _]); eauto.
+      -  eapply (context_weakening [_; _]); eauto.
     Qed.
+
   End FG_push_type.
 
   Lemma FG_push_to_val st : to_val (FG_push st) = Some (FG_pushV st).
@@ -173,8 +175,8 @@ Section FG_stack.
                                 If
                                   (CAS
                                      (st.[ren (+7)])
-                                     (Fold (Var 4))
-                                     (Snd (Var 0))
+                                     (Var 4)
+                                     (Unfold (Snd (Var 0)))
                                   )
                                   (InjR (Fst (Var 0))) (* pop succeeds *)
                                   (App (Var 5) (Var 6)) (* pop fails, we retry*)
@@ -186,24 +188,28 @@ Section FG_stack.
                     )
                 )
              )
-             (Unfold (Load st.[ren (+ 2)]))
+             (Load st.[ren (+ 2)])
         ).
   Proof. trivial. Qed.
 
   Section FG_pop_type.
-    (* The following assumption is simply ** WRONG ** *)
-    (* We assume it though to just be able to prove that the
-       stack we are implementing is /type-sane/ so to speak! *)
-    Context (HEQTP : ∀ τ, EqType (FG_StackType τ)).
 
     Lemma FG_pop_type st Γ τ :
-      typed Γ st (Tref (FG_StackType τ)) →
+      typed Γ st (Tref (FG_Stack_Ref_Type τ)) →
       typed Γ (FG_pop st) (TArrow TUnit (TSum TUnit τ)).
     Proof.
-      intros H1. repeat (econstructor; eauto using HEQTP).
-      - eapply (context_weakening [_; _; _; _; _; _; _]); eauto.
-      - asimpl; trivial.
+      replace (FG_Stack_Ref_Type τ) with
+          (Tref (TSum TUnit (TProd τ.[ren (+1)] (TVar 0)))).[FG_StackType τ/];
+        last first.
+      { by asimpl. }
+      intros HTst.
+      repeat match goal with
+               |- typed _ _ _ => econstructor; eauto
+             end; repeat econstructor; eauto; last first.
       - eapply (context_weakening [_; _]); eauto.
+      - by asimpl.
+      - eapply (context_weakening [_; _; _; _; _; _; _]); eauto.
+      - econstructor.
     Qed.
   End FG_pop_type.
 
@@ -270,13 +276,13 @@ Section FG_stack.
   Global Opaque FG_iter.
 
   Lemma FG_read_iter_type st Γ τ :
-    typed Γ st (Tref (FG_StackType τ)) →
+    typed Γ st (Tref (FG_Stack_Ref_Type τ)) →
     typed Γ (FG_read_iter st)
           (TArrow (TArrow τ TUnit) TUnit).
   Proof.
     intros H1; repeat econstructor.
     - eapply FG_iter_type; by constructor.
-    - by eapply (context_weakening [_;_]).
+    - by eapply (context_weakening [_;_]); asimpl.
   Qed.
 
   Transparent FG_iter.
@@ -296,13 +302,9 @@ Section FG_stack.
   Global Opaque FG_iter.
 
   Section FG_stack_body_type.
-    (* The following assumption is simply ** WRONG ** *)
-    (* We assume it though to just be able to prove that the
-       stack we are implementing is /type-sane/ so to speak! *)
-    Context (HEQTP : ∀ τ, EqType (FG_StackType τ)).
 
     Lemma FG_stack_body_type st Γ τ :
-      typed Γ st (Tref (FG_StackType τ)) →
+      typed Γ st (Tref (FG_Stack_Ref_Type τ)) →
       typed Γ (FG_stack_body st)
             (TProd
                (TProd (TArrow τ TUnit) (TArrow TUnit (TSum TUnit τ)))
@@ -328,10 +330,6 @@ Section FG_stack.
   Qed.
 
   Section FG_stack_type.
-    (* The following assumption is simply ** WRONG ** *)
-    (* We assume it though to just be able to prove that the
-       stack we are implementing is /type-sane/ so to speak! *)
-    Context (HEQTP : ∀ τ, EqType (FG_StackType τ)).
 
     Lemma FG_stack_type Γ :
       typed Γ FG_stack
@@ -348,7 +346,6 @@ Section FG_stack.
       - eapply FG_push_type; try constructor; simpl; eauto.
       - eapply FG_pop_type; try constructor; simpl; eauto.
       - eapply FG_read_iter_type; constructor; by simpl.
-      - asimpl. repeat constructor.
     Qed.
   End FG_stack_type.
 

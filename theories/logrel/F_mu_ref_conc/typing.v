@@ -27,8 +27,7 @@ Inductive EqType : type → Prop :=
   | EqTUnit : EqType TUnit
   | EqTNat : EqType TNat
   | EqTBool : EqType TBool
-  | EqTProd τ τ' : EqType τ → EqType τ' → EqType (TProd τ τ')
-  | EqSum τ τ' : EqType τ → EqType τ' → EqType (TSum τ τ').
+  | EQRef τ : EqType (Tref τ).
 
 Reserved Notation "Γ ⊢ₜ e : τ" (at level 74, e, τ at next level).
 
