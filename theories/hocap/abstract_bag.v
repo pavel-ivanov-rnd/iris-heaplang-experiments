@@ -31,15 +31,15 @@ Structure bag Σ `{!heapG Σ} := Bag {
     {{{ True }}} newBag #() {{{ x γ, RET x; is_bag N γ x ∗ bag_contents γ ∅ }}};
   pushBag_spec N P Q γ b v :
     □ (∀ (X : gmultiset val), bag_contents γ X ∗ P
-                     ={⊤}=∗ ▷ (bag_contents γ ({[v]} ∪ X) ∗ Q)) -∗
+                     ={⊤∖↑N}=∗ ▷ (bag_contents γ ({[v]} ∪ X) ∗ Q)) -∗
     {{{ is_bag N γ b ∗ P }}}
       pushBag b (of_val v)
     {{{ RET #(); Q }}};
   popBag_spec N P Q γ b :
     □ (∀ (X : gmultiset val) (y : val),
                bag_contents γ ({[y]} ∪ X) ∗ P
-               ={⊤}=∗ ▷ (bag_contents γ X ∗ Q (SOMEV y))) -∗
-    □ (bag_contents γ ∅ ∗ P ={⊤}=∗ ▷ (bag_contents γ ∅ ∗ Q NONEV)) -∗
+               ={⊤∖↑N}=∗ ▷ (bag_contents γ X ∗ Q (SOMEV y))) -∗
+    □ (bag_contents γ ∅ ∗ P ={⊤∖↑N}=∗ ▷ (bag_contents γ ∅ ∗ Q NONEV)) -∗
     {{{ is_bag N γ b ∗ P }}}
       popBag b
     {{{ v, RET v; Q v }}};
