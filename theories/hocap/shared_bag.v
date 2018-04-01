@@ -1,0 +1,80 @@
+(** Concurrent bag specification from the HOCAP paper.
+    "Modular Reasoning about Separation of Concurrent Data Structures"
+    <http://www.kasv.dk/articles/hocap-ext.pdf>
+
+Deriving the concurrent specification from the abstract one
+*)
+From iris.program_logic Require Export weakestpre.
+From iris.heap_lang Require Export lang.
+From iris.proofmode Require Import tactics.
+From iris.heap_lang Require Import proofmode notation.
+From iris_examples.hocap Require Import abstract_bag.
+Set Default Proof Using "Type".
+
+Section proof.
+  Context `{heapG Σ}.
+  Variable b : bag Σ.
+  Variable N : namespace.
+  Variable N2 : namespace.
+  Variable P : val → iProp Σ. (* Predicate that will be satisfied by all the elements in the bag *)
+
+  Definition bagS_inv (γ : name Σ b) : iProp Σ :=
+    inv N2 (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P x)%I.
+  Definition bagS (γ : name Σ b) (x : val) : iProp Σ :=
+    (is_bag b N γ x ∗ bagS_inv γ)%I.
+
+  Global Instance bagS_persistent γ x : Persistent (bagS γ x).
+  Proof. apply _. Qed.
+
+  Lemma newBag_spec :
+    {{{ True }}}
+      newBag b #()
+    {{{ x, RET x; ∃ γ, bagS γ x }}}.
+  Proof.
+    iIntros (Φ) "_ HΦ". iApply wp_fupd.
+    iApply (newBag_spec b N); eauto.
+    iNext. iIntros (v γ) "[#Hbag Hcntn]".
+    iMod (inv_alloc N2 _ (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P x)%I with "[Hcntn]") as "#Hinv".
+    { iNext. iExists _. iFrame. by rewrite big_sepMS_empty. }
+    iApply "HΦ". iModIntro. iExists _; by iFrame "Hinv".
+  Qed.
+
+  Lemma pushBag_spec γ x v :
+    {{{ bagS γ x ∗ P v }}}
+       pushBag b x (of_val v)
+    {{{ RET #(); bagS γ x }}}.
+  Proof.
+    iIntros (Φ) "[#[Hbag Hinv] HP] HΦ". rewrite /bagS_inv.
+    iApply (pushBag_spec b N (P v)%I (True)%I with "[] [Hbag HP]"); eauto.
+    { iAlways. iIntros (Y) "[Hb1 HP]".
+      iInv N2 as (X) "[>Hb2 HPs]" "Hcl".
+      iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
+      iMod (bag_contents_update b ({[v]} ∪ Y) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
+      iFrame. iApply "Hcl".
+      iNext. iExists _; iFrame.
+      rewrite big_sepMS_union big_sepMS_singleton. iFrame. }
+    { iNext. iIntros "_". iApply "HΦ". by iFrame "Hinv". }
+  Qed.
+
+  Lemma popBag_spec γ x :
+    {{{ bagS γ x }}}
+       popBag b x
+    {{{ v, RET v; bagS γ x ∗ (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P y)) }}}.
+  Proof.
+    iIntros (Φ) "[#Hbag #Hinv] HΦ".
+    iApply (popBag_spec b N (True)%I (fun v => (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P y)))%I with "[] [] [Hbag]"); eauto.
+    { iAlways. iIntros (Y y) "[Hb1 _]".
+      iInv N2 as (X) "[>Hb2 HPs]" "Hcl".
+      iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
+      iMod (bag_contents_update b Y with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
+      rewrite big_sepMS_union uPred.later_sep big_sepMS_singleton.
+      iDestruct "HPs" as "[HP HPs]".
+      iMod ("Hcl" with "[-HP Hb1]") as "_".
+      { iNext. iExists _; iFrame. }
+      iModIntro. iNext. iFrame. iRight; eauto. }
+    { iAlways. iIntros "[Hb1 _]".
+      iModIntro. iNext. iFrame. iLeft; eauto. }
+    { iNext. iIntros (v) "H". iApply "HΦ". iFrame "Hinv Hbag H". }
+  Qed.
+
+End proof.
