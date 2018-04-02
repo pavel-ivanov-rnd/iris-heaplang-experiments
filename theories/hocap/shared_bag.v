@@ -17,12 +17,12 @@ Section proof.
   Variable N : namespace.
   Definition NB := N.@"bag".
   Definition NI := N.@"inv".
-  Variable P : val → iProp Σ. (* Predicate that will be satisfied by all the elements in the bag *)
+  Variable P : val → val → iProp Σ. (* Predicate that will be satisfied by all the elements in the bag *)
 
-  Definition bagS_inv (γ : name Σ b) : iProp Σ :=
-    inv NI (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P x)%I.
+  Definition bagS_inv (γ : name Σ b) (y : val) : iProp Σ :=
+    inv NI (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P y x)%I.
   Definition bagS (γ : name Σ b) (x : val) : iProp Σ :=
-    (is_bag b NB γ x ∗ bagS_inv γ)%I.
+    (is_bag b NB γ x ∗ bagS_inv γ x)%I.
 
   Global Instance bagS_persistent γ x : Persistent (bagS γ x).
   Proof. apply _. Qed.
@@ -35,18 +35,18 @@ Section proof.
     iIntros (Φ) "_ HΦ". iApply wp_fupd.
     iApply (newBag_spec b NB); eauto.
     iNext. iIntros (v γ) "[#Hbag Hcntn]".
-    iMod (inv_alloc NI _ (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P x)%I with "[Hcntn]") as "#Hinv".
+    iMod (inv_alloc NI _ (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P v x)%I with "[Hcntn]") as "#Hinv".
     { iNext. iExists _. iFrame. by rewrite big_sepMS_empty. }
     iApply "HΦ". iModIntro. iExists _; by iFrame "Hinv".
   Qed.
 
   Lemma pushBag_spec γ x v :
-    {{{ bagS γ x ∗ P v }}}
+    {{{ bagS γ x ∗ P x v }}}
        pushBag b x (of_val v)
     {{{ RET #(); bagS γ x }}}.
   Proof.
     iIntros (Φ) "[#[Hbag Hinv] HP] HΦ". rewrite /bagS_inv.
-    iApply (pushBag_spec b NB (P v)%I (True)%I with "[] [Hbag HP]"); eauto.
+    iApply (pushBag_spec b NB (P x v)%I (True)%I with "[] [Hbag HP]"); eauto.
     { iAlways. iIntros (Y) "[Hb1 HP]".
       iInv NI as (X) "[>Hb2 HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
@@ -60,10 +60,10 @@ Section proof.
   Lemma popBag_spec γ x :
     {{{ bagS γ x }}}
        popBag b x
-    {{{ v, RET v; bagS γ x ∗ (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P y)) }}}.
+    {{{ v, RET v; bagS γ x ∗ (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P x y)) }}}.
   Proof.
     iIntros (Φ) "[#Hbag #Hinv] HΦ".
-    iApply (popBag_spec b NB (True)%I (fun v => (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P y)))%I with "[] [] [Hbag]"); eauto.
+    iApply (popBag_spec b NB (True)%I (fun v => (⌜v = NONEV⌝ ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ P x y)))%I with "[] [] [Hbag]"); eauto.
     { iAlways. iIntros (Y y) "[Hb1 _]".
       iInv NI as (X) "[>Hb2 HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
