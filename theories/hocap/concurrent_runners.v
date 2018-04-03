@@ -32,8 +32,7 @@ Qed.
 Global Instance SET_RES_fractional `{saG Σ} γ v : Fractional (fun q => SET_RES γ q v)%I.
 Proof.
   intros p q. rewrite /SET_RES.
-  rewrite -own_op Cinr_op Cinl_op pair_op. repeat f_equiv.
-  intros n. split; intros a Ha; exists a; set_solver.
+  rewrite -own_op Cinr_op Cinl_op pair_op agree_idemp. f_equiv.
 Qed.
 Global Instance SET_RES_as_fractional `{saG Σ} γ q v:
   AsFractional (SET_RES γ q v) (fun q => SET_RES γ q v)%I q.

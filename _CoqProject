@@ -76,3 +76,4 @@ theories/hocap/fg_bag.v
 theories/hocap/exclusive_bag.v
 theories/hocap/shared_bag.v
 theories/hocap/concurrent_runners.v
+theories/hocap/parfib.v
