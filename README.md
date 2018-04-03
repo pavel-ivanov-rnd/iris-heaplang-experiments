@@ -56,6 +56,7 @@ This repository contains the following case studies:
   concurrent stacks with helping, as described in the [report](http://iris-project.org/pdfs/2017-case-study-concurrent-stacks-with-helping.pdf).
 * [lecture-notes](theories/lecture_notes): Coq examples for the
   [Iris lecture notes](http://iris-project.org/tutorial-material.html).
+* [hocap](theories/hocap): Formalisations of the concurrent bag and concurrent runners libraries from the [HOCAP paper](https://dl.acm.org/citation.cfm?id=2450283)
 
 ## For Developers: How to update the Iris dependency
 
