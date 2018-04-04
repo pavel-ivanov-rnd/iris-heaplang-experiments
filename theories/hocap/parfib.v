@@ -78,7 +78,7 @@ Section contents.
   Definition P (v: val) : iProp Σ := (∃ n: nat, ⌜v = #n⌝)%I.
   Definition Q (a v: val) : iProp Σ := (∃ n: nat, ⌜a = #n⌝ ∧ ⌜v = #(fib n)⌝)%I.
   Lemma parFib_spec r γb a :
-    {{{ isRunner b N γb P Q r ∗ P a }}}
+    {{{ runner b N γb P Q r ∗ P a }}}
       parFib r a
     {{{ v, RET v; Q a v }}}.
   Proof.

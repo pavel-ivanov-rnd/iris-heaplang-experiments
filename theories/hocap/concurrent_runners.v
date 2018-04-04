@@ -188,34 +188,34 @@ Section contents.
 
   Ltac solve_proper ::= solve_proper_core ltac:(fun _ => simpl; auto_equiv).
 
-  Program Definition isRunner1 (γ : name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
+  Program Definition pre_runner (γ : name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
     (valC -n> iProp Σ) -n> (valC -n> iProp Σ) := λne R r,
     (∃ (body bag : val), ⌜r = (body, bag)%V⌝
      ∗ bagS b (N.@"bag") (λ x y, ∃ γ γ', isTask (body,x) γ γ' y P Q) γ bag
      ∗ ▷ ∀ r a: val, □ (R r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
   Solve Obligations with solve_proper.
 
-  Global Instance isRunner1_contractive (γ : name Σ b) P Q :
-    Contractive (isRunner1 γ P Q).
-  Proof. unfold isRunner1. solve_contractive. Qed.
+  Global Instance pre_runner_contractive (γ : name Σ b) P Q :
+    Contractive (pre_runner γ P Q).
+  Proof. unfold pre_runner. solve_contractive. Qed.
 
-  Definition isRunner (γ: name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
+  Definition runner (γ: name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
     valC -n> iProp Σ :=
-    (fixpoint (isRunner1 γ P Q))%I.
+    (fixpoint (pre_runner γ P Q))%I.
 
-  Lemma isRunner_unfold γ r P Q :
-    isRunner γ P Q r ≡
+  Lemma runner_unfold γ r P Q :
+    runner γ P Q r ≡
       (∃ (body bag : val), ⌜r = (body, bag)%V⌝
        ∗ bagS b (N.@"bag") (λ x y, ∃ γ γ', isTask (body,x) γ γ' y P Q) γ bag
-       ∗ ▷ ∀ r a: val, □ (isRunner γ P Q r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
-  Proof. rewrite /isRunner. by rewrite {1}fixpoint_unfold. Qed.
+       ∗ ▷ ∀ r a: val, □ (runner γ P Q r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
+  Proof. rewrite /runner. by rewrite {1}fixpoint_unfold. Qed.
 
-  Global Instance isRunner_persistent γ r P Q :
-    Persistent (isRunner γ P Q r).
-  Proof. rewrite /isRunner fixpoint_unfold. apply _. Qed.
+  Global Instance runner_persistent γ r P Q :
+    Persistent (runner γ P Q r).
+  Proof. rewrite /runner fixpoint_unfold. apply _. Qed.
 
   Lemma newTask_spec γb (r a : val) P (Q : val → val → iProp Σ) :
-    {{{ isRunner γb P Q r ∗ P a }}}
+    {{{ runner γb P Q r ∗ P a }}}
       newTask r a
     {{{ γ γ' t, RET t; isTask r γ γ' t P Q ∗ task γ γ' t a P Q }}}.
   Proof.
@@ -233,7 +233,7 @@ Section contents.
 
   Lemma task_Join_spec γb γ γ' (te : expr) (r t a : val) P Q
     `{!IntoVal te t}:
-    {{{ isRunner γb P Q r ∗ task γ γ' t a P Q }}}
+    {{{ runner γb P Q r ∗ task γ γ' t a P Q }}}
        task_Join te
     {{{ res, RET res; Q a res }}}.
   Proof.
@@ -286,12 +286,12 @@ Section contents.
   Qed.
 
   Lemma task_Run_spec γb γ γ' r t P Q :
-    {{{ isRunner γb P Q r ∗ isTask r γ γ' t P Q }}}
+    {{{ runner γb P Q r ∗ isTask r γ γ' t P Q }}}
        task_Run t
     {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "[#Hrunner Htask] HΦ".
-    rewrite isRunner_unfold.
+    rewrite runner_unfold.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)".
     iDestruct "Htask" as (arg state res) "(% & HP & HINIT & #Htask)".
     simplify_eq. rewrite /task_Run.
@@ -299,7 +299,7 @@ Section contents.
     wp_bind (body _ arg).
     iDestruct ("Hbody" $! (PairV body bag) arg) as "Hbody'".
     iSpecialize ("Hbody'" with "[HP]").
-    { iFrame. rewrite isRunner_unfold.
+    { iFrame. rewrite runner_unfold.
       iExists _,_; iSplitR; eauto. }
     iApply (wp_wand with "Hbody'").
     iIntros (v) "HQ". wp_let.
@@ -334,12 +334,12 @@ Section contents.
   Qed.
 
   Lemma runner_runTask_spec γb P Q r:
-    {{{ isRunner γb P Q r }}}
+    {{{ runner γb P Q r }}}
       runner_runTask r
     {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "#Hrunner HΦ".
-    rewrite isRunner_unfold /runner_runTask.
+    rewrite runner_unfold /runner_runTask.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)"; simplify_eq.
     repeat wp_pure _.
     wp_bind (popBag b _).
@@ -350,12 +350,12 @@ Section contents.
       iDestruct "Ht" as (γ γ') "Htask".
       simplify_eq. wp_match.
       iApply (task_Run_spec with "[Hbag Hbody Htask]"); last done.
-      iFrame "Htask". rewrite isRunner_unfold.
+      iFrame "Htask". rewrite runner_unfold.
       iExists _,_; iSplit; eauto.
   Qed.
 
   Lemma runner_runTasks_spec γb P Q r:
-    {{{ isRunner γb P Q r }}}
+    {{{ runner γb P Q r }}}
       runner_runTasks r
     {{{ RET #(); False }}}.
   Proof.
@@ -367,12 +367,12 @@ Section contents.
   Qed.
 
   Lemma loop_spec (n i : nat) P Q γb r:
-    {{{ isRunner γb P Q r }}}
+    {{{ runner γb P Q r }}}
       (rec: "loop" "i" :=
          if: "i" < #n
          then Fork (runner_runTasks r);; "loop" ("i" + #1)
          else r) #i
-    {{{ r, RET r; isRunner γb P Q r }}}.
+    {{{ r, RET r; runner γb P Q r }}}.
   Proof.
     iIntros (Φ) "#Hrunner HΦ".
     iLöb as "IH" forall (i).
@@ -389,9 +389,9 @@ Section contents.
   Lemma newRunner_spec P Q (fe ne : expr) (f : val) (n : nat)
     `{!IntoVal fe f} `{!IntoVal ne (#n)}:
     {{{ ∀ (γ: name Σ b) (r: val),
-          □ ∀ a: val, (isRunner γ P Q r ∗ P a -∗ WP f r a {{ v, Q a v }}) }}}
+          □ ∀ a: val, (runner γ P Q r ∗ P a -∗ WP f r a {{ v, Q a v }}) }}}
        newRunner fe ne
-    {{{ γb r, RET r; isRunner γb P Q r }}}.
+    {{{ γb r, RET r; runner γb P Q r }}}.
   Proof.
     iIntros (Φ) "#Hf HΦ".
     rewrite -(of_to_val fe f into_val).
@@ -402,27 +402,27 @@ Section contents.
     iApply (newBag_spec b (N.@"bag") (λ x y, ∃ γ γ', isTask (f,x) γ γ' y P Q)%I); auto.
     iNext. iIntros (bag). iDestruct 1 as (γb) "#Hbag".
     do 3 wp_let.
-    iAssert (isRunner γb P Q (PairV f bag))%I with "[]" as "#Hrunner".
-    { rewrite isRunner_unfold. iExists _,_. iSplit; eauto. }
+    iAssert (runner γb P Q (PairV f bag))%I with "[]" as "#Hrunner".
+    { rewrite runner_unfold. iExists _,_. iSplit; eauto. }
     iApply (loop_spec n 0 with "Hrunner [HΦ]"); eauto.
     iNext. iIntros (r) "Hr". by iApply "HΦ".
   Qed.
 
   Lemma runner_Fork_spec γb (re ae:expr) (r a:val) P Q
     `{!IntoVal re r} `{!IntoVal ae a}:
-    {{{ isRunner γb P Q r ∗ P a }}}
+    {{{ runner γb P Q r ∗ P a }}}
        runner_Fork re ae
     {{{ γ γ' t, RET t; task γ γ' t a P Q }}}.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
     rewrite -(of_to_val re r into_val).
     rewrite -(of_to_val ae a into_val).
-    rewrite /runner_Fork isRunner_unfold.
+    rewrite /runner_Fork runner_unfold.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)". simplify_eq.
     Local Opaque newTask.
     repeat wp_pure _. wp_bind (newTask _ _).
     iApply (newTask_spec γb (body,bag) a P Q with "[Hbag Hbody HP]").
-    { iFrame "HP". rewrite isRunner_unfold.
+    { iFrame "HP". rewrite runner_unfold.
       iExists _,_; iSplit; eauto. }
     iNext. iIntros (γ γ' t) "[Htask Htask']". wp_let.
     wp_bind (pushBag _ _ _).
@@ -431,4 +431,4 @@ Section contents.
   Qed.
 End contents.
 
-Opaque isRunner task newRunner runner_Fork task_Join.
+Opaque runner task newRunner runner_Fork task_Join.
