@@ -5,7 +5,7 @@ VOFILES=$(COQMF_VFILES:.v=.vo)
 barrier: $(filter theories/barrier/%,$(VOFILES))
 .PHONY: barrier
 
-lecture_notes: $(filter theories/barrier/%,$(VOFILES))
+lecture_notes: $(filter theories/lecture_notes/%,$(VOFILES))
 .PHONY: lecture_notes
 
 spanning_tree: $(filter theories/spanning_tree/%,$(VOFILES))
