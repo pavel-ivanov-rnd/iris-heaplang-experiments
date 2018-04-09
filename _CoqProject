@@ -8,6 +8,7 @@ theories/barrier/example_client.v
 theories/barrier/example_joining_existentials.v
 
 theories/lecture_notes/coq_intro_example_1.v
+theories/lecture_notes/coq_intro_example_2.v
 
 theories/spanning_tree/graph.v
 theories/spanning_tree/mon.v
