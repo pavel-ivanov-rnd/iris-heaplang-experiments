@@ -16,6 +16,7 @@ Section proof.
   Variable b : bag Σ.
   Variable N : namespace.
 
+  (** An exclusive specification keeps track of the exact contents of the bag *)
   Definition bagE (γ : name Σ b) (x : val) (X : gmultiset val) : iProp Σ :=
     (is_bag b N γ x ∗ bag_contents b γ X)%I.
 

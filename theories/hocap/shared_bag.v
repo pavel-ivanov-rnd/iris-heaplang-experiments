@@ -17,7 +17,9 @@ Section proof.
   Variable N : namespace.
   Definition NB := N.@"bag".
   Definition NI := N.@"inv".
-  Variable P : val → val → iProp Σ. (* Predicate that will be satisfied by all the elements in the bag *)
+  (** Predicate that will be satisfied by all the elements in the bag.
+      The first argument is the bag itself. *)
+  Variable P : val → val → iProp Σ.
 
   Definition bagS_inv (γ : name Σ b) (y : val) : iProp Σ :=
     inv NI (∃ X, bag_contents b γ X ∗ [∗ mset] x ∈ X, P y x)%I.

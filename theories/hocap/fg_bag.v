@@ -13,7 +13,7 @@ From iris.heap_lang.lib Require Import lock spin_lock.
 From iris_examples.hocap Require Import abstract_bag.
 Set Default Proof Using "Type".
 
-(** Coarse-grained bag implementation using a spin lock *)
+(** Fine-grained bag implementation using CAS *)
 Definition newBag : val := λ: <>,
   ref NONE.
 Definition pushBag : val := rec: "push" "b" "v" :=

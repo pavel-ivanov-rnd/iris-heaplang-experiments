@@ -15,7 +15,7 @@ Structure bag Σ `{!heapG Σ} := Bag {
   pushBag : val;
   popBag : val;
   (* -- predicates -- *)
-  (* name is used to associate locked with is_lock *)
+  (* name is used to associate bag_contents with is_bag *)
   name : Type;
   is_bag (N: namespace) (γ: name) (b: val) : iProp Σ;
   bag_contents (γ: name) (X: gmultiset val) : iProp Σ;
