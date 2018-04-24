@@ -6,7 +6,7 @@ Some example verification demonstrating the use of Iris.
 
 This version is known to compile with:
 
- - Coq 8.6.1 / 8.7.1
+ - Coq 8.6.1 / 8.7.2
  - Ssreflect 1.6.4
  - A development version of [Iris](https://gitlab.mpi-sws.org/FP/iris-coq/)
  - The coq86-devel branch of [Autosubst](https://github.com/uds-psl/autosubst)
