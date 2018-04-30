@@ -40,17 +40,19 @@ Section contents.
   Proof.
     iIntros (Φ) "_ HΦ".
     iLöb as "IH" forall (n Φ). rewrite /seqFib.
-    wp_rec. wp_op. case_bool_decide; wp_if.
+    wp_rec. wp_op. case_bool_decide; simplify_eq; wp_if.
     { assert (n = O) as -> by lia.
       assert (1 = S O) as -> by lia.
       by iApply "HΦ". }
-    wp_op. case_bool_decide; wp_if.
+    wp_op. case_bool_decide; simplify_eq; wp_if.
     { assert (n = S O) as -> by lia.
       assert (1 = S O) as -> by lia.
       by iApply "HΦ". }
     wp_op. wp_bind ((rec: "fib" "a" := _)%V #(n - 1)).
     assert (∃ m, n = S (S m)) as [m ->].
-    { exists (n - (S (S O)))%nat. lia. }
+    { assert (n ≠ O) by naive_solver.
+      assert (n ≠ S O) by naive_solver.
+      exists (n - (S (S O)))%nat. lia. }
     assert ((S (S m) - 1) = S m) as -> by lia.
     iApply "IH". iNext. iIntros (? <-).
     assert (Z.of_nat (S (S m)) = m + 2) as -> by lia.
