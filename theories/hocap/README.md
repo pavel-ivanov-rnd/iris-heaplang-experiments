@@ -4,7 +4,7 @@ These examples are meant to demonstrate the applicability in Iris of the specifi
 ## Overview
 
 * [abstract_bag](abstract_bag.v) describes the generic abstract bag specification (Section 1);
-* in [exclusive_bag](exclusive_bag.v) and [shared_bag](shared_bag.v) the excluive/sequntial and shared/concurrent specifications are derived from the generic abstract specification (Section 3);
+* in [exclusive_bag](exclusive_bag.v) and [shared_bag](shared_bag.v) the exclusive/sequential and shared/concurrent specifications are derived from the generic abstract specification (Section 3);
 * [cg_bag.v](cg_bag.v) and [fg_bag](fg_bag.v) provide two implementations for the abstract bag specification (Section 3);
 * [concurrent_runners](concurrent_runners.v) implements the (impredicative) concurrent runner specification from Section 4;
 * [parfib](parfib.v) demonstrates the usage of the concurrent runners library (Section 4).
@@ -18,10 +18,10 @@ There is a circularity in the proof of `newRunner`, which is perhaps more poigna
 
 On the first line of `newRunner`, one creates a bag and has to pick a predicate that should hold for every element in the bag.
 However, the predicate that we want to have refers to the runner itself -- which is a pair of a `bag` and a `body`.
-In this setting, the runner is not yet availale at this point in time.
+In this setting, the runner is not yet available at this point in time.
 There are (at least) two potential ways of resolving this circularity:
 
 1. Allow the `P` predicate in the `shared_bag` specification to refer to the bag itself (as a formal parameter);
-2. Have a specification that would construct a bag in several steps: the `newBag_spec` will return a token that can be view-shifted later at an aribtrary point in time to `bagS b P` -- this will allow the client to pick `P` at a more comfortable point.
+2. Have a specification that would construct a bag in several steps: the `newBag_spec` will return a token that can be view-shifted later at an arbitrary point in time to `bagS b P` -- this will allow the client to pick `P` at a more comfortable point.
 
 We chose to go with option 1 in this formalisation.
