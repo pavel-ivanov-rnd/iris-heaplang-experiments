@@ -43,7 +43,7 @@ Section ccounter.
   Lemma is_ccounter_op γ₁ γ₂ ℓ q1 q2 (n1 n2 : nat) :
     is_ccounter γ₁ γ₂ ℓ (q1 + q2) (n1 + n2)%nat ⊣⊢ is_ccounter γ₁ γ₂ ℓ q1 n1 ∗ is_ccounter γ₁ γ₂ ℓ q2 n2.
   Proof.
-    apply uPred.equiv_spec; split; rewrite /is_ccounter frag_auth_op own_op.
+    apply uPred.equiv_spec; split; rewrite /is_ccounter frac_auth_frag_op own_op.
     - iIntros "[? #?]".
       iFrame "#"; iFrame.
     - iIntros "[[? #?] [? _]]".
