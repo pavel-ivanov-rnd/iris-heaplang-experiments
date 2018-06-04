@@ -12,3 +12,4 @@ Makefile.coq
 Makefile.coq.conf
 .coq-native/
 build-dep
+_opam
