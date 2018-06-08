@@ -4,7 +4,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import auth frac agree excl agree gset gmap.
-From iris.base_logic Require Import big_op saved_prop.
+From iris.base_logic Require Import saved_prop.
 From iris_atomic Require Import misc peritem sync.
 
 Definition doOp : val :=
@@ -162,10 +162,10 @@ Section proof.
       * iDestruct "Hp" as (? ?) "[>? Hs]". iDestruct "Hs" as (? ?) "(_ & _ & _ & _ & >Ho1' & _)".
         iApply excl_falso. iFrame.
       * iDestruct "Hp" as (? x5) ">(Hp & Hx & Hor & Ho4)".
-        wp_store. iDestruct (m_frag_agree' with "[Hx Hx2]") as "[Hx %]"; first iFrame.
+        wp_store. iDestruct (m_frag_agree' with "Hx Hx2") as "[Hx %]".
         subst. rewrite Qp_div_2. iMod ("Hclose" with "[-HR Hor HΦ]").
         { iNext. iDestruct "Hp" as "[Hp1 Hp2]". iRight. iRight.
-          iRight. iExists x5, v. iFrame. iExists Q. iFrame. }
+          iRight. iExists _, v. iFrame. iExists Q. iFrame. }
         iApply "HΦ". iFrame. done.
       * iDestruct "Hp" as (? ?) "[? Hs]". iDestruct "Hs" as (?) "(_ & _ & _ & >Ho1' & _)".
         iApply excl_falso. iFrame.

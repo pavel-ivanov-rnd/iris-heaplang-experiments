@@ -67,14 +67,14 @@ Section atomic_sync.
       (* we should view shift at this point *)
       iDestruct ("Hvss" with "HP") as "Hvss'". iApply fupd_wp.
       iMod "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
-      iDestruct (m_frag_agree with "[Hg1 Hg2]") as %Heq; first iFrame. subst.
+      iDestruct (m_frag_agree with "Hg1 Hg2") as %Heq. subst.
       iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
       iModIntro. iApply wp_fupd. iApply wp_wand_r. iSplitL "Hϕ".
       { iApply "Hseq". iFrame. done. }
       iIntros (v) "H". iDestruct "H" as (g') "[Hϕ' Hβ]".
       iMod ("Hvss" with "HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
       iSpecialize ("Hvs2" $! v).
-      iDestruct (m_frag_agree' with "[Hg'' Hg1]") as "[Hg %]"; first iFrame. subst.
+      iDestruct (m_frag_agree' with "Hg'' Hg1") as "[Hg %]". subst.
       rewrite Qp_div_2.
       iAssert (|==> own γ (((1 / 2)%Qp, to_agree g') ⋅ ((1 / 2)%Qp, to_agree g')))%I
               with "[Hg]" as ">[Hg1 Hg2]".

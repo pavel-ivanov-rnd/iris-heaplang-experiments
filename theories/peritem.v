@@ -3,7 +3,6 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import frac auth gmap csum.
-From iris.base_logic Require Import big_op.
 From iris_atomic Require Export treiber misc.
 From iris.base_logic.lib Require Import invariants.
 

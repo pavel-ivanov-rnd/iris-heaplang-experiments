@@ -3,7 +3,8 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import auth frac gmap agree.
-From iris.base_logic Require Import big_op auth fractional.
+From iris.bi Require Import fractional.
+From iris.base_logic Require Import auth.
 
 Import uPred.
 
@@ -63,9 +64,9 @@ Section pair.
   Context {A : ofeT} `{EqDecision A, !OfeDiscrete A, !LeibnizEquiv A, !inG Σ (prodR fracR (agreeR A))}.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, to_agree a1) ∗ own γm (q2, to_agree a2) ⊢ ⌜a1 = a2⌝.
+    own γm (q1, to_agree a1) -∗ own γm (q2, to_agree a2) -∗ ⌜a1 = a2⌝.
   Proof.
-    iIntros "[Ho Ho']".
+    iIntros "Ho Ho'".
     destruct (decide (a1 = a2)) as [->|Hneq]=>//.
     iCombine "Ho" "Ho'" as "Ho".
     iDestruct (own_valid with "Ho") as %Hvalid.
@@ -75,11 +76,11 @@ Section pair.
   Qed.
   
   Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
-    own γm (q1, to_agree a1) ∗ own γm (q2, to_agree a2)
-    ⊢ own γm ((q1 + q2)%Qp, to_agree a1) ∗ ⌜a1 = a2⌝.
+    own γm (q1, to_agree a1) -∗ own γm (q2, to_agree a2)
+    -∗ own γm ((q1 + q2)%Qp, to_agree a1) ∗ ⌜a1 = a2⌝.
   Proof.
-    iIntros "[Ho Ho']".
-    iDestruct (m_frag_agree with "[Ho Ho']") as %Heq; first iFrame.
+    iIntros "Ho Ho'".
+    iDestruct (m_frag_agree with "Ho Ho'") as %Heq.
     subst. iCombine "Ho" "Ho'" as "Ho".
     by iFrame.
   Qed.
