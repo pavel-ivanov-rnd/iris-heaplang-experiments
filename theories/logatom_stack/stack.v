@@ -94,13 +94,26 @@ Section stack.
     (own γs (◯ Excl' l))%I.
   Global Instance stack_content_timeless γs l : Timeless (stack_content γs l) := _.
 
-  Fixpoint list_inv (l : list val) (rep : val) : iProp :=
+  Definition stack_elem_to_val (stack_rep : option loc) : val :=
+    match stack_rep with
+    | None => NONEV
+    | Some l => SOMEV #l
+    end.
+  Local Instance stack_elem_to_val_inj : Inj (=) (=) stack_elem_to_val.
+  Proof. rewrite /Inj /stack_elem_to_val=>??. repeat case_match; congruence. Qed.
+
+  Fixpoint list_inv (l : list val) (rep : option loc) : iProp :=
     match l with
-    | nil => ⌜rep = NONEV⌝
-    | v::l => ∃ (ℓ : loc) (rep' : val), ⌜rep = SOMEV #ℓ⌝ ∗ ℓ ↦ (v, rep') ∗ list_inv l rep'
+    | nil => ⌜rep = None⌝
+    | v::l => ∃ (ℓ : loc) (rep' : option loc), ⌜rep = Some ℓ⌝ ∗
+                              ℓ ↦ (v, stack_elem_to_val rep') ∗ list_inv l rep'
     end%I.
 
+  Local Hint Extern 0 (environments.envs_entails _ (list_inv (_::_) _)) => simpl.
+
   Inductive offer_state := OfferPending | OfferRevoked | OfferAccepted | OfferAcked.
+
+  Local Instance: Inhabited offer_state := populate OfferPending.
 
   Definition offer_state_rep (st : offer_state) : Z :=
     match st with
@@ -115,8 +128,10 @@ Section stack.
       match st with
       | OfferPending => P
       | OfferAccepted => Q
-      | _ => True
+      | _ => own γo (Excl ())
       end)%I.
+
+  Local Hint Extern 0 (environments.envs_entails _ (offer_inv _ _ _ _)) => unfold offer_inv.
 
   Definition is_offer (γs : gname) (offer_rep : option (val * loc)) :=
     match offer_rep with
@@ -136,8 +151,10 @@ Section stack.
 
   Definition stack_inv (γs : gname) (head : loc) (offer : loc) : iProp :=
     (∃ stack_rep offer_rep l, own γs (● Excl' l) ∗
-       head ↦ stack_rep ∗ list_inv l stack_rep ∗
+       head ↦ stack_elem_to_val stack_rep ∗ list_inv l stack_rep ∗
        offer ↦ offer_to_val offer_rep ∗ is_offer γs offer_rep)%I.
+
+  Local Hint Extern 0 (environments.envs_entails _ (stack_inv _ _ _)) => unfold stack_inv.
 
   Definition is_stack (γs : gname) (s : val) : iProp :=
     (∃ head offer : loc, ⌜s = (#head, #offer)%V⌝ ∗ inv protoN (stack_inv γs head offer))%I.
@@ -153,8 +170,94 @@ Section stack.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
     { apply auth_valid_discrete_2. split; done. }
     iMod (inv_alloc protoN _ (stack_inv γs head offer) with "[-HΦ Hs◯]").
-    { iNext. iExists _, None, _. iFrame. done. }
+    { iNext. iExists None, None, _. iFrame. done. }
     iApply "HΦ". iFrame "Hs◯". iModIntro. iExists _, _. auto.
+  Qed.
+
+  Lemma push_spec γs (s v : val) :
+    is_stack γs s -∗
+    <<< ∀ l, stack_content γs l >>>
+      push (s, v) @ ⊤∖↑stackN
+    <<< stack_content γs (v::l), RET #() >>>.
+  Proof.
+    iIntros "#Hinv" (Q Φ) "HQ AU".
+    iDestruct "Hinv" as (head offer) "[% #Hinv]". subst s.
+    iLöb as "IH".
+    wp_let. wp_proj. wp_let. wp_proj. wp_let. wp_proj.
+    (* Load the old head. *)
+    wp_apply (load_spec with "[HQ AU]"); first by iAccu.
+    iAuIntro. iInv protoN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hrem)".
+    iAaccIntro with "H↦"; first by eauto 10 with iFrame.
+    iIntros "?". iSplitL; first by eauto 10 with iFrame.
+    iIntros "!> [HQ AU]". clear offer_rep l.
+    (* Go on. *)
+    wp_let. wp_apply alloc_spec; first done. iIntros (head_new) "Hhead_new".
+    wp_let. wp_proj.
+    (* CAS to change the head. *)
+    wp_apply (cas_spec with "[HQ]"); [by destruct stack_rep|iAccu|].
+    iAuIntro. iInv protoN as (stack_rep' offer_rep l) "(>Hs● & >H↦ & Hlist & Hoffer)".
+    iAaccIntro with "H↦"; first eauto 10 with iFrame.
+    iIntros "H↦".
+    destruct (decide (stack_elem_to_val stack_rep' = stack_elem_to_val stack_rep)) as
+      [->%stack_elem_to_val_inj|_].
+    - (* The CAS succeeded. Update everything accordingly. *)
+      iMod "AU" as (l') "[Hl' [_ Hclose]]".
+      iDestruct (own_valid_2 with "Hs● Hl'") as
+        %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+      iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
+      { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl (v::l))). done. }
+      iMod ("Hclose" with "Hl'") as "HΦ". iModIntro.
+      change (InjRV #head_new) with (stack_elem_to_val (Some head_new)).
+      iSplitR "HΦ"; first by eauto 12 with iFrame.
+      iIntros "Q". wp_if. by iApply "HΦ".
+    - (* The CAS failed, go on making an offer. *)
+      iModIntro. iSplitR "AU"; first by eauto 8 with iFrame.
+      clear stack_rep stack_rep' offer_rep l head_new.
+      iIntros "HQ". wp_if.
+      wp_apply alloc_spec; first done. iIntros (st_loc) "Hoffer_st".
+      wp_let. wp_let. wp_proj.
+      (* Make the offer *)
+      wp_apply (store_spec with "[HQ]"); first by iAccu.
+      iAuIntro. iInv protoN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hlist & >Hoffer↦ & Hoffer)".
+      iAaccIntro with "Hoffer↦"; first by eauto 10 with iFrame.
+      iMod (own_alloc (Excl ())) as (γo) "Htok"; first done.
+      iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
+      iMod (inv_alloc offerN _ (offer_inv st_loc γo AU_later _)  with "[AU Hoffer_st]") as "#Hoinv".
+      { iNext. iExists OfferPending. iFrame. }
+      iIntros "?". iSplitR "Htok".
+      { iClear "Hoffer". iExists _, (Some (v, st_loc)), _. iFrame.
+        rewrite /is_offer /=. iExists _, _, _. iFrame "AU_back Hoinv". done. }
+      clear stack_rep offer_rep l.
+      iIntros "!> HQ". wp_let.
+      (* Retract the offer. *)
+      wp_proj. wp_apply (store_spec with "[HQ]"); first by iAccu.
+      iAuIntro. iInv protoN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hlist & >Hoffer↦ & Hoffer)".
+      iAaccIntro with "Hoffer↦"; first by eauto 10 with iFrame.
+      iIntros "?". iSplitR "Htok".
+      { iClear "Hoffer". iExists _, None, _. iFrame. done. }
+      iIntros "!> HQ". wp_seq.
+      clear stack_rep offer_rep l.
+      (* See if someone took it. *)
+      wp_apply (cas_spec with "[HQ]"); [done|iAccu|].
+      iAuIntro. iInv offerN as (offer_st) "[>Hst↦ Hst]".
+      iAaccIntro with "Hst↦"; first by eauto 10 with iFrame.
+      iIntros "Hst↦". destruct offer_st; simpl.
+      + (* Offer was still pending, and we revoked it. Loop around and try again. *)
+        iModIntro. iSplitR "Hst".
+        { iNext. iExists OfferRevoked. iFrame. }
+        iIntros "HQ".
+        iDestruct ("AU_back" with "Hst") as ">AU {AU_back Hoinv}". clear AU_later.
+        wp_if. iApply ("IH" with "HQ AU").
+      + (* Offer revoked by someone else? Impossible! *)
+        iDestruct "Hst" as ">Hst".
+        iDestruct (own_valid_2 with "Htok Hst") as %[].
+      + (* Offer got accepted by someone, awesome! We are done. *)
+        iModIntro. iSplitR "Hst".
+        { iNext. iExists OfferAcked. iFrame. }
+        iIntros "HQ". wp_if. by iApply "Hst".
+      + (* Offer got acked by someone else? Impossible! *)
+        iDestruct "Hst" as ">Hst".
+        iDestruct (own_valid_2 with "Htok Hst") as %[].
   Qed.
 
 End stack.
