@@ -82,3 +82,4 @@ theories/hocap/concurrent_runners.v
 theories/hocap/parfib.v
 
 theories/logatom_stack/stack.v
+theories/logatom_stack/spec.v
