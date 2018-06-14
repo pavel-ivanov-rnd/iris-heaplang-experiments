@@ -625,6 +625,6 @@ Section stack_works.
     {| spec.mk_stack := mk_stack |}.
   Next Obligation.
     iIntros (?????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
-    iIntros "!>" (f₁ f₂) "#[Hpop Hpush]". iApply "HΦ". iFrame "#".
+    iNext. iIntros (f₁ f₂) "#[Hpop Hpush]". iApply "HΦ". iFrame "#".
   Qed.
 End stack_works.
