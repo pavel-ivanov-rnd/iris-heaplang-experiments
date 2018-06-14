@@ -3,6 +3,8 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 Set Default Proof Using "Type".
 
+From iris_examples.concurrent_stacks Require Import spec.
+
 (** Stack 3: No helping, view-shift spec. *)
 
 Definition mk_stack : val :=
@@ -89,9 +91,9 @@ Section stack_works.
      - The resources for the successful and failing pop must be disjoint.
        Instead, there should be a normal conjunction between them.
      Open question: How does this relate to a logically atomic spec? *)
-  Theorem stack_works P Q Q' Q'' Φ :
-    (∀ (f₁ f₂ : val) ι,
-        (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) -∗ (* pop *)
+  Theorem stack_works ι P Q Q' Q'' Φ :
+    ▷ (∀ (f₁ f₂ : val),
+        (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) ∧ (* pop *)
             (P [] ={⊤∖↑ι}=∗ Q' ∗ P []) -∗
             WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ Q v') ∨ (v ≡ NONEV ∗ Q')}}))
          -∗ (∀ (v : val), (* push *)
@@ -102,14 +104,14 @@ Section stack_works.
     -∗ WP mk_stack #()  {{ Φ }}.
   Proof.
     iIntros "HΦ HP".
-    pose proof (nroot .@ "N") as N.
+    rename ι into N.
     wp_let.
     wp_alloc l as "Hl".
     iMod (inv_alloc N _ (stack_inv P #l) with "[Hl HP]") as "#Istack".
     { iNext; iExists l, (InjLV #()), []; iSplit; iFrame; auto. }
     wp_let.
     iApply "HΦ".
-    - iIntros "!# Hsucc Hfail".
+    - iIntros "!# Hcont".
       iLöb as "IH".
       wp_rec.
       wp_bind (! _)%E.
@@ -122,6 +124,7 @@ Section stack_works.
       * subst.
         iDestruct (is_stack_empty with "Hstack") as "%".
         subst.
+        iDestruct "Hcont" as "[_ Hfail]".
         iMod ("Hfail" with "HP") as "[HQ' HP]".
         iMod ("Hclose" with "[Hl' Hstack HP]").
         { iExists l', (InjLV #()), []; iSplit; iFrame; auto. }
@@ -152,6 +155,7 @@ Section stack_works.
         iDestruct "H" as (ys') "%"; subst.
         iDestruct "Hstack" as (t') "[% Hstack]".
         injection H3; intros; subst.
+        iDestruct "Hcont" as "[Hsucc _]".
         iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
         iMod ("Hclose" with "[Hl'' Hstack HP]").
         { iExists l'', t', ys'; iSplit; iFrame; auto. }
@@ -164,7 +168,7 @@ Section stack_works.
         { iExists l'', v', ys; iSplit; iFrame; auto. }
         iModIntro.
         wp_if.
-        iApply ("IH" with "Hsucc Hfail").
+        iApply ("IH" with "Hcont").
     - iIntros (v) "!# Hpush".
       iLöb as "IH".
       wp_rec.
@@ -198,5 +202,12 @@ Section stack_works.
         iModIntro.
         wp_if.
         iApply ("IH" with "Hpush").
+  Qed.
+
+  Program Definition is_concurrent_stack : concurrent_stack Σ :=
+    {| spec.mk_stack := mk_stack |}.
+  Next Obligation.
+    iIntros (????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
+    iIntros "!>" (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
   Qed.
 End stack_works.

@@ -27,6 +27,7 @@ theories/concurrent_stacks/concurrent_stack1.v
 theories/concurrent_stacks/concurrent_stack2.v
 theories/concurrent_stacks/concurrent_stack3.v
 theories/concurrent_stacks/concurrent_stack4.v
+theories/concurrent_stacks/spec.v
 
 theories/logrel/prelude/base.v
 theories/logrel/stlc/lang.v

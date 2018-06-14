@@ -2,6 +2,8 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 
+From iris_examples.concurrent_stacks Require Import spec.
+
 (** Stack 3: Helping, view-shift spec. *)
 
 Definition mk_offer : val :=
@@ -143,7 +145,7 @@ Section stack_works.
 
   (* Whole-stack invariant (P). *)
   Theorem stack_works {channelG0 : channelG Σ} N P Q Q' Q'' Φ :
-    (∀ (f₁ f₂ : val),
+    ▷ (∀ (f₁ f₂ : val),
         (□(((∀ v vs, P (v :: vs) ={⊤ ∖ ↑ N}=∗ Q v ∗ P vs)
             ∧ (P [] ={⊤ ∖ ↑ N}=∗ Q' ∗ P []) -∗
             WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ Q v') ∨ (v ≡ NONEV ∗ Q')}}))
@@ -617,5 +619,12 @@ Section stack_works.
       + iDestruct "H" as "[Hs Hγ']".
         wp_cas_fail.
         by iDestruct (own_valid_2 with "Hγ Hγ'") as %?.
+  Qed.
+
+  Program Definition is_concurrent_stack `{!channelG Σ} : concurrent_stack Σ :=
+    {| spec.mk_stack := mk_stack |}.
+  Next Obligation.
+    iIntros (?????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
+    iIntros "!>" (f₁ f₂) "#[Hpop Hpush]". iApply "HΦ". iFrame "#".
   Qed.
 End stack_works.
