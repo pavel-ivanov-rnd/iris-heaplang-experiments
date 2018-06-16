@@ -8,18 +8,6 @@ From iris.proofmode Require Import tactics.
 
 Definition stackN : namespace := nroot .@ "stack".
 
-Ltac iAsimpl :=
-  repeat match goal with
-  | |- context [ (_ ⤇ ?e)%I ] => progress (
-    let e' := fresh "feed" in evar (e':expr);
-    assert (e = e') as ->; [asimpl; unfold e'; reflexivity|];
-    unfold e'; clear e')
-  | |- context [ WP ?e @ _ {{ _ }}%I ] => progress (
-    let e' := fresh "feed" in evar (e':expr);
-    assert (e = e') as ->; [asimpl; unfold e'; reflexivity|];
-    unfold e'; clear e')
-  end.
-
 Section Stack_refinement.
   Context `{heapIG Σ, cfgSG Σ, inG Σ (authR stackUR)}.
   Notation D := (prodC valC valC -n> iProp Σ).

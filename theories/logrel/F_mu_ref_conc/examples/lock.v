@@ -135,24 +135,24 @@ Section proof.
   Proof.
     iIntros (HNE H1 H2) "[#Hspec [HP [Hl Hj]]]".
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl. rewrite H1.
+    iAsimpl. rewrite H1.
     iMod (steps_acquire _ _ j ((AppRCtx (RecV _)) :: K)
                    _ _ with "[Hj Hl]") as "[Hj Hl]"; eauto.
     { simpl. iFrame "Hspec Hj Hl"; eauto. }
     simpl.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl. rewrite H1.
+    iAsimpl. rewrite H1.
     iMod (H2 ((AppRCtx (RecV _)) :: K) with "[Hj HP]") as "[Hj HQ]"; eauto.
     { simpl. iFrame "Hspec Hj HP"; eauto. }
     simpl.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (steps_release _ _ j ((AppRCtx (RecV _)) :: K) _ _ with "[Hj Hl]")
       as "[Hj Hl]"; eauto.
     { simpl. by iFrame. }
     rewrite ?fill_app /=.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl. iModIntro; by iFrame.
+    iAsimpl. iModIntro; by iFrame.
     Unshelve.
     all: try match goal with |- to_val _ = _ => auto using to_of_val end.
     trivial.

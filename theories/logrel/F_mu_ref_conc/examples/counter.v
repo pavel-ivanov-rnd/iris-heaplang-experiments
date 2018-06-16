@@ -165,7 +165,7 @@ Section CG_Counter.
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold counter_read.
     iMod (step_rec _ _ j K _ Unit with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_load _ _ j K with "[Hj Hx]") as "[Hj Hx]"; eauto.
     { by iFrame "Hspec Hj". }
     iModIntro. by iFrame "Hj Hx".
@@ -264,12 +264,12 @@ Section CG_Counter.
     iMod (steps_newlock _ _ j ((AppRCtx (RecV _)) :: K) _ with "[Hj]")
       as (l) "[Hj Hl]"; eauto.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl. rewrite CG_locked_increment_subst /=.
+    iAsimpl. rewrite CG_locked_increment_subst /=.
     rewrite counter_read_subst /=.
     iMod (step_alloc _ _ j ((AppRCtx (RecV _)) :: K) _ _ _ _ with "[Hj]")
       as (cnt') "[Hj Hcnt']"; eauto.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl. rewrite CG_locked_increment_subst /=.
+    iAsimpl. rewrite CG_locked_increment_subst /=.
     rewrite counter_read_subst /=.
     Unshelve.
     all: try match goal with |- to_val _ = _ => auto using to_of_val end.
@@ -284,7 +284,7 @@ Section CG_Counter.
     iApply fupd_wp.
     iMod (inv_alloc counterN with "[Hinv]") as "#Hinv"; [iNext; iExact "Hinv"|].
     (* splitting increment and read *)
-    iApply wp_pure_step_later; trivial. iModIntro. iNext. asimpl.
+    iApply wp_pure_step_later; trivial. iModIntro. iNext. iAsimpl.
     rewrite counter_read_subst /=.
     iApply wp_value; auto.
     iExists (PairV (CG_locked_incrementV _ _) (counter_readV _)); simpl.
@@ -296,7 +296,7 @@ Section CG_Counter.
       rewrite CG_locked_increment_of_val /=.
       destruct v; iDestruct "Heq" as "[% %]"; simplify_eq/=.
       iLöb as "Hlat".
-      iApply wp_pure_step_later; trivial. asimpl. iNext.
+      iApply wp_pure_step_later; trivial. iAsimpl. iNext.
       (* fine-grained reads the counter *)
       iApply (wp_bind (fill [AppRCtx (RecV _)]));
         iApply wp_wand_l; iSplitR; [iIntros (v) "Hv"; iExact "Hv"|].
@@ -306,7 +306,7 @@ Section CG_Counter.
       iModIntro. iNext. iIntros "Hcnt".
       iMod ("Hclose" with "[Hl Hcnt Hcnt']").
       { iNext. iExists _. iFrame "Hl Hcnt Hcnt'". }
-      iApply wp_pure_step_later; trivial. asimpl. iModIntro. iNext.
+      iApply wp_pure_step_later; trivial. iAsimpl. iModIntro. iNext.
       (* fine-grained performs increment *)
       iApply (wp_bind (fill [CasRCtx (LocV _) (NatV _); IfCtx _ _]));
         iApply wp_wand_l; iSplitR; [iIntros (v) "Hv"; iExact "Hv"|].

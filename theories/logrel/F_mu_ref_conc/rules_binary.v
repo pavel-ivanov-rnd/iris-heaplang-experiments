@@ -48,6 +48,18 @@ Notation "l ↦ₛ{ q } v" := (heapS_mapsto l q v)
 Notation "l ↦ₛ v" := (heapS_mapsto l 1 v) (at level 20) : uPred_scope.
 Notation "j ⤇ e" := (tpool_mapsto j e) (at level 20) : uPred_scope.
 
+Ltac iAsimpl :=
+  repeat match goal with
+  | |- context [ (_ ⤇ ?e)%I ] => progress (
+    let e' := fresh in evar (e':expr);
+    assert (e = e') as ->; [asimpl; unfold e'; reflexivity|];
+    unfold e'; clear e')
+  | |- context [ WP ?e @ _ {{ _ }}%I ] => progress (
+    let e' := fresh in evar (e':expr);
+    assert (e = e') as ->; [asimpl; unfold e'; reflexivity|];
+    unfold e'; clear e')
+  end.
+
 Section conversions.
   Context `{cfgSG Σ}.
 

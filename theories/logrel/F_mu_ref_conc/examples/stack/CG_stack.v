@@ -83,7 +83,7 @@ Section CG_Stack.
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold CG_push.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_load _ _ j (PairRCtx _ :: InjRCtx :: FoldCtx :: StoreRCtx (LocV _) :: K)
                     _ _ _ with "[Hj Hx]") as "[Hj Hx]"; eauto.
     simpl. iFrame "Hspec Hj"; trivial. simpl.
@@ -177,7 +177,7 @@ Section CG_Stack.
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold CG_pop.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_load _ _ j (UnfoldCtx :: CaseCtx _ _ :: K)
                     _ _ _ with "[Hj Hx]") as "[Hj Hx]"; eauto.
     rewrite ?fill_app. simpl.
@@ -187,7 +187,7 @@ Section CG_Stack.
                     _ _ _ _ with "[Hj]") as "Hj"; eauto.
     simpl.
     iMod (step_case_inr _ _ j K _ _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_snd _ _ j (StoreRCtx (LocV _) :: AppRCtx (RecV _) :: K) _ _ _ _
                    _ _ with "[Hj]") as "Hj"; eauto.
     simpl.
@@ -197,7 +197,7 @@ Section CG_Stack.
     iFrame "Hspec Hj"; trivial.
     rewrite ?fill_app. simpl.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_fst _ _ j (InjRCtx :: K) _ _ _ _ _ _
           with "[Hj]") as "Hj"; eauto.
     simpl.
@@ -215,14 +215,14 @@ Section CG_Stack.
   Proof.
     iIntros (HNE) "[#Hspec [Hx Hj]]". unfold CG_pop.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_load _ _ j (UnfoldCtx :: CaseCtx _ _ :: K)
                     _ _ _ with "[Hj Hx]") as "[Hj Hx]"; eauto.
     simpl. iFrame "Hspec Hj"; trivial. simpl.
     iMod (step_Fold _ _ j (CaseCtx _ _ :: K)
                     _ _ _ _ with "[Hj]") as "Hj"; eauto.
     iMod (step_case_inl _ _ j K _ _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iModIntro. iFrame "Hj Hx"; trivial.
     Unshelve.
     all: try match goal with |- to_val _ = _ => simpl; by rewrite ?to_of_val end.
@@ -336,7 +336,7 @@ Section CG_Stack.
           with "[Hj Hx Hl]") as "Hj"; last done; [|iFrame; iFrame "#"].
     iIntros (K') "[#Hspec [Hx Hj]]".
     iMod (step_rec _ _ j K' _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_load _ _ j K' _ _ _ _
           with "[Hj Hx]") as "[Hj Hx]"; eauto.
     - iFrame "#"; iFrame.
@@ -405,12 +405,12 @@ Section CG_Stack.
   Proof.
     iIntros (HNE) "[#Hspec Hj]". unfold CG_iter.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    rewrite -CG_iter_folding. Opaque CG_iter. asimpl.
+    rewrite -CG_iter_folding. Opaque CG_iter. iAsimpl.
     iMod (step_Fold _ _ j (CaseCtx _ _ :: K)
                     _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_case_inr _ _ j K _ _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_fst _ _ j (AppRCtx f :: AppRCtx (RecV _) :: K) _ _ _ _
                    _ _ with "[Hj]") as "Hj"; eauto.
     Unshelve.
@@ -426,10 +426,10 @@ Section CG_Stack.
   Proof.
     iIntros (HNE) "[#Hspec Hj]". unfold CG_iter.
     iMod (step_rec _ _ j K _ _ _ _ with "[Hj]") as "Hj"; eauto.
-    rewrite -CG_iter_folding. Opaque CG_iter. asimpl.
+    rewrite -CG_iter_folding. Opaque CG_iter. iAsimpl.
     iMod (step_Fold _ _ j (CaseCtx _ _ :: K)
                     _ _ _ with "[Hj]") as "Hj"; eauto.
-    asimpl.
+    iAsimpl.
     iMod (step_case_inl _ _ j K _ _ _ _ _ with "[Hj]") as "Hj"; eauto.
     Unshelve.
     all: try match goal with |- to_val _ = _ => simpl; by rewrite ?to_of_val end.
