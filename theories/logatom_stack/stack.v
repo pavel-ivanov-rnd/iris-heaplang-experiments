@@ -186,25 +186,25 @@ Section stack.
   Lemma push_spec γs s e v :
     IntoVal e v →
     is_stack γs s -∗
-    <<< ∀ l, stack_content γs l >>>
+    <<< ∀ l : list val, stack_content γs l >>>
       push (s, e) @ ⊤∖↑N
     <<< stack_content γs (v::l), RET #() >>>.
   Proof.
-    intros <-. iIntros "#Hinv" (Q Φ) "HQ AU".
+    iIntros (<-) "#Hinv". iApply wp_atomic_intro. iIntros (Φ) "AU".
     iDestruct "Hinv" as (head offer) "[% #Hinv]". subst s.
     iLöb as "IH".
     wp_let. wp_proj. wp_let. wp_proj. wp_let. wp_proj.
     (* Load the old head. *)
-    wp_apply (load_spec with "[HQ AU]"); first by iAccu.
+    wp_apply (load_spec with "[AU]"); first by iAccu.
     iAuIntro. iInv stackN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hrem)".
     iAaccIntro with "H↦"; first by eauto 10 with iFrame.
     iIntros "?". iSplitL; first by eauto 10 with iFrame.
-    iIntros "!> [HQ AU]". clear offer_rep l.
+    iIntros "!> AU". clear offer_rep l.
     (* Go on. *)
     wp_let. wp_apply alloc_spec; first done. iIntros (head_new) "Hhead_new".
     wp_let. wp_proj.
     (* CAS to change the head. *)
-    wp_apply (cas_spec with "[HQ]"); [by destruct stack_rep|iAccu|].
+    wp_apply cas_spec; [by destruct stack_rep|iAccu|].
     iAuIntro. iInv stackN as (stack_rep' offer_rep l) "(>Hs● & >H↦ & Hlist & Hoffer)".
     iAaccIntro with "H↦"; first by eauto 10 with iFrame.
     iIntros "H↦".
@@ -219,15 +219,15 @@ Section stack.
       iMod ("Hclose" with "Hl'") as "HΦ". iModIntro.
       change (InjRV #head_new) with (stack_elem_to_val (Some head_new)).
       iSplitR "HΦ"; first by eauto 12 with iFrame.
-      iIntros "Q". wp_if. by iApply "HΦ".
+      iIntros "_". wp_if. by iApply "HΦ".
     - (* The CAS failed, go on making an offer. *)
       iModIntro. iSplitR "AU"; first by eauto 8 with iFrame.
       clear stack_rep stack_rep' offer_rep l head_new.
-      iIntros "HQ". wp_if.
+      iIntros "H". wp_if.
       wp_apply alloc_spec; first done. iIntros (st_loc) "Hoffer_st".
       wp_let. wp_let. wp_proj.
       (* Make the offer *)
-      wp_apply (store_spec with "[HQ]"); first by iAccu.
+      wp_apply store_spec; first by iAccu.
       iAuIntro. iInv stackN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hlist & >Hoffer↦ & Hoffer)".
       iAaccIntro with "Hoffer↦"; first by eauto 10 with iFrame.
       iMod (own_alloc (Excl ())) as (γo) "Htok"; first done.
@@ -238,33 +238,33 @@ Section stack.
       { iClear "Hoffer". iExists _, (Some (v, st_loc)), _. iFrame.
         rewrite /is_offer /=. iExists _, _, _. iFrame "AU_back Hoinv". done. }
       clear stack_rep offer_rep l.
-      iIntros "!> HQ". wp_let.
+      iIntros "!> _". wp_let.
       (* Retract the offer. *)
-      wp_proj. wp_apply (store_spec with "[HQ]"); first by iAccu.
+      wp_proj. wp_apply store_spec; first by iAccu.
       iAuIntro. iInv stackN as (stack_rep offer_rep l) "(Hs● & >H↦ & Hlist & >Hoffer↦ & Hoffer)".
       iAaccIntro with "Hoffer↦"; first by eauto 10 with iFrame.
       iIntros "?". iSplitR "Htok".
       { iClear "Hoffer". iExists _, None, _. iFrame. done. }
-      iIntros "!> HQ". wp_seq.
+      iIntros "!> _". wp_seq.
       clear stack_rep offer_rep l.
       (* See if someone took it. *)
-      wp_apply (cas_spec with "[HQ]"); [done|iAccu|].
+      wp_apply cas_spec; [done|iAccu|].
       iAuIntro. iInv offerN as (offer_st) "[>Hst↦ Hst]".
       iAaccIntro with "Hst↦"; first by eauto 10 with iFrame.
       iIntros "Hst↦". destruct offer_st; simpl.
       + (* Offer was still pending, and we revoked it. Loop around and try again. *)
         iModIntro. iSplitR "Hst".
         { iNext. iExists OfferRevoked. iFrame. }
-        iIntros "HQ".
+        iIntros "_".
         iDestruct ("AU_back" with "Hst") as ">AU {AU_back Hoinv}". clear AU_later.
-        wp_if. iApply ("IH" with "HQ AU").
+        wp_if. iApply ("IH" with "AU").
       + (* Offer revoked by someone else? Impossible! *)
         iDestruct "Hst" as ">Hst".
         iDestruct (own_valid_2 with "Htok Hst") as %[].
       + (* Offer got accepted by someone, awesome! We are done. *)
         iModIntro. iSplitR "Hst".
         { iNext. iExists OfferAcked. iFrame. }
-        iIntros "HQ". wp_if. by iApply "Hst".
+        iIntros "_". wp_if. by iApply "Hst".
       + (* Offer got acked by someone else? Impossible! *)
         iDestruct "Hst" as ">Hst".
         iDestruct (own_valid_2 with "Htok Hst") as %[].
@@ -277,12 +277,12 @@ Section stack.
     <<< stack_content γs (tail l),
         RET match l with [] => NONEV | v :: _ => SOMEV v end >>>.
   Proof.
-    iIntros "#Hinv" (Q Φ) "HQ AU".
+    iIntros "#Hinv". iApply wp_atomic_intro. iIntros (Φ) "AU".
     iDestruct "Hinv" as (head offer) "[% #Hinv]". subst s.
     iLöb as "IH".
     wp_let. wp_proj.
     (* Load the old head *)
-    wp_apply (load_spec with "[HQ]"); first by iAccu.
+    wp_apply load_spec; first by iAccu.
     iAuIntro. iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & Hrem)".
     iAaccIntro with "H↦"; first by eauto 10 with iFrame.
     iIntros "?". destruct l as [|v l]; simpl.
@@ -294,16 +294,16 @@ Section stack.
         %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
       iMod ("Hclose" with "Hl'") as "HΦ".
       iSplitR "HΦ"; first by eauto 10 with iFrame.
-      iIntros "!> HQ". wp_match. by iApply "HΦ".
+      iIntros "!> _". wp_match. by iApply "HΦ".
     - (* Non-empty list, let's try to pop. *)
       iDestruct "Hlist" as (tail q rep) "[>% [[Htail Htail2] Hlist]]". subst stack_rep.
       iSplitR "AU Htail"; first by eauto 15 with iFrame.
       clear offer_rep l.
-      iIntros "!> HQ". wp_match.
+      iIntros "!> _". wp_match.
       wp_apply (atomic_wp_seq $! (load_spec _) with "Htail").
       iIntros "Htail". wp_let. wp_proj. wp_proj.
       (* CAS to change the head *)
-      wp_apply (cas_spec with "[HQ]"); [done|iAccu|].
+      wp_apply cas_spec; [done|iAccu|].
       iAuIntro. iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & Hrem)".
       iAaccIntro with "H↦"; first by eauto 10 with iFrame.
       iIntros "H↦". change (InjRV #tail) with (stack_elem_to_val (Some tail)).
@@ -323,23 +323,22 @@ Section stack.
         { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
         iMod ("Hclose" with "Hl'") as "HΦ {Htail Htail'}".
         iSplitR "HΦ"; first by eauto 10 with iFrame.
-        iIntros "!> HQ". clear q' q offer_rep l.
+        iIntros "!> _". clear q' q offer_rep l.
         wp_if. wp_proj. by iApply "HΦ".
       + (* CAS failed.  Go on looking for an offer. *)
         iSplitR "AU"; first by eauto 10 with iFrame.
-        iIntros "!> HQ". wp_if. clear rep stack_rep offer_rep l q tail v.
+        iIntros "!> _". wp_if. clear rep stack_rep offer_rep l q tail v.
         wp_proj.
         (* Load the offer pointer. *)
-        (* FIXME: [wp_apply (load_spec with "[HQ AU]"); first by iAccu.] here triggers an anomaly. *)
-        wp_apply (load_spec with "[HQ]"); first by iAccu.
+        wp_apply load_spec; first by iAccu.
         iAuIntro. iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & >Hoff↦ & #Hoff)".
         iAaccIntro with "Hoff↦"; first by eauto 10 with iFrame.
         iIntros "Hoff↦". iSplitR "AU"; first by eauto 10 with iFrame.
-        iIntros "!> HQ". destruct offer_rep as [[v offer_st_loc]|]; last first.
-        { (* No offer, just loop. *) wp_match. iApply ("IH" with "HQ AU"). }
+        iIntros "!> _". destruct offer_rep as [[v offer_st_loc]|]; last first.
+        { (* No offer, just loop. *) wp_match. iApply ("IH" with "AU"). }
         clear l stack_rep. wp_match. wp_proj.
         (* CAS to accept the offer. *)
-        wp_apply (cas_spec with "[HQ]"); [done|iAccu|]. simpl.
+        wp_apply cas_spec; [done|iAccu|]. simpl.
         iAuIntro. iDestruct "Hoff" as (Poff Qoff γo) "[#Hoinv #AUoff]".
         iInv offerN as (offer_st) "[>Hoff↦ Hoff]".
         iAaccIntro with "Hoff↦"; first by eauto 10 with iFrame.
@@ -347,7 +346,7 @@ Section stack.
         destruct (decide (#(offer_state_rep offer_st) = #0)) as [Heq|_]; last first.
         { (* CAS failed, we don't do a thing. *)
           iSplitR "AU"; first by eauto 10 with iFrame.
-          iIntros "!> HQ". wp_if. iApply ("IH" with "HQ AU"). }
+          iIntros "!> _". wp_if. iApply ("IH" with "AU"). }
         (* CAS succeeded! We accept and complete the offer. *)
         destruct offer_st; try done; []. clear Heq.
         iMod ("AUoff" with "Hoff") as "{AUoff IH} AUoff".
@@ -366,7 +365,7 @@ Section stack.
         iMod ("Hclose" with "Hl'") as "HΦ".
         iSplitR "Hoff↦ HQoff HΦ"; first by eauto 10 with iFrame. iSplitR "HΦ".
         { iIntros "!> !> !>". iExists OfferAccepted. iFrame. }
-        iIntros "!> !> HQ". wp_if. wp_proj. by iApply "HΦ".
+        iIntros "!> !> _". wp_if. wp_proj. by iApply "HΦ".
   Qed.
 
 End stack.

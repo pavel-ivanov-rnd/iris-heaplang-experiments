@@ -83,3 +83,4 @@ theories/hocap/parfib.v
 
 theories/logatom_stack/stack.v
 theories/logatom_stack/spec.v
+theories/logatom_stack/hocap_spec.v

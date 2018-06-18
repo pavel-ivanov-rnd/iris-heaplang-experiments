@@ -25,12 +25,12 @@ Record atomic_stack {Σ} `{!heapG Σ} := AtomicStack {
   push_spec N γs s e v :
     IntoVal e v →
     is_stack N γs s -∗
-    <<< ∀ l, stack_content γs l >>>
+    <<< ∀ l : list val, stack_content γs l >>>
       push (s, e) @ ⊤∖↑N
     <<< stack_content γs (v::l), RET #() >>>;
   pop_spec N γs s :
     is_stack N γs s -∗
-    <<< ∀ l, stack_content γs l >>>
+    <<< ∀ l : list val, stack_content γs l >>>
       pop s @ ⊤∖↑N
     <<< stack_content γs (tail l),
         RET match l with [] => NONEV | v :: _ => SOMEV v end >>>;
