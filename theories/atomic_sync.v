@@ -1,9 +1,11 @@
 
-From iris.program_logic Require Export weakestpre hoare.
+From iris.program_logic Require Export weakestpre hoare atomic.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import agree frac.
-From iris_atomic Require Import atomic sync misc.
+From iris_atomic Require Import sync misc.
+
+(** The simple syncer spec in [sync.v] implies a logically atomic spec. *)
 
 Definition syncR := prodR fracR (agreeR valC). (* track the local knowledge of ghost state *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.
@@ -27,9 +29,7 @@ Section atomic_sync.
   (* TODO: Provide better masks. ∅ as inner mask is pretty weak. *)
   Definition atomic_synced (ϕ: A → iProp Σ) γ (f f': val) :=
     (□ ∀ α β (x: val), atomic_seq_spec ϕ α β f x →
-                       atomic_triple (fun g => gHalf γ g ∗ □ α g)%I
-                                     (fun g v => ∃ g', gHalf γ g' ∗ β g g' v)%I
-                                     ∅ ⊤ (f' x))%I.
+                       <<< ∀ g, gHalf γ g ∗ □ α g >>> f' x @ ⊤ <<< ∃ v, ∃ g', gHalf γ g' ∗ β g g' v, RET v >>>)%I.
 
   (* TODO: Use our usual style with a generic post-condition. *)
   (* TODO: We could get rid of the x, and hard-code a unit. That would
@@ -57,22 +57,21 @@ Section atomic_sync.
     iSplitL "Hg2"; first done. iIntros "!#".
     iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
     iIntros (f') "#Hsynced {Hsyncer}".
-    iAlways. iIntros (α β x) "#Hseq".
-    iIntros (P Q) "#Hvss !# HP".
+    iAlways. iIntros (α β x) "#Hseq". change (ofe_car AC) with A.
+    iApply wp_atomic_intro. iIntros (Φ') "?".
     (* TODO: Why can't I iApply "Hsynced"? *)
-    iSpecialize ("Hsynced" $! P Q x).
-    iApply wp_wand_r. iSplitL "HP".
-    - iApply ("Hsynced" with "[]")=>//.
+    iSpecialize ("Hsynced" $! _ Φ' x).
+    iApply wp_wand_r. iSplitL.
+    - iApply ("Hsynced" with "[]")=>//; last iAccu.
       iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
       (* we should view shift at this point *)
-      iDestruct ("Hvss" with "HP") as "Hvss'". iApply fupd_wp.
-      iMod "Hvss'". iDestruct "Hvss'" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
+      iApply fupd_wp. iMod "HP" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
       iDestruct (m_frag_agree with "Hg1 Hg2") as %Heq. subst.
       iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
       iModIntro. iApply wp_fupd. iApply wp_wand_r. iSplitL "Hϕ".
       { iApply "Hseq". iFrame. done. }
       iIntros (v) "H". iDestruct "H" as (g') "[Hϕ' Hβ]".
-      iMod ("Hvss" with "HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
+      iMod ("HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
       iSpecialize ("Hvs2" $! v).
       iDestruct (m_frag_agree' with "Hg'' Hg1") as "[Hg %]". subst.
       rewrite Qp_div_2.

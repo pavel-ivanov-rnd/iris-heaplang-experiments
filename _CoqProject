@@ -1,8 +1,6 @@
 -Q theories iris_atomic
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
-theories/atomic.v
 theories/sync.v
-theories/atomic_incr.v
 theories/simple_sync.v
 theories/flat.v
 theories/atomic_sync.v
