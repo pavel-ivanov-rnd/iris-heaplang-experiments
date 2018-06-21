@@ -10,7 +10,6 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import cmra agree frac csum excl.
 From iris.heap_lang.lib Require Import lock spin_lock.
-From iris.base_logic.lib Require Import fractional.
 From iris_examples.hocap Require Import abstract_bag shared_bag concurrent_runners.
 
 Section contents.

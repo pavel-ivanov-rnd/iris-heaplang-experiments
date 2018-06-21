@@ -91,7 +91,7 @@ Section stack_works.
      - The resources for the successful and failing pop must be disjoint.
        Instead, there should be a normal conjunction between them.
      Open question: How does this relate to a logically atomic spec? *)
-  Theorem stack_works ι P Q Q' Q'' Φ :
+  Theorem stack_works ι P Q Q' Q'' (Φ : val → iProp Σ) :
     ▷ (∀ (f₁ f₂ : val),
         (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) ∧ (* pop *)
             (P [] ={⊤∖↑ι}=∗ Q' ∗ P []) -∗

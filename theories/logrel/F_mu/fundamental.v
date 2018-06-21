@@ -2,7 +2,6 @@ From iris_examples.logrel.F_mu Require Export logrel.
 From iris.program_logic Require Import lifting.
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu Require Import rules.
-From iris.base_logic Require Export big_op.
 
 Definition log_typed `{irisG F_mu_lang Σ} (Γ : list type) (e : expr) (τ : type) := ∀ Δ vs,
   env_Persistent Δ →
@@ -74,12 +73,12 @@ Section fundamental.
       iIntros (w) "?". by rewrite interp_subst.
     - (* Fold *)
       smart_wp_bind FoldCtx v "#Hv" IHtyped; cbn. iApply wp_value.
-      rewrite /= -interp_subst fixpoint_unfold /=.
+      rewrite /= -interp_subst fixpoint_interp_rec1_eq /=.
       iAlways; eauto.
     - (* Unfold *)
       iApply (wp_bind (fill [UnfoldCtx]));
         iApply wp_wand_l; iSplitL; [|iApply IHtyped; trivial].
-      iIntros (v) "#Hv". rewrite /= fixpoint_unfold.
+      iIntros (v) "#Hv /=". rewrite /= fixpoint_interp_rec1_eq.
       change (fixpoint _) with (⟦ TRec τ ⟧ Δ); simpl.
       iDestruct "Hv" as (w) "#[% Hw]"; subst; simpl.
       iApply wp_pure_step_later; auto. iApply wp_value; iNext.

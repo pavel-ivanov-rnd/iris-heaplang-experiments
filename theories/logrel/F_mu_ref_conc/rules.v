@@ -1,6 +1,6 @@
 From iris.program_logic Require Export weakestpre.
 From iris.program_logic Require Import ectx_lifting.
-From iris.base_logic Require Export invariants big_op.
+From iris.base_logic Require Export invariants.
 From iris.algebra Require Import auth frac agree gmap.
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
 From iris.proofmode Require Import tactics.
@@ -21,8 +21,8 @@ Instance heapIG_irisG `{heapIG Σ} : irisG F_mu_ref_conc_lang Σ := {
 Global Opaque iris_invG.
 
 Notation "l ↦ᵢ{ q } v" := (mapsto (L:=loc) (V:=val) l q v)
-  (at level 20, q at level 50, format "l  ↦ᵢ{ q }  v") : uPred_scope.
-Notation "l ↦ᵢ v" := (mapsto (L:=loc) (V:=val) l 1 v) (at level 20) : uPred_scope.
+  (at level 20, q at level 50, format "l  ↦ᵢ{ q }  v") : bi_scope.
+Notation "l ↦ᵢ v" := (mapsto (L:=loc) (V:=val) l 1 v) (at level 20) : bi_scope.
 
 Section lang_rules.
   Context `{heapIG Σ}.
@@ -56,7 +56,7 @@ Section lang_rules.
     IntoVal e v →
     {{{ True }}} Alloc e @ E {{{ l, RET (LocV l); l ↦ᵢ v }}}.
   Proof.
-    iIntros (<-%of_to_val Φ) "_ HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
+    iIntros (<- Φ) "_ HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1) "Hσ !>"; iSplit; first by auto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_alloc with "Hσ") as "[Hσ Hl]"; first done.
@@ -78,7 +78,7 @@ Section lang_rules.
     {{{ ▷ l ↦ᵢ v' }}} Store (Loc l) e @ E
     {{{ RET UnitV; l ↦ᵢ v }}}.
   Proof.
-    iIntros (<-%of_to_val Φ) ">Hl HΦ".
+    iIntros (<- Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto. iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
@@ -91,7 +91,7 @@ Section lang_rules.
     {{{ ▷ l ↦ᵢ{q} v' }}} CAS (Loc l) e1 e2 @ E
     {{{ RET (BoolV false); l ↦ᵢ{q} v' }}}.
   Proof.
-    iIntros (<-%of_to_val <-%of_to_val ? Φ) ">Hl HΦ".
+    iIntros (<- <- ? Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto.
@@ -104,7 +104,7 @@ Section lang_rules.
     {{{ ▷ l ↦ᵢ v1 }}} CAS (Loc l) e1 e2 @ E
     {{{ RET (BoolV true); l ↦ᵢ v2 }}}.
   Proof.
-    iIntros (<-%of_to_val <-%of_to_val Φ) ">Hl HΦ".
+    iIntros (<- <- Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto. iNext; iIntros (v2' σ2 efs Hstep); inv_head_step.
@@ -124,8 +124,8 @@ Section lang_rules.
   Local Ltac solve_exec_safe := intros; subst; do 3 eexists; econstructor; eauto.
   Local Ltac solve_exec_puredet := simpl; intros; by inv_head_step.
   Local Ltac solve_pure_exec :=
-    unfold IntoVal, AsVal in *; subst;
-    repeat match goal with H : is_Some _ |- _ => destruct H as [??] end;
+    unfold IntoVal in *; subst;
+    repeat match goal with H : AsVal _ |- _ => destruct H as [??] end;
     apply det_head_step_pure_exec; [ solve_exec_safe | solve_exec_puredet ].
 
   Global Instance pure_rec e1 e2 `{!AsVal e2} :

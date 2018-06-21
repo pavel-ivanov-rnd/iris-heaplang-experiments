@@ -1,7 +1,6 @@
 From iris_examples.logrel.stlc Require Export logrel.
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.stlc Require Import rules.
-From iris.base_logic Require Export big_op.
 From iris.program_logic Require Import lifting.
 
 Section typed_interp.

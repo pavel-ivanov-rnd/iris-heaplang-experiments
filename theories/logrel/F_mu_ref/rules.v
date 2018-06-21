@@ -1,6 +1,6 @@
 From iris.program_logic Require Export weakestpre.
 From iris.program_logic Require Import ectx_lifting.
-From iris.base_logic Require Export invariants big_op.
+From iris.base_logic Require Export invariants.
 From iris.algebra Require Import auth frac agree gmap.
 From iris_examples.logrel.F_mu_ref Require Export lang.
 From iris.proofmode Require Import tactics.
@@ -20,12 +20,12 @@ Global Opaque iris_invG.
 
 (** Override the notations so that scopes and coercions work out *)
 Notation "l ↦{ q } v" := (mapsto (L:=loc) (V:=val) l q v%V)
-  (at level 20, q at level 50, format "l  ↦{ q }  v") : uPred_scope.
+  (at level 20, q at level 50, format "l  ↦{ q }  v") : bi_scope.
 Notation "l ↦ v" :=
-  (mapsto (L:=loc) (V:=val) l 1 v%V) (at level 20) : uPred_scope.
+  (mapsto (L:=loc) (V:=val) l 1 v%V) (at level 20) : bi_scope.
 Notation "l ↦{ q } -" := (∃ v, l ↦{q} v)%I
-  (at level 20, q at level 50, format "l  ↦{ q }  -") : uPred_scope.
-Notation "l ↦ -" := (l ↦{1} -)%I (at level 20) : uPred_scope.
+  (at level 20, q at level 50, format "l  ↦{ q }  -") : bi_scope.
+Notation "l ↦ -" := (l ↦{1} -)%I (at level 20) : bi_scope.
 
 Section lang_rules.
   Context `{heapG Σ}.
@@ -60,7 +60,7 @@ Section lang_rules.
     IntoVal e v →
     {{{ True }}} Alloc e @ E {{{ l, RET (LocV l); l ↦ v }}}.
   Proof.
-    iIntros (<-%of_to_val Φ) "_ HΦ".
+    iIntros (<- Φ) "_ HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1) "Hσ !>"; iSplit; first by auto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
@@ -94,8 +94,8 @@ Section lang_rules.
   Local Ltac solve_exec_safe := intros; subst; do 3 eexists; econstructor; eauto.
   Local Ltac solve_exec_puredet := simpl; intros; by inv_head_step.
   Local Ltac solve_pure_exec :=
-    unfold IntoVal, AsVal in *; subst;
-    repeat match goal with H : is_Some _ |- _ => destruct H as [??] end;
+    unfold IntoVal in *; subst;
+    repeat match goal with H : AsVal _ |- _ => destruct H as [??] end;
     apply det_head_step_pure_exec; [ solve_exec_safe | solve_exec_puredet ].
 
   Global Instance pure_lam e1 e2 `{!AsVal e2} :

@@ -29,7 +29,7 @@ Ltac properness :=
   | |- (_ → _)%I ≡ (_ → _)%I => apply impl_proper
   | |- (WP _ {{ _ }})%I ≡ (WP _ {{ _ }})%I => apply wp_proper =>?
   | |- (▷ _)%I ≡ (▷ _)%I => apply later_proper
-  | |- (□ _)%I ≡ (□ _)%I => apply persistently_proper
+  | |- (□ _)%I ≡ (□ _)%I => apply intuitionistically_proper
   | |- (_ ∗ _)%I ≡ (_ ∗ _)%I => apply sep_proper
   | |- (inv _ _)%I ≡ (inv _ _)%I => apply (contractive_proper _)
   end.

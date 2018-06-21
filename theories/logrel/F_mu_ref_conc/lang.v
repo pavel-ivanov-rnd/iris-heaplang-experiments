@@ -296,13 +296,13 @@ Export F_mu_ref_conc.
 
 Hint Extern 20 (PureExec _ _ _) => progress simpl : typeclass_instances.
 
-Hint Extern 5 (IntoVal _ _) => eapply to_of_val : typeclass_instances.
+Hint Extern 5 (IntoVal _ _) => eapply of_to_val; fast_done : typeclass_instances.
 Hint Extern 10 (IntoVal _ _) =>
-  rewrite /IntoVal /= ?to_of_val /=; eauto : typeclass_instances.
+  rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
 
-Hint Extern 5 (AsVal _) => eexists; eapply to_of_val : typeclass_instances.
+Hint Extern 5 (AsVal _) => eexists; eapply of_to_val; fast_done : typeclass_instances.
 Hint Extern 10 (AsVal _) =>
-  eexists; rewrite /IntoVal /= ?to_of_val /=; eauto : typeclass_instances.
+  eexists; rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
 
 Definition is_atomic (e : expr) : Prop :=
   match e with

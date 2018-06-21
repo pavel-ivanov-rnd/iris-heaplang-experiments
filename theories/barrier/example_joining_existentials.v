@@ -57,10 +57,12 @@ Proof.
   iDestruct 1 as (x) "[#Hγ Hx]"; iDestruct 1 as (x') "[#Hγ' Hx']".
   iAssert (▷ (x ≡ x'))%I as "Hxx".
   { iCombine "Hγ" "Hγ'" as "Hγ2". iClear "Hγ Hγ'".
-    rewrite own_valid csum_validI /= agree_validI agree_equivI uPred.later_equivI /=.
+    rewrite own_valid csum_validI /= agree_validI agree_equivI bi.later_equivI /=.
     rewrite -{2}[x]cFunctor_id -{2}[x']cFunctor_id.
-    rewrite (ne_proper (cFunctor_map F) (cid, cid) (_ ◎ _, _ ◎ _)); last first.
-    { by split; intro; simpl; symmetry; apply iProp_fold_unfold. }
+    assert (HF : cFunctor_map F (cid, cid) ≡ cFunctor_map F (iProp_fold (Σ:=Σ) ◎ iProp_unfold, iProp_fold (Σ:=Σ) ◎ iProp_unfold)).
+    { apply ne_proper; first by apply _.
+      by split; intro; simpl; symmetry; apply iProp_fold_unfold. }
+    rewrite (HF x). rewrite (HF x').
     rewrite !cFunctor_compose. iNext. by iRewrite "Hγ2". }
   iNext. iRewrite -"Hxx" in "Hx'".
   iExists x; iFrame "Hγ". iApply (Ψ_join with "Hx Hx'").

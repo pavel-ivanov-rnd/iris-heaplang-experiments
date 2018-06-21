@@ -3,9 +3,9 @@
     <http://www.kasv.dk/articles/hocap-ext.pdf>
 *)
 From iris.heap_lang Require Import proofmode notation.
+From iris.bi.lib Require Import fractional.
 From iris.algebra Require Import cmra agree frac csum excl.
 From iris.heap_lang.lib Require Import assert.
-From iris.base_logic.lib Require Import fractional.
 From iris_examples.hocap Require Export abstract_bag shared_bag lib.oneshot.
 Set Default Proof Using "Type".
 
@@ -208,11 +208,11 @@ Section contents.
       (∃ (body bag : val), ⌜r = (body, bag)%V⌝
        ∗ bagS b (N.@"bag") (λ x y, ∃ γ γ', isTask (body,x) γ γ' y P Q) γ bag
        ∗ ▷ ∀ r a: val, □ (runner γ P Q r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
-  Proof. rewrite /runner. by rewrite {1}fixpoint_unfold. Qed.
+  Proof. rewrite /runner. by rewrite {1}(fixpoint_unfold (pre_runner _ _ _) r). Qed.
 
   Global Instance runner_persistent γ r P Q :
     Persistent (runner γ P Q r).
-  Proof. rewrite /runner fixpoint_unfold. apply _. Qed.
+  Proof. rewrite /runner (fixpoint_unfold (pre_runner _ _ _) r). apply _. Qed.
 
   Lemma newTask_spec γb (r a : val) P (Q : val → val → iProp Σ) :
     {{{ runner γb P Q r ∗ P a }}}
@@ -231,14 +231,13 @@ Section contents.
     iFrame. iSplitL; iExists _,_,_; iFrame "Hinv"; eauto.
   Qed.
 
-  Lemma task_Join_spec γb γ γ' (te : expr) (r t a : val) P Q
-    `{!IntoVal te t}:
+  Lemma task_Join_spec γb γ γ' (te : expr) (r t a : val) P Q :
+    IntoVal te t →
     {{{ runner γb P Q r ∗ task γ γ' t a P Q }}}
        task_Join te
     {{{ res, RET res; Q a res }}}.
   Proof.
-    iIntros (Φ) "[#Hrunner Htask] HΦ".
-    rewrite -(of_to_val te t into_val).
+    iIntros (<- Φ) "[#Hrunner Htask] HΦ".
     iLöb as "IH".
     rewrite {2}/task_Join.
     iDestruct "Htask" as (r' state res) "(% & Htoken & #Htask)". simplify_eq.
@@ -386,16 +385,14 @@ Section contents.
     - iNext. by iApply runner_runTasks_spec.
   Qed.
 
-  Lemma newRunner_spec P Q (fe ne : expr) (f : val) (n : nat)
-    `{!IntoVal fe f} `{!IntoVal ne (#n)}:
+  Lemma newRunner_spec P Q (fe ne : expr) (f : val) (n : nat) :
+    IntoVal fe f → IntoVal ne (#n) →
     {{{ ∀ (γ: name Σ b) (r: val),
           □ ∀ a: val, (runner γ P Q r ∗ P a -∗ WP f r a {{ v, Q a v }}) }}}
        newRunner fe ne
     {{{ γb r, RET r; runner γb P Q r }}}.
   Proof.
-    iIntros (Φ) "#Hf HΦ".
-    rewrite -(of_to_val fe f into_val).
-    rewrite -(of_to_val ne #n into_val).
+    iIntros (<- <- Φ) "#Hf HΦ".
     unfold newRunner. iApply wp_fupd.
     repeat wp_pure _.
     wp_bind (newBag b #()).
@@ -408,15 +405,13 @@ Section contents.
     iNext. iIntros (r) "Hr". by iApply "HΦ".
   Qed.
 
-  Lemma runner_Fork_spec γb (re ae:expr) (r a:val) P Q
-    `{!IntoVal re r} `{!IntoVal ae a}:
+  Lemma runner_Fork_spec γb (re ae:expr) (r a:val) P Q :
+    IntoVal re r → IntoVal ae a →
     {{{ runner γb P Q r ∗ P a }}}
        runner_Fork re ae
     {{{ γ γ' t, RET t; task γ γ' t a P Q }}}.
   Proof.
-    iIntros (Φ) "[#Hrunner HP] HΦ".
-    rewrite -(of_to_val re r into_val).
-    rewrite -(of_to_val ae a into_val).
+    iIntros (<- <- Φ) "[#Hrunner HP] HΦ".
     rewrite /runner_Fork runner_unfold.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)". simplify_eq.
     Local Opaque newTask.

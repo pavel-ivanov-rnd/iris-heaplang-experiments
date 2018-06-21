@@ -1,8 +1,8 @@
 From iris_examples.logrel.F_mu_ref Require Export logrel_binary.
+From iris.algebra Require Import list.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.F_mu_ref Require Import rules_binary.
-From iris.base_logic Require Export big_op.
 
 Section bin_log_def.
   Context `{heapG Σ,cfgSG Σ}.
@@ -216,7 +216,7 @@ Section fundamental.
     iIntros (v); iDestruct 1 as (w) "[Hv #Hiv]".
     iApply wp_value. repeat rewrite /= to_of_val; eauto.
     iExists (FoldV w); iFrame "Hv".
-    rewrite fixpoint_unfold /= -interp_subst.
+    rewrite fixpoint_interp_rec1_eq /= -interp_subst.
     iAlways; iExists (_, _); eauto.
   Qed.
 
@@ -229,7 +229,7 @@ Section fundamental.
         [|iApply ('`IHHtyped _ _ _ (UnfoldCtx :: K));
           rewrite ?fill_app; simpl; repeat iSplitR; trivial].
     iIntros (v). iDestruct 1 as (v') "[Hw #Hiw]".
-    rewrite /= fixpoint_unfold /=.
+    rewrite /= fixpoint_interp_rec1_eq /=.
     change (fixpoint _) with (interp (TRec τ) Δ).
     iDestruct "Hiw" as ([w w']) "#[% Hiz]"; simplify_eq/=.
     iMod (step_Fold _ _ K (of_val w') with "* [-]") as "Hz"; eauto.

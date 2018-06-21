@@ -1,6 +1,5 @@
 From iris.program_logic Require Import lifting.
 From iris.algebra Require Import auth frac agree gmap list.
-From iris.base_logic Require Import big_op.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules.
 From iris.proofmode Require Import tactics.
 Import uPred.
@@ -44,9 +43,9 @@ End definitionsS.
 Typeclasses Opaque heapS_mapsto tpool_mapsto.
 
 Notation "l ↦ₛ{ q } v" := (heapS_mapsto l q v)
-  (at level 20, q at level 50, format "l  ↦ₛ{ q }  v") : uPred_scope.
-Notation "l ↦ₛ v" := (heapS_mapsto l 1 v) (at level 20) : uPred_scope.
-Notation "j ⤇ e" := (tpool_mapsto j e) (at level 20) : uPred_scope.
+  (at level 20, q at level 50, format "l  ↦ₛ{ q }  v") : bi_scope.
+Notation "l ↦ₛ v" := (heapS_mapsto l 1 v) (at level 20) : bi_scope.
+Notation "j ⤇ e" := (tpool_mapsto j e) (at level 20) : bi_scope.
 
 Ltac iAsimpl :=
   repeat match goal with

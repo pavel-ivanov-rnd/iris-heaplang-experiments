@@ -1,7 +1,7 @@
+From iris.algebra Require Import list.
 From iris_examples.logrel.F_mu_ref_conc Require Export logrel_binary.
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu_ref_conc Require Import rules_binary.
-From iris.base_logic Require Export big_op.
 From iris.program_logic Require Export lifting.
 
 Section bin_log_def.
@@ -270,7 +270,7 @@ Section fundamental.
           simpl; repeat iSplitR; trivial].
     iIntros (v); iDestruct 1 as (w) "[Hv #Hiv]".
     iApply wp_value. iExists (FoldV w); iFrame "Hv".
-    rewrite fixpoint_unfold /= -interp_subst.
+    rewrite fixpoint_interp_rec1_eq /= -interp_subst.
     iAlways; iExists (_, _); eauto.
   Qed.
 
@@ -283,7 +283,7 @@ Section fundamental.
         [|iApply ('`IHHtyped _ _ _ j (UnfoldCtx :: K));
           simpl; repeat iSplitR; trivial].
     iIntros (v). iDestruct 1 as (v') "[Hw #Hiw]".
-    rewrite /= fixpoint_unfold /=.
+    rewrite /= fixpoint_interp_rec1_eq /=.
     change (fixpoint _) with (interp (TRec τ) Δ).
     iDestruct "Hiw" as ([w w']) "#[% Hiz]"; simplify_eq/=.
     iApply fupd_wp.
@@ -300,7 +300,7 @@ Section fundamental.
     iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply fupd_wp.
     iMod (step_fork _ _ j K with "* [-]") as (j') "[Hj Hj']"; eauto.
-    iApply wp_fork; iModIntro. iNext; iSplitL "Hj".
+    iApply wp_fork; iModIntro. rewrite -bi.later_sep. iNext; iSplitL "Hj".
     - iExists UnitV; eauto.
     - iApply wp_wand_l; iSplitR; [|iApply ('`IHHtyped _ _ _ _ [])]; eauto.
   Qed.

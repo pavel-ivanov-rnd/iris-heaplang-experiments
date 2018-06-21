@@ -5,7 +5,7 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import agree frac frac_auth.
 
-From iris.base_logic.lib Require Import fractional.
+From iris.bi.lib Require Import fractional.
 
 From iris.heap_lang.lib Require Import par.
 
@@ -39,9 +39,9 @@ Section cnt_model.
   Definition makeElem (q : Qp) (m : Z) : cntCmra := (q, to_agree m).
 
   Notation "γ ⤇[ q ] m" := (own γ (makeElem q m))
-    (at level 20, q at level 50, format "γ ⤇[ q ]  m") : uPred_scope.
+    (at level 20, q at level 50, format "γ ⤇[ q ]  m") : bi_scope.
   Notation "γ ⤇½ m" := (own γ (makeElem (1/2) m))
-    (at level 20, format "γ ⤇½  m") : uPred_scope.
+    (at level 20, format "γ ⤇½  m") : bi_scope.
 
   Global Instance makeElem_fractional γ m: Fractional (λ q, γ ⤇[q] m)%I.
   Proof.
@@ -98,9 +98,9 @@ Section cnt_model.
 End cnt_model.  
 
 Notation "γ ⤇[ q ] m" := (own γ (makeElem q m))
-  (at level 20, q at level 50, format "γ ⤇[ q ]  m") : uPred_scope.
+  (at level 20, q at level 50, format "γ ⤇[ q ]  m") : bi_scope.
 Notation "γ ⤇½ m" := (own γ (makeElem (1/2) m))
-  (at level 20, format "γ ⤇½  m") : uPred_scope.
+  (at level 20, format "γ ⤇½  m") : bi_scope.
 
 Section cnt_spec.
   Context `{!heapG Σ, !cntG Σ} (N : namespace).
@@ -158,7 +158,7 @@ Section cnt_spec.
     {{{ Cnt ℓ γ ∗ P }}} incr #ℓ @ E {{{ (m : Z), RET #m; Cnt ℓ γ ∗ Q m}}}.
   Proof.
     iIntros (Hsubset) "#HVS".
-    iIntros (Φ) "!# [HInc HP] HCont".
+    iIntros (Φ) "!# [#HInc HP] HCont".
     iLöb as "IH".
     wp_rec.
     wp_bind (! _)%E.
@@ -178,13 +178,13 @@ Section cnt_spec.
       { iNext; iExists _; iFrame. }
       iModIntro.
       wp_if.
-      iApply "HCont"; iFrame.
+      iApply "HCont"; by iFrame.
     - wp_cas_fail.
       iMod ("HClose" with "[Hpt Hown]") as "_".
       { iNext; iExists _; iFrame. }
       iModIntro.
       wp_if.
-      iApply ("IH" with "HInc HP HCont").
+      iApply ("IH" with "HP HCont").
   Qed.
 
   Theorem wk_incr_spec (γ : gname) (E : coPset) (P Q : iProp Σ) (ℓ : loc) (n : Z) (q : Qp):
@@ -193,7 +193,7 @@ Section cnt_spec.
     {{{ Cnt ℓ γ ∗ γ ⤇[q] n ∗ P}}} wk_incr #ℓ @ E {{{ RET #(); Cnt ℓ γ ∗ Q}}}.
   Proof.
     iIntros (Hsubset) "#HVS".
-    iIntros (Φ) "!# [HInc [Hγ HP]] HCont".
+    iIntros (Φ) "!# [#HInc [Hγ HP]] HCont".
     wp_lam.
     wp_bind (! _)%E.
     iInv (N .@ "internal") as (m) "[>Hpt >Hown]" "HClose".
@@ -211,7 +211,7 @@ Section cnt_spec.
     iMod ("HClose" with "[Hpt Hown]") as "_".
     { iNext; iExists _; iFrame. }
     iModIntro. 
-    iApply "HCont"; iFrame.
+    iApply "HCont"; by iFrame.
   Qed.
   
   Theorem wk_incr_spec' (γ : gname) (E : coPset) (P Q : iProp Σ) (ℓ : loc) (n : Z) (q : Qp):

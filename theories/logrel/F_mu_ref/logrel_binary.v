@@ -1,6 +1,6 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
-From iris.base_logic Require Export big_op invariants.
+From iris.base_logic Require Export invariants.
 From iris_examples.logrel.F_mu_ref Require Export rules_binary typing.
 From iris.algebra Require Import list.
 From stdpp Require Import tactics.
@@ -40,7 +40,7 @@ Section logrel.
 
   Program Definition ctx_lookup (x : var) : listC D -n> D := λne Δ,
     from_option id (cconst True)%I (Δ !! x).
-  Solve Obligations with solve_proper_alt.
+  Solve Obligations with solve_proper.
 
   Program Definition interp_unit : listC D -n> D := λne Δ ww,
     (⌜ww.1 = UnitV⌝ ∧ ⌜ww.2 = UnitV⌝)%I.
@@ -83,6 +83,10 @@ Section logrel.
   Global Instance interp_rec1_contractive
     (interp : listC D -n> D) (Δ : listC D) : Contractive (interp_rec1 interp Δ).
   Proof. by solve_contractive. Qed.
+
+  Lemma fixpoint_interp_rec1_eq (interp : listC D -n> D) Δ x :
+    fixpoint (interp_rec1 interp Δ) x ≡ interp_rec1 interp Δ (fixpoint (interp_rec1 interp Δ)) x.
+  Proof. exact: (fixpoint_unfold (interp_rec1 interp Δ) x). Qed.
 
   Program Definition interp_rec (interp : listC D -n> D) : listC D -n> D := λne Δ,
     fixpoint (interp_rec1 interp Δ).
@@ -132,7 +136,7 @@ Section logrel.
     env_Persistent Δ → Persistent (⟦ τ ⟧ Δ vv).
   Proof.
     revert vv Δ; induction τ=> vv Δ HΔ; simpl; try apply _.
-    rewrite /Persistent /interp_rec fixpoint_unfold /interp_rec1 /=.
+    rewrite /Persistent fixpoint_interp_rec1_eq /interp_rec1 /= intuitionistically_into_persistently.
     by apply persistently_intro'.
   Qed.
   Global Instance interp_env_base_persistent Δ Γ vs :
@@ -157,7 +161,9 @@ Section logrel.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
-      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia. 
+      (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
+      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
+      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
     - unfold interp_expr.
       intros ww; simpl; properness; auto. by apply (IHτ (_ :: _)).
     - intros ww; simpl; properness; auto. by apply IHτ.
@@ -176,16 +182,19 @@ Section logrel.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
+      (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
+      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
       rewrite !lookup_app_r; [|lia ..].
-      destruct (x - length Δ1) as [|n] eqn:?; simpl.
+      case EQ: (x - length Δ1) => [|n]; simpl.
       { symmetry. asimpl. apply (interp_weaken [] Δ1 Δ2 τ'). }
-      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia. 
+      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
+      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
     - unfold interp_expr.
       intros ww; simpl; properness; auto. apply (IHτ (_ :: _)).
     - intros ww; simpl; properness; auto. by apply IHτ.
   Qed.
 
-  Lemma interp_subst Δ2 τ τ' : ⟦ τ ⟧ (⟦ τ' ⟧ Δ2 :: Δ2) ≡ ⟦ τ.[τ'/] ⟧ Δ2.
+  Lemma interp_subst Δ2 τ τ' v : ⟦ τ ⟧ (⟦ τ' ⟧ Δ2 :: Δ2) v ≡ ⟦ τ.[τ'/] ⟧ Δ2 v.
   Proof. apply (interp_subst_up []). Qed.
 
   Lemma interp_env_length Δ Γ vvs : ⟦ Γ ⟧* Δ vvs ⊢ ⌜length Γ = length vvs⌝.

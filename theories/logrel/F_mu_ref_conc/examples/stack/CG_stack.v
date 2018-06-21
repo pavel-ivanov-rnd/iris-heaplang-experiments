@@ -332,7 +332,7 @@ Section CG_Stack.
       ⊢ |={E}=> j ⤇ (fill K (of_val v)) ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_snap.
-    iMod (steps_with_lock _ _ j K _ _ (st ↦ₛ v) _ v UnitV _ _
+    iMod (steps_with_lock _ _ j K _ _ (st ↦ₛ v)%I _ v UnitV _ _
           with "[Hj Hx Hl]") as "Hj"; last done; [|iFrame; iFrame "#"].
     iIntros (K') "[#Hspec [Hx Hj]]".
     iMod (step_rec _ _ j K' _ _ _ _ with "[Hj]") as "Hj"; eauto.

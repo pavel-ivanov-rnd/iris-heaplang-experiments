@@ -50,8 +50,8 @@ Definition myrec : val :=
 (* Here is the specification for the recursion through the store function.
    See the Iris Lecture Notes for an in-depth discussion of both the specification and
    the proof. *)
-Lemma myrec_spec (P: val -> iProp Σ) (Q: val -> val -> iProp Σ) (F v1: val) (e_F e_v : expr)
-   `{HeF : !IntoVal e_F F} `{Hev1 : !IntoVal e_v v1}:
+Lemma myrec_spec (P: val -> iProp Σ) (Q: val -> val -> iProp Σ) (F v1: val) (e_F e_v : expr) :
+  IntoVal e_F F → IntoVal e_v v1 →
   {{{
        ( ∀e_f:expr,∀f : val,  ∀v2:val, ⌜IntoVal e_f f⌝ -∗ {{{(∀ v3 :val, {{{P v3 }}} e_f v3 {{{u, RET u; Q u v3 }}})
                                 ∗ P v2 }}}
@@ -62,9 +62,7 @@ Lemma myrec_spec (P: val -> iProp Σ) (Q: val -> val -> iProp Σ) (F v1: val) (e
 myrec e_F e_v
   {{{u, RET u; Q u v1}}}.
 Proof.
-  apply of_to_val in HeF as <-.
-  apply of_to_val in Hev1 as <-.
-   iIntros (ϕ) "[#H P] Q".
+   iIntros (<- <- ϕ) "[#H P] Q".
    wp_lam.
    wp_alloc r as "r".
    wp_let.
@@ -183,11 +181,10 @@ Section factorial_client.
       myfac n
       {{{v, RET v; ⌜v = #(fac_int n')⌝}}}.
   Proof.
-    iIntros (H%of_to_val Hleq Φ) "_ ret"; simplify_eq.
+    iIntros (<- Hleq Φ) "_ ret"; simplify_eq.
     iApply (myrec_spec (fun v => ⌜∃m' : Z, 0 ≤ m' ∧ to_val v = Some #m'⌝%I)
                        (fun u => fun v => ⌜∃m' : Z, to_val v = Some #m' ∧ u = #(fac_int m')⌝%I)).
-    - iSplit; last eauto. iIntros (e_f f v) "%". iAlways. iIntros (Φ') "spec_f ret".
-      apply of_to_val in a as <-.
+    - iSplit; last eauto. iIntros (e_f f v <-). iAlways. iIntros (Φ') "spec_f ret".
       wp_lam. wp_lam. iDestruct "spec_f" as "[spec_f %]".
       destruct H as [m' [Hleqm' Heq%of_to_val]]; simplify_eq.
       wp_binop.

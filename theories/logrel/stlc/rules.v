@@ -25,8 +25,8 @@ Section stlc_rules.
   Local Ltac solve_exec_safe := intros; subst; do 3 eexists; econstructor; eauto.
   Local Ltac solve_exec_puredet := simpl; intros; by inv_head_step.
   Local Ltac solve_pure_exec :=
-    unfold IntoVal, AsVal in *; subst;
-    repeat match goal with H : is_Some _ |- _ => destruct H as [??] end;
+    unfold IntoVal in *; subst;
+    repeat match goal with H : AsVal _ |- _ => destruct H as [??] end;
     apply det_head_step_pure_exec; [ solve_exec_safe | solve_exec_puredet ].
 
   (** Helper Lemmas for weakestpre. *)

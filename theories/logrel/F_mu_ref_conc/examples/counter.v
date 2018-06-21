@@ -1,5 +1,5 @@
 From iris.proofmode Require Import tactics.
-From iris.algebra Require Import auth.
+From iris.algebra Require Import auth list.
 From iris_examples.logrel.F_mu_ref_conc Require Export examples.lock.
 From iris_examples.logrel.F_mu_ref_conc Require Import soundness_binary.
 From iris.program_logic Require Import adequacy.

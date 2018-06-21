@@ -1,4 +1,4 @@
-From iris.algebra Require Import auth.
+From iris.algebra Require Import auth list.
 From iris.program_logic Require Import adequacy ectxi_language.
 From iris_examples.logrel.F_mu_ref_conc Require Import soundness_binary.
 From iris_examples.logrel.F_mu_ref_conc.examples Require Import lock.
@@ -188,7 +188,7 @@ Section Stack_refinement.
           iApply wp_pure_step_later; auto.
           iModIntro. iNext. iAsimpl.
           iDestruct "HLK'" as (y1 z1 y2 z2) "[% HLK']". subst. simpl.
-          iApply wp_pure_step_later; [simpl; by rewrite ?to_of_val |].
+          iApply wp_pure_step_later; first done.
           iNext. iAsimpl.
           iApply (wp_bind (fill [UnfoldCtx; CasRCtx (LocV _) (LocV _); IfCtx _ _]));
             iApply wp_wand_l; iSplitR; [iIntros (w) "Hw"; iExact "Hw"|].

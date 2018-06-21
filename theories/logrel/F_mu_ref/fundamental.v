@@ -2,7 +2,6 @@ From iris_examples.logrel.F_mu_ref Require Export logrel.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.F_mu_ref Require Import rules.
-From iris.base_logic Require Export big_op.
 
 Definition log_typed `{heapG Σ} (Γ : list type) (e : expr) (τ : type) := ∀ Δ vs,
   env_Persistent Δ →
@@ -28,11 +27,11 @@ Section fundamental.
     - (* pair *)
       smart_wp_bind (PairLCtx e2.[env_subst vs]) v "#Hv" IHtyped1.
       smart_wp_bind (PairRCtx v) v' "# Hv'" IHtyped2.
-      iApply wp_value; eauto 10.
+      iApply wp_value. eauto 10.
    - (* fst *)
       smart_wp_bind (FstCtx) v "# Hv" IHtyped; cbn.
       iDestruct "Hv" as (w1 w2) "#[% [H2 H3]]"; subst.
-      iApply wp_pure_step_later; auto; by iApply wp_value.
+      iApply wp_pure_step_later; auto. by iApply wp_value.
     - (* snd *)
       smart_wp_bind (SndCtx) v "# Hv" IHtyped; cbn.
       iDestruct "Hv" as (w1 w2) "#[% [H2 H3]]"; subst.
@@ -73,12 +72,12 @@ Section fundamental.
       iIntros (w) "?". by rewrite interp_subst.
     - (* Fold *)
       smart_wp_bind FoldCtx v "#Hv" IHtyped; cbn.
-      iApply wp_value. rewrite /= -interp_subst fixpoint_unfold /=.
+      iApply wp_value. rewrite /= -interp_subst fixpoint_interp_rec1_eq /=.
       iAlways; eauto.
     - (* Unfold *)
       iApply (wp_bind (fill [UnfoldCtx]));
         iApply wp_wand_l; iSplitL; [|iApply IHtyped; auto].
-      iIntros (v) "#Hv". rewrite /= fixpoint_unfold.
+      iIntros (v) "#Hv". rewrite /= fixpoint_interp_rec1_eq.
       change (fixpoint _) with (interp  (TRec τ) Δ); simpl.
       iDestruct "Hv" as (w) "#[% Hw]"; subst.
       iApply wp_pure_step_later; cbn; auto using to_of_val.

@@ -13,7 +13,7 @@ Class stackG Σ :=
 Definition stack_mapsto `{stackG Σ} (l : loc) (v : val) : iProp Σ :=
   own stack_name (◯ {[ l := to_agree v ]}).
 
-Notation "l ↦ˢᵗᵏ v" := (stack_mapsto l v) (at level 20) : uPred_scope.
+Notation "l ↦ˢᵗᵏ v" := (stack_mapsto l v) (at level 20) : bi_scope.
 
 Section Rules.
   Context `{stackG Σ}.
@@ -47,7 +47,7 @@ Section Rules.
       (∃ y1 z1 y2 z2, ⌜w = InjRV (PairV y1 (FoldV z1))⌝
                       ∗ ⌜v.2 = FoldV (InjRV (PairV y2 z2))⌝
                       ∗ Q (y1, y2) ∗ ▷ @StackLink Q (z1, z2))))%I.
-  Proof. by rewrite {1}/StackLink fixpoint_unfold. Qed.
+  Proof. rewrite {1}/StackLink (fixpoint_unfold (StackLink_pre Q) v) //. Qed.
 
   Global Opaque StackLink. (* So that we can only use the unfold above. *)
 

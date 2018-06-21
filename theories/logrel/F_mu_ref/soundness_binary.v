@@ -1,6 +1,5 @@
 From iris_examples.logrel.F_mu_ref Require Export context_refinement.
 From iris.algebra Require Import auth frac agree.
-From iris.base_logic Require Import big_op.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref Require Import soundness.

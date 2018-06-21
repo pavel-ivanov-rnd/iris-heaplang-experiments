@@ -1,6 +1,6 @@
 From iris_examples.logrel.F_mu_ref_conc Require Export logrel_unary.
 From iris_examples.logrel.F_mu_ref_conc Require Import rules.
-From iris.base_logic Require Export big_op invariants.
+From iris.base_logic Require Export invariants.
 From iris.program_logic Require Export lifting.
 From iris.proofmode Require Import tactics.
 
@@ -91,18 +91,18 @@ Section typed_interp.
       iApply (wp_bind (fill [FoldCtx]));
         iApply wp_wand_l; iSplitL; [|iApply (IHtyped Δ vs); auto].
       iIntros (v) "#Hv". iApply wp_value.
-      rewrite /= -interp_subst fixpoint_unfold /=.
+      rewrite /= -interp_subst fixpoint_interp_rec1_eq /=.
       iAlways; eauto.
     - (* Unfold *)
       iApply (wp_bind (fill [UnfoldCtx]));
         iApply wp_wand_l; iSplitL; [|iApply IHtyped; auto].
-      iIntros (v) "#Hv". rewrite /= fixpoint_unfold.
+      iIntros (v) "#Hv". rewrite /= fixpoint_interp_rec1_eq.
       change (fixpoint _) with (⟦ TRec τ ⟧ Δ); simpl.
       iDestruct "Hv" as (w) "#[% Hw]"; subst.
       iApply wp_pure_step_later; cbn; auto using to_of_val.
       iNext. iApply wp_value. by iApply interp_subst.
     - (* Fork *)
-      iApply wp_fork. iNext; iSplitL; trivial.
+      iApply wp_fork. rewrite -bi.later_sep. iNext; iSplitL; trivial.
       iApply wp_wand_l. iSplitL; [|iApply IHtyped; auto]; auto.
     - (* Alloc *)
       smart_wp_bind AllocCtx v "#Hv" IHtyped; cbn. iClear "HΓ". iApply wp_fupd.

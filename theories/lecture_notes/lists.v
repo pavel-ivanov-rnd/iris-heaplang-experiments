@@ -304,8 +304,8 @@ Qed.
    The specifications are explained in the Iris Lecture Notes. *)
 
 
-Lemma foldr_spec_PI P I (f a hd : val) (e_f e_a e_hd : expr) (xs : list val)
-  `{Hef : !IntoVal e_f f} `{Hea : !IntoVal e_a a} `{Hehd : !IntoVal e_hd hd} :
+Lemma foldr_spec_PI P I (f a hd : val) (e_f e_a e_hd : expr) (xs : list val) :
+  IntoVal e_f f → IntoVal e_a a → IntoVal e_hd hd →
   {{{ (∀ (x a' : val) (ys : list val),
           {{{ P x ∗ I ys a'}}}
             e_f (x, a')
@@ -320,10 +320,7 @@ Lemma foldr_spec_PI P I (f a hd : val) (e_f e_a e_hd : expr) (xs : list val)
                  ∗ I xs r
   }}}.
 Proof.
-  apply of_to_val in Hef as <-.
-  apply of_to_val in Hea as <-.
-  apply of_to_val in Hehd as <-.
-  iIntros (ϕ) "(#H_f & H_isList & H_Px & H_Iempty) H_inv".
+  iIntros (<- <- <- ϕ) "(#H_f & H_isList & H_Px & H_Iempty) H_inv".
   iInduction xs as [|x xs'] "IH" forall (ϕ a hd); wp_rec; do 2 wp_let; iSimplifyEq.
   - wp_match. iApply "H_inv". eauto.
   - iDestruct "H_isList" as (l hd') "[% [H_l H_isList]]".
@@ -338,8 +335,8 @@ Proof.
     iExists l, hd'. by iFrame.
 Qed.
 
-Lemma foldr_spec_PPI P I (f a hd : val ) (e_f e_a e_hd : expr) (xs : list val)
-  `{Hef : !IntoVal e_f f} `{Hea : !IntoVal e_a a} `{Hehd : !IntoVal e_hd hd} :
+Lemma foldr_spec_PPI P I (f a hd : val ) (e_f e_a e_hd : expr) (xs : list val) :
+  IntoVal e_f f → IntoVal e_a a → IntoVal e_hd hd →
   {{{ (∀ (x a' : val) (ys : list val),
           {{{ P x ∗ I ys a'}}}
             e_f (x, a')
@@ -353,10 +350,7 @@ Lemma foldr_spec_PPI P I (f a hd : val ) (e_f e_a e_hd : expr) (xs : list val)
                  ∗ I xs r
   }}}.
 Proof.
-  apply of_to_val in Hef as <-.
-  apply of_to_val in Hea as <-.
-  apply of_to_val in Hehd as <-.
-  iIntros (ϕ) "(#H_f & H_isList & H_Iempty) H_inv".
+  iIntros (<- <- <- ϕ) "(#H_f & H_isList & H_Iempty) H_inv".
   rewrite about_isList. iDestruct "H_isList" as "(H_isList & H_Pxs)".
   iApply (foldr_spec_PI with "[-H_inv]").
   - iFrame. by iFrame "H_f".
@@ -426,8 +420,8 @@ Proof.
 Qed.
 
 
-Lemma map_spec P Q (e_f e_hd : expr) (f hd : val) (xs : list val)
-  `{Hef : !IntoVal e_f f} `{Hehd : !IntoVal e_hd hd} :
+Lemma map_spec P Q (e_f e_hd : expr) (f hd : val) (xs : list val) :
+  IntoVal e_f f → IntoVal e_hd hd →
   {{{
        is_list hd xs
         ∗ (∀ (x : val), {{{ P x }}}
@@ -442,9 +436,7 @@ Lemma map_spec P Q (e_f e_hd : expr) (f hd : val) (xs : list val)
                                      ∗ ⌜List.length ys = List.length xs⌝
   }}}.
 Proof.
-  apply of_to_val in Hef as <-.
-  apply of_to_val in Hehd as <-.
-  iIntros (ϕ) "[H_is_list [#H1 H_P_xs]] H_ϕ".
+  iIntros (<- <- ϕ) "[H_is_list [#H1 H_P_xs]] H_ϕ".
   do 3 (wp_pure _).
   iApply (foldr_spec_PI
             P

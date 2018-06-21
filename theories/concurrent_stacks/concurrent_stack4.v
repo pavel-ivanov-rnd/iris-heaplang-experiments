@@ -144,7 +144,7 @@ Section stack_works.
   Qed.
 
   (* Whole-stack invariant (P). *)
-  Theorem stack_works {channelG0 : channelG Σ} N P Q Q' Q'' Φ :
+  Theorem stack_works {channelG0 : channelG Σ} N P Q Q' Q'' (Φ : val → iProp Σ) :
     ▷ (∀ (f₁ f₂ : val),
         (□(((∀ v vs, P (v :: vs) ={⊤ ∖ ↑ N}=∗ Q v ∗ P vs)
             ∧ (P [] ={⊤ ∖ ↑ N}=∗ Q' ∗ P []) -∗

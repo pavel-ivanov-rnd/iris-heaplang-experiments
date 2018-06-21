@@ -1,7 +1,7 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From stdpp Require Import functions.
-From iris.base_logic Require Import big_op lib.saved_prop lib.sts.
+From iris.base_logic Require Import lib.saved_prop lib.sts.
 From iris.heap_lang Require Import proofmode.
 From iris_examples.barrier Require Export barrier.
 From iris_examples.barrier Require Import protocol.
@@ -148,7 +148,7 @@ Proof.
     return to the client *)
     iDestruct "Hr" as (Ψ) "[HΨ Hsp]".
     iDestruct (big_opS_delete _ _ i with "Hsp") as "[#HΨi Hsp]"; first done.
-    iAssert (▷ Ψ i ∗ ▷ [∗ set] j ∈ I ∖ {[i]}, Ψ j)%I with "[HΨ]" as "[HΨ HΨ']".
+    iAssert (▷ (Ψ i ∗ [∗ set] j ∈ I ∖ {[i]}, Ψ j))%I with "[HΨ]" as "[HΨ HΨ']".
     { iNext. iApply (big_opS_delete _ _ i); first done. by iApply "HΨ". }
     iMod ("Hclose" $! (State High (I ∖ {[ i ]})) ∅ with "[HΨ' Hl Hsp]").
     { iSplit; [iPureIntro; by eauto using wait_step|].

@@ -1,6 +1,6 @@
 From iris.proofmode Require Import tactics.
+From iris.bi.lib Require Import fractional.
 From iris.algebra Require Import cmra agree frac csum.
-From iris.base_logic.lib Require Import fractional.
 From iris_examples.hocap Require Export abstract_bag shared_bag.
 Set Default Proof Using "Type".
 

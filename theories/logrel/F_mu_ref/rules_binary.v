@@ -1,6 +1,5 @@
 From iris.program_logic Require Import lifting.
 From iris.algebra Require Import auth frac agree gmap list.
-From iris.base_logic Require Import big_op.
 From iris_examples.logrel.F_mu_ref Require Export rules.
 From iris.proofmode Require Import tactics.
 Import uPred.
@@ -35,9 +34,9 @@ End definitionsS.
 Typeclasses Opaque heapS_mapsto tpool_mapsto.
 
 Notation "l ↦ₛ{ q } v" := (heapS_mapsto l q v)
-  (at level 20, q at level 50, format "l  ↦ₛ{ q }  v") : uPred_scope.
-Notation "l ↦ₛ v" := (heapS_mapsto l 1 v) (at level 20) : uPred_scope.
-Notation "⤇ e" := (tpool_mapsto e) (at level 20) : uPred_scope.
+  (at level 20, q at level 50, format "l  ↦ₛ{ q }  v") : bi_scope.
+Notation "l ↦ₛ v" := (heapS_mapsto l 1 v) (at level 20) : bi_scope.
+Notation "⤇ e" := (tpool_mapsto e) (at level 20) : bi_scope.
 
 Section cfg.
   Context `{cfgSG Σ}.
@@ -47,6 +46,8 @@ Section cfg.
   Implicit Types σ : state.
   Implicit Types e : expr.
   Implicit Types v : val.
+
+  Local Hint Resolve to_of_val.
 
   (** Conversion to tpools and back *)
   Lemma step_insert_no_fork K e σ e' σ' :
@@ -77,18 +78,18 @@ Section cfg.
     AsVal e1 → AsVal e2 →
     nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Fst (Pair e1 e2)) ={E}=∗ ⤇ fill K e1.
-  Proof. intros [? H1] [? H2]. apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-] [? <-]. apply step_pure => σ; econstructor; eauto. Qed.
 
   Lemma step_snd E ρ K e1 e2 :
     AsVal e1 → AsVal e2 → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Snd (Pair e1 e2)) ={E}=∗ ⤇ fill K e2.
-  Proof. intros [? H1] [? H2]; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-] [? <-]; apply step_pure => σ; econstructor; eauto. Qed.
 
   Lemma step_alloc E ρ K e v:
     IntoVal e v → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Alloc e) ={E}=∗ ∃ l, ⤇ fill K (Loc l) ∗ l ↦ₛ v.
   Proof.
-    iIntros (??) "[#Hinv Hj]". rewrite /spec_ctx /tpool_mapsto.
+    iIntros (<- ?) "[#Hinv Hj]". rewrite /spec_ctx /tpool_mapsto.
     iInv specN as ">Hinv'" "Hclose". iDestruct "Hinv'" as (e2 σ) "[Hown %]".
     destruct (exist_fresh (dom (gset positive) σ)) as [l Hl%not_elem_of_dom].
     iDestruct (own_valid_2 _ with "Hown Hj")
@@ -134,7 +135,7 @@ Section cfg.
     spec_inv ρ ∗ ⤇ fill K (Store (Loc l) e) ∗ l ↦ₛ v'
     ={E}=∗ ⤇ fill K Unit ∗ l ↦ₛ v.
   Proof.
-    iIntros (??) "(#Hinv & Hj & Hl)".
+    iIntros (<- ?) "(#Hinv & Hj & Hl)".
     rewrite /spec_ctx /tpool_mapsto /heapS_mapsto.
     iInv specN as ">Hinv'" "Hclose". iDestruct "Hinv'" as (e2 σ) "[Hown %]".
     iDestruct (own_valid_2 _ with "Hown Hj")
@@ -159,7 +160,7 @@ Section cfg.
     AsVal e2 → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (App (Lam e1) e2)
     ={E}=∗ ⤇ fill K (e1.[e2/]).
-  Proof. intros [??]; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-]; apply step_pure => σ; econstructor; eauto. Qed.
 
   Lemma step_tlam E ρ K e :
     nclose specN ⊆ E →
@@ -169,17 +170,17 @@ Section cfg.
   Lemma step_Fold E ρ K e :
     AsVal e → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Unfold (Fold e)) ={E}=∗ ⤇ fill K e.
-  Proof. intros [??]; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-]; apply step_pure => σ; econstructor; eauto. Qed.
 
   Lemma step_case_inl E ρ K e0 e1 e2 :
     AsVal e0 → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Case (InjL e0) e1 e2)
       ={E}=∗ ⤇ fill K (e1.[e0/]).
-  Proof. intros [??]; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-]; apply step_pure => σ; econstructor; eauto. Qed.
 
   Lemma step_case_inr E ρ K e0 e1 e2 :
     AsVal e0 → nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K (Case (InjR e0) e1 e2)
       ={E}=∗ ⤇ fill K (e2.[e0/]).
-  Proof. intros [??]; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. intros [? <-]; apply step_pure => σ; econstructor; eauto. Qed.
 End cfg.
