@@ -31,15 +31,15 @@ build-coq.8.8.0:
   variables:
     OPAM_PINS: "coq version 8.8.0"
 
-build-coq.8.7.1:
+build-coq.8.7.2:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.7.1"
+    OPAM_PINS: "coq version 8.7.2"
 
 build-iris.dev:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.7.1   coq-iris.dev git https://gitlab.mpi-sws.org/FP/iris-coq.git#$IRIS_REV"
+    OPAM_PINS: "coq version 8.7.2   coq-stdpp.dev git https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp/#$STDPP_REV  coq-iris.dev git https://gitlab.mpi-sws.org/FP/iris-coq.git#$IRIS_REV"
   except:
   only:
   - triggers
