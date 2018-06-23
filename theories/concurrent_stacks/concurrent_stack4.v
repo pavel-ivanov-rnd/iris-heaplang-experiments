@@ -268,13 +268,11 @@ Section stack_works.
           iDestruct "Hstack" as (l'' v' xs) "[% [Hl'' [Hstack HP]]]".
           iDestruct ("Hmove" with "HP") as "Hmove".
           iDestruct (fupd_mask_mono with "Hmove") as "Hmove";
-            last iMod "Hmove" as "[HP HQ'']".
-          { apply ndisj_subseteq_difference; try solve_ndisj. }
+            last iMod "Hmove" as "[HP HQ'']"; first solve_ndisj.
           iDestruct "Hcont" as "[Hsucc _]".
           iDestruct ("Hsucc" with "HP") as "Hsucc".
           iDestruct (fupd_mask_mono with "Hsucc") as "Hsucc";
-            last (iMod "Hsucc" as "[HQ HP]").
-          { apply ndisj_subseteq_difference; try solve_ndisj. }
+            last (iMod "Hsucc" as "[HQ HP]"); first solve_ndisj.
           iMod ("Hclose2" with "[Hl'' Hstack HP]").
           { iExists l'', v', xs; iSplit; iFrame; auto. }
           iModIntro.
