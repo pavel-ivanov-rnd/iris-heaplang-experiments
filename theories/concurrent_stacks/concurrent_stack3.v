@@ -14,13 +14,13 @@ Definition mk_stack : val :=
        (match: !"r" with
           NONE => NONE
         | SOME "hd" =>
-          if: CAS "r" (SOME "hd") (Snd "hd")
-          then SOME (Fst "hd")
+          if: CAS "r" (SOME "hd") (Snd !"hd")
+          then SOME (Fst !"hd")
           else "pop" "n"
         end),
     rec: "push" "n" :=
         let: "r'" := !"r" in
-        let: "r''" := SOME ("n", "r'") in
+        let: "r''" := SOME (Alloc ("n", "r'")) in
         if: CAS "r" "r'" "r''"
         then #()
         else "push" "n").
@@ -32,20 +32,27 @@ Section stack_works.
   Fixpoint is_stack xs v : iProp Σ :=
     (match xs with
      | [] => ⌜v = NONEV⌝
-     | x :: xs => ∃ (t : val), ⌜v = SOMEV (x, t)%V⌝ ∗ is_stack xs t
+     | x :: xs => ∃ q (l : loc) (t : val), ⌜v = SOMEV #l ⌝ ∗ l ↦{q} (x, t) ∗ is_stack xs t
      end)%I.
 
   Definition stack_inv P v :=
     (∃ l v' xs, ⌜v = #l⌝ ∗ l ↦ v' ∗ is_stack xs v' ∗ P xs)%I.
 
   Lemma is_stack_disj xs v :
-      is_stack xs v -∗ is_stack xs v ∗ (⌜v = NONEV⌝ ∨ ∃ (h t : val), ⌜v = SOMEV (h, t)%V⌝).
+      is_stack xs v -∗ is_stack xs v ∗ (⌜v = NONEV⌝ ∨ ∃ q (l : loc) (h t : val), ⌜v = SOMEV #l⌝ ∗ l ↦{q} (h, t)).
   Proof.
     iIntros "Hstack".
     destruct xs.
     - iSplit; try iLeft; auto.
-    - iSplit; auto; iRight; iDestruct "Hstack" as (t) "[% Hstack]";
-      iExists v0, t; auto.
+    - simpl. iDestruct "Hstack" as (q l t) "[-> [[Hl Hl'] Hstack]]".
+      iSplitR "Hl"; eauto 10 with iFrame.
+  Qed.
+  Lemma is_stack_unboxed xs v :
+    is_stack xs v -∗ ⌜val_is_unboxed v⌝.
+  Proof.
+    iIntros "Hstack". iDestruct (is_stack_disj with "Hstack") as "[_ [->|Hdisj]]".
+    - done.
+    - iDestruct "Hdisj" as (???? ->) "_". done.
   Qed.
 
   Lemma is_stack_uniq : ∀ xs ys v,
@@ -53,38 +60,38 @@ Section stack_works.
   Proof.
     induction xs, ys; iIntros (v') "[Hstack1 Hstack2]"; auto.
     - iDestruct "Hstack1" as "%".
-      iDestruct "Hstack2" as (t) "[% Hstack2]".
+      iDestruct "Hstack2" as (???) "[% _]".
       subst.
       discriminate.
     - iDestruct "Hstack2" as "%".
-      iDestruct "Hstack1" as (t) "[% Hstack1]".
+      iDestruct "Hstack1" as (???) "[% _]".
       subst.
       discriminate.
-    - iDestruct "Hstack1" as (t) "[% Hstack1]".
-      iDestruct "Hstack2" as (t') "[% Hstack2]".
-      subst; injection H0; intros; subst.
-      iDestruct (IHxs with "[Hstack1 Hstack2]") as "%".
-        by iSplitL "Hstack1".
+    - simpl. iDestruct "Hstack1" as (q1 l1 t) "[% [Hl1 Hstack1]]".
+      iDestruct "Hstack2" as (q2 l2 t') "[% [Hl2 Hstack2]]".
+      subst; injection H0; intros; subst; clear H0.
+      iDestruct (mapsto_agree with "Hl1 Hl2") as %[= -> ->].
+      iDestruct (IHxs with "[Hstack1 Hstack2]") as "%". by iFrame.
       subst; auto.
   Qed.
 
   Lemma is_stack_empty : ∀ xs,
-      is_stack xs (InjLV #()) -∗ ⌜xs = []⌝.
+      is_stack xs NONEV -∗ ⌜xs = []⌝.
   Proof.
     iIntros (xs) "Hstack".
     destruct xs; auto.
-    iDestruct "Hstack" as (t) "[% rest]".
+    iDestruct "Hstack" as (?? t) "[% rest]".
     discriminate.
   Qed.
-  Lemma is_stack_cons : ∀ xs h t,
-      is_stack xs (InjRV (h, t)%V) -∗
-               is_stack xs (InjRV (h, t)%V) ∗ ∃ ys, ⌜xs = h :: ys⌝.
+  Lemma is_stack_cons : ∀ xs l,
+      is_stack xs (SOMEV #l) -∗
+               is_stack xs (SOMEV #l) ∗ ∃ q h t ys, ⌜xs = h :: ys⌝ ∗ l ↦{q} (h, t).
   Proof.
-    destruct xs; iIntros (h t) "Hstack".
+    iIntros ([|x xs] l) "Hstack".
     - iDestruct "Hstack" as "%"; discriminate.
-    - iSplit; [auto | iExists xs].
-      iDestruct "Hstack" as (t') "[% Hstack]".
-      injection H; intros; subst; auto.
+    - simpl. iDestruct "Hstack" as (q l' t') "[% [[Hl Hl'] Hstack]]".
+      injection H; intros; subst; clear H.
+      iSplitR "Hl'"; eauto 10 with iFrame.
   Qed.
 
   (* Whole-stack invariant (P). However:
@@ -117,7 +124,7 @@ Section stack_works.
       wp_bind (! _)%E.
       iInv N as "Hstack" "Hclose".
       iDestruct "Hstack" as (l' v' xs) "[>% [Hl' [Hstack HP]]]".
-      injection H; intros; subst.
+      injection H; intros; subst; clear H.
       wp_load.
       iDestruct (is_stack_disj with "[Hstack]") as "[Hstack H]"; auto.
       iDestruct "H" as "[% | H]".
@@ -131,10 +138,10 @@ Section stack_works.
         iModIntro.
         wp_match.
         iRight; auto.
-      * iDestruct "H" as (h t) "%".
+      * iDestruct "H" as (q l h t) "[% Hl]".
         subst.
         iMod ("Hclose" with "[Hl' Hstack HP]").
-        { iExists l', (InjRV (h, t)), xs; iSplit; iFrame; auto. }
+        { iExists l', _, xs; iSplit; iFrame; auto. }
         iModIntro.
 
         assert (to_val (h, t)%V = Some (h, t)%V) by apply to_of_val.
@@ -142,27 +149,29 @@ Section stack_works.
         wp_match.
         unfold subst; simpl; fold of_val.
 
+        wp_load.
         wp_proj.
         wp_bind (CAS _ _ _).
         iInv N as "Hstack" "Hclose".
         iDestruct "Hstack" as (l'' v' ys) "[>% [Hl'' [Hstack HP]]]".
-        injection H2; intros; subst.
-        assert (Decision (v' = InjRV (h, t)%V)) as Heq by apply val_eq_dec.
+        injection H1; intros; subst; clear H1.
+        assert (Decision (v' = InjRV #l%V)) as Heq by apply val_eq_dec.
         destruct Heq.
-      + wp_cas_suc.
-        subst.
-        iDestruct (is_stack_cons with "Hstack") as "[Hstack H]".
-        iDestruct "H" as (ys') "%"; subst.
-        iDestruct "Hstack" as (t') "[% Hstack]".
-        injection H3; intros; subst.
+      + subst.
+        wp_cas_suc. destruct ys as [|y ys]; simpl.
+        { iDestruct "Hstack" as %?. done. }
+        iDestruct "Hstack" as (q'' l' t'') "[% [Hl' Hstack]]".
+        injection H1; intros; subst; clear H1.
         iDestruct "Hcont" as "[Hsucc _]".
         iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
-        iMod ("Hclose" with "[Hl'' Hstack HP]").
-        { iExists l'', t', ys'; iSplit; iFrame; auto. }
+        iDestruct (mapsto_agree with "Hl Hl'") as %[= -> ->].
+        iMod ("Hclose" with "[Hl'' Hl' Hstack HP]").
+        { iExists l''. eauto 10 with iFrame. }
         iModIntro.
         wp_if.
+        wp_load.
         wp_proj.
-        iLeft; iExists h; auto.
+        iLeft; iExists _; auto.
       + wp_cas_fail.
         iMod ("Hclose" with "[Hl'' Hstack HP]").
         { iExists l'', v', ys; iSplit; iFrame; auto. }
@@ -175,24 +184,25 @@ Section stack_works.
       wp_bind (! _)%E.
       iInv N as "Hstack" "Hclose".
       iDestruct "Hstack" as (l' v' ys) "[>% [Hl' [Hstack HP]]]".
-      injection H; intros; subst.
+      injection H; intros; subst; clear H.
       wp_load.
       iMod ("Hclose" with "[Hl' Hstack HP]").
       { iExists l', v', ys; iSplit; iFrame; auto. }
       iModIntro.
       wp_let.
+      wp_alloc lp as "Hlp".
       wp_let.
       wp_bind (CAS _ _ _).
       iInv N as "Hstack" "Hclose".
       iDestruct "Hstack" as (l'' v'' xs) "[>% [Hl'' [Hstack HP]]]".
-      injection H0; intros; subst.
+      injection H; intros; subst; clear H.
+      iDestruct (is_stack_unboxed with "Hstack") as "#>%".
       assert (Decision (v' = v''%V)) as Heq by apply val_eq_dec.
       destruct Heq.
-      + wp_cas_suc.
+      + subst. wp_cas_suc.
         iDestruct ("Hpush" with "[HP]") as "> [HP HQ]"; auto.
-        iMod ("Hclose" with "[Hl'' Hstack HP]").
-        { iExists l'', (InjRV (v, v')), (v :: xs); iSplit; iFrame; auto.
-          iExists v'; iSplit; subst; auto. }
+        iMod ("Hclose" with "[Hl'' Hlp Hstack HP]").
+        { iExists l'', _, _. iFrame. simpl. eauto 10 with iFrame. }
         iModIntro.
         wp_if.
         done.

@@ -1,3 +1,5 @@
+(** THIS FILE CURRENTLY DOES NOT COMPILE because it has not been ported to the
+stricter CAS requirements yet. *)
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.

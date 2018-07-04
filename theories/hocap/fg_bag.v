@@ -56,6 +56,14 @@ Section proof.
                    ⌜hd = SOMEV #l⌝ ∗ rown l (x, tl) ∗ is_list tl xs)%I
     end.
 
+  Lemma is_list_unboxed hd xs :
+    is_list hd xs -∗ ⌜val_is_unboxed hd⌝.
+  Proof.
+    destruct xs.
+    - iIntros (->). done.
+    - iIntros "Hl". iDestruct "Hl" as (?? ->) "_". done.
+  Qed.
+
   Lemma is_list_duplicate hd xs : is_list hd xs -∗ is_list hd xs ∗ is_list hd xs.
   Proof.
     iInduction xs as [ | x xs ] "IH" forall (hd); simpl; eauto.
@@ -155,6 +163,7 @@ Section proof.
     wp_alloc n as "Hn".
     wp_bind (CAS _ _ _).
     iInv N as (o' ls) "[Ho [Hls >Hb]]" "Hcl".
+    iPoseProof (is_list_unboxed with "Hls") as "#>%".
     destruct (decide (o = o')) as [->|?].
     - wp_cas_suc.
       iMod ("Hvs" with "[$Hb $HP]") as "[Hb HQ]".

@@ -16,13 +16,13 @@ Definition mk_stack : val :=
      match: !"r" with
        NONE => #-1
      | SOME "hd" =>
-       if: CAS "r" (SOME "hd") (Snd "hd")
-       then Fst "hd"
+       if: CAS "r" (SOME "hd") (Snd !"hd")
+       then Fst !"hd"
        else "pop" "n"
      end,
     rec: "push" "n" :=
        let: "r'" := !"r" in
-       let: "r''" := SOME ("n", "r'") in
+       let: "r''" := SOME (Alloc ("n", "r'")) in
        if: CAS "r" "r'" "r''"
        then #()
        else "push" "n").
@@ -31,9 +31,20 @@ Section stacks.
   Context `{!heapG Σ}.
   Implicit Types l : loc.
 
-  Definition is_stack_pre (P : val → iProp Σ) (F : val -c> iProp Σ) :
-     val -c> iProp Σ := λ v,
-    (v ≡ NONEV ∨ ∃ (h t : val), v ≡ SOMEV (h, t)%V ∗ P h ∗ ▷ F t)%I.
+  Definition oloc_to_val (h : option loc) : val :=
+    match h with
+    | None => NONEV
+    | Some l => SOMEV #l
+    end.
+  Local Instance oloc_to_val_inj : Inj (=) (=) oloc_to_val.
+  Proof. rewrite /Inj /oloc_to_val=>??. repeat case_match; congruence. Qed.
+
+  Definition is_stack_pre (P : val → iProp Σ) (F : option loc -c> iProp Σ) :
+     option loc -c> iProp Σ := λ v,
+    (match v with
+     | None => True
+     | Some l => ∃ q h t, l ↦{q} (h, oloc_to_val t) ∗ P h ∗ ▷ F t
+     end)%I.
 
   Local Instance is_stack_contr (P : val → iProp Σ): Contractive (is_stack_pre P).
   Proof.
@@ -47,8 +58,8 @@ Section stacks.
   Definition is_stack P := unseal (is_stack_aux P).
   Definition is_stack_eq P : @is_stack P = @is_stack_def P := seal_eq (is_stack_aux P).
 
-  Definition stack_inv P v :=
-    (∃ l v', ⌜v = #l⌝ ∗ l ↦ v' ∗ is_stack P v')%I.
+  Definition stack_inv P l :=
+    (∃ ol, l ↦ oloc_to_val ol ∗ is_stack P ol)%I.
 
 
   Lemma is_stack_unfold (P : val → iProp Σ) v :
@@ -57,14 +68,15 @@ Section stacks.
     rewrite is_stack_eq. apply (fixpoint_unfold (is_stack_pre P)).
   Qed.
 
-  Lemma is_stack_disj (P : val → iProp Σ) v :
-      is_stack P v -∗ is_stack P v ∗ (v ≡ NONEV ∨ ∃ (h t : val), v ≡ SOMEV (h, t)%V).
+  Lemma is_stack_copy (P : val → iProp Σ) ol :
+      is_stack P ol -∗ is_stack P ol ∗
+           (match ol with None => True | Some l => ∃ q h t, l ↦{q} (h, oloc_to_val t) end).
   Proof.
     iIntros "Hstack".
-    iDestruct (is_stack_unfold with "Hstack") as "[#Hstack|Hstack]".
-    - iSplit; try iApply is_stack_unfold; iLeft; auto.
-    - iDestruct "Hstack" as (h t) "[#Heq rest]".
-      iSplitL; try iApply is_stack_unfold; iRight; auto.
+    iDestruct (is_stack_unfold with "Hstack") as "Hstack". destruct ol; last first.
+    - iSplitL; try iApply is_stack_unfold; auto.
+    - iDestruct "Hstack" as (q h t) "[[Hl1 Hl2] [HP Hrest]]".
+      iSplitR "Hl2"; try iApply is_stack_unfold; simpl; eauto 10 with iFrame.
   Qed.
 
   (* Per-element invariant (i.e., bag spec). *)
@@ -80,9 +92,9 @@ Section stacks.
     wp_alloc l as "Hl".
     pose proof (nroot .@ "N") as N.
     rewrite -wp_fupd.
-    iMod (inv_alloc N _ (stack_inv P #l) with "[Hl]") as "#Hisstack".
-    iExists l, NONEV; iSplit; iFrame; auto.
-    { iApply is_stack_unfold. iLeft; auto. }
+    iMod (inv_alloc N _ (stack_inv P l) with "[Hl]") as "#Hisstack".
+    { iExists None; iFrame; auto.
+      iApply is_stack_unfold. auto. }
     wp_let.
     iModIntro.
     iApply "HΦ".
@@ -91,48 +103,36 @@ Section stacks.
       wp_rec.
       wp_bind (! #l)%E.
       iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l' v') "[>% [Hl' Hstack]]".
-      injection H; intros; subst.
+      iDestruct "Hstack" as (v') "[Hl' Hstack]".
       wp_load.
-      iDestruct (is_stack_disj with "Hstack") as "[Hstack #Heq]".
-      iMod ("Hclose" with "[Hl' Hstack]").
-      iExists l', v'; iFrame; auto.
-      iModIntro.
-      iDestruct "Heq" as "[H | H]".
-      + iRewrite "H".
-        wp_match.
-        iRight; auto.
-      + iDestruct "H" as (h t) "H".
-        iRewrite "H".
-        assert (to_val (h, t)%V = Some (h, t)%V) by apply to_of_val.
-        assert (is_Some (to_val (h, t)%V)) by (exists (h, t)%V; auto).
-        wp_match. fold of_val.
-        unfold subst; simpl; fold subst.
+      destruct v' as [l'|]; simpl; last first.
+      + iMod ("Hclose" with "[Hl' Hstack]") as "_".
+        { rewrite /stack_inv. eauto with iFrame. }
+        iModIntro. wp_match. by iRight.
+      + iDestruct (is_stack_copy with "Hstack") as "[Hstack Hmy]".
+        iDestruct "Hmy" as (q h t) "Hl".
+        iMod ("Hclose" with "[Hl' Hstack]") as "_".
+        { rewrite /stack_inv. eauto with iFrame. }
+        iModIntro. wp_match.
+        wp_load. wp_proj.
         wp_bind (CAS _ _ _).
-        wp_proj.
         iInv N as "Hstack" "Hclose".
-        iDestruct "Hstack" as (l'' v'') "[>% [Hl'' Hstack]]".
-        injection H2; intros; subst.
-        assert (Decision (v'' = InjRV (h, t)%V)) as Heq by apply val_eq_dec.
-        destruct Heq.
-        * wp_cas_suc.
-          iDestruct (is_stack_unfold with "Hstack") as "[Hstack | Hstack]".
-          subst.
-          iDestruct "Hstack" as "%"; discriminate.
-          iDestruct "Hstack" as (h' t') "[% [HP Hstack]]".
-          subst.
-          injection H3.
-          intros.
-          subst.
+        iDestruct "Hstack" as (v'') "[Hl'' Hstack]".
+        destruct (decide (oloc_to_val v'' = oloc_to_val (Some l'))) as [->%oloc_to_val_inj|Hne].
+        * simpl. wp_cas_suc.
+          iDestruct (is_stack_unfold with "Hstack") as "Hstack".
+          iDestruct "Hstack" as (q' h' t') "[Hl' [HP Hstack]]".
+          iDestruct (mapsto_agree with "Hl Hl'") as %[= <- <-%oloc_to_val_inj].
           iMod ("Hclose" with "[Hl'' Hstack]").
-          iExists l'', t'; iFrame; auto.
+          { iExists _. auto with iFrame. }
           iModIntro.
           wp_if.
+          wp_load.
           wp_proj.
           iLeft; auto.
-        * wp_cas_fail.
+        * simpl in Hne. wp_cas_fail.
           iMod ("Hclose" with "[Hl'' Hstack]").
-          iExists l'', v''; iFrame; auto.
+          { iExists v''; iFrame; auto. }
           iModIntro.
           wp_if.
           iApply "IH".
@@ -141,36 +141,31 @@ Section stacks.
       wp_rec.
       wp_bind (! _)%E.
       iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l' v') "[>% [Hl' Hstack]]".
-      injection H; intros; subst.
+      iDestruct "Hstack" as (v') "[Hl' Hstack]".
       wp_load.
       iMod ("Hclose" with "[Hl' Hstack]").
-      by (iExists l', v'; iFrame).
+      { iExists v'. iFrame. }
       iModIntro.
       wp_let.
+      wp_alloc r'' as "Hr''".
       wp_let.
       wp_bind (CAS _ _ _).
       iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l'' v'') "[>% [Hl'' Hstack]]".
-      injection H0; intros; subst.
-      assert (Decision (v'' = v'%V)) as Heq by apply val_eq_dec.
-      destruct Heq.
-      + wp_cas_suc.
-        iMod ("Hclose" with "[Hl'' HP Hstack]").
-        iExists l'', (InjRV (v, v')%V).
+      iDestruct "Hstack" as (v'') "[Hl'' Hstack]".
+      wp_cas as ->%oloc_to_val_inj|_.
+      + destruct v'; by right.
+      + iMod ("Hclose" with "[Hl'' Hr'' HP Hstack]").
+        iExists (Some r'').
         iFrame; auto.
-        iSplit; auto.
+        iNext.
         iApply is_stack_unfold.
-        iRight.
-        iExists v, v'.
-        iSplit; auto.
-        subst; iFrame.
+        simpl.
+        iExists _, _, v'. iFrame.
         iModIntro.
         wp_if.
         done.
-      + wp_cas_fail.
-        iMod ("Hclose" with "[Hl'' Hstack]").
-        iExists l'', v''; iFrame; auto.
+      + iMod ("Hclose" with "[Hl'' Hstack]").
+        iExists v''; iFrame; auto.
         iModIntro.
         wp_if.
         iApply "IH".
