@@ -3,6 +3,9 @@ stricter CAS requirements yet. *)
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
+
+From iris_examples.concurrent_stacks Require Import spec.
+
 Set Default Proof Using "Type".
 
 (** Stack 2: With helping, bag spec. *)
@@ -268,7 +271,7 @@ Section stack_works.
 
   (* Per-element invariant (i.e., bag spec). *)
   Theorem stack_works {channelG0 : channelG Σ} P Φ :
-    (∀ (f₁ f₂ : val),
+    ▷ (∀ (f₁ f₂ : val),
             (□ WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ P v')  ∨ v ≡ NONEV }})
          -∗ (∀ (v : val), □ (P v -∗ WP f₂ v {{ v, True }}))
          -∗ Φ (f₁, f₂)%V)%I
@@ -405,3 +408,10 @@ Section stack_works.
         done.
   Qed.
 End stack_works.
+
+Program Definition is_concurrent_bag `{!heapG Σ, !channelG Σ} : concurrent_bag Σ :=
+  {| spec.mk_bag := mk_stack |}.
+Next Obligation.
+  iIntros (???? P Φ) "_ HΦ". iApply stack_works.
+  iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
+Qed.

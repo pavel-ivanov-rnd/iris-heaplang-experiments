@@ -1,9 +1,10 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
-Set Default Proof Using "Type".
 
 From iris_examples.concurrent_stacks Require Import spec.
+
+Set Default Proof Using "Type".
 
 (** Stack 3: No helping, view-shift spec. *)
 
@@ -213,11 +214,11 @@ Section stack_works.
         wp_if.
         iApply ("IH" with "Hpush").
   Qed.
-
-  Program Definition is_concurrent_stack : concurrent_stack Σ :=
-    {| spec.mk_stack := mk_stack |}.
-  Next Obligation.
-    iIntros (????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
-    iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
-  Qed.
 End stack_works.
+
+Program Definition is_concurrent_stack `{!heapG Σ} : concurrent_stack Σ :=
+  {| spec.mk_stack := mk_stack |}.
+Next Obligation.
+  iIntros (??????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
+  iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
+Qed.

@@ -6,6 +6,8 @@ From iris.algebra Require Import excl.
 
 From iris_examples.concurrent_stacks Require Import spec.
 
+Set Default Proof Using "Type".
+
 (** Stack 3: Helping, view-shift spec. *)
 
 Definition mk_offer : val :=
@@ -620,11 +622,11 @@ Section stack_works.
         wp_cas_fail.
         by iDestruct (own_valid_2 with "Hγ Hγ'") as %?.
   Qed.
-
-  Program Definition is_concurrent_stack `{!channelG Σ} : concurrent_stack Σ :=
-    {| spec.mk_stack := mk_stack |}.
-  Next Obligation.
-    iIntros (?????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
-    iNext. iIntros (f₁ f₂) "#[Hpop Hpush]". iApply "HΦ". iFrame "#".
-  Qed.
 End stack_works.
+
+Program Definition is_concurrent_stack `{!heapG Σ, !channelG Σ} : concurrent_stack Σ :=
+  {| spec.mk_stack := mk_stack |}.
+Next Obligation.
+  iIntros (???????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
+  iNext. iIntros (f₁ f₂) "#[Hpop Hpush]". iApply "HΦ". iFrame "#".
+Qed.

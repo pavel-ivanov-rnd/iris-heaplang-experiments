@@ -5,6 +5,9 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang.
 From iris.algebra Require Import agree list.
 From iris.heap_lang Require Import assert proofmode notation.
+
+From iris_examples.concurrent_stacks Require Import spec.
+
 Set Default Proof Using "Type".
 
 (** Stack 1: No helping, bag spec. *)
@@ -14,10 +17,10 @@ Definition mk_stack : val :=
   let: "r" := ref NONEV in
   (rec: "pop" "n" :=
      match: !"r" with
-       NONE => #-1
+       NONE => NONE
      | SOME "hd" =>
        if: CAS "r" (SOME "hd") (Snd !"hd")
-       then Fst !"hd"
+       then SOME (Fst !"hd")
        else "pop" "n"
      end,
     rec: "push" "n" :=
@@ -81,8 +84,8 @@ Section stacks.
 
   (* Per-element invariant (i.e., bag spec). *)
   Theorem stack_works P Φ :
-    (∀ (f₁ f₂ : val),
-            (∀ (v : val), □ WP f₁ #() {{ v, P v  ∨ v ≡ #-1 }})
+    ▷ (∀ (f₁ f₂ : val),
+            (□ WP f₁ #() {{ v, (∃ v', v ≡ SOMEV v' ∗ P v')  ∨  v ≡ NONEV }})
          -∗ (∀ (v : val), □ (P v -∗ WP f₂ v {{ v, True }}))
          -∗ Φ (f₁, f₂)%V)%I
     -∗ WP mk_stack #()  {{ Φ }}.
@@ -98,7 +101,7 @@ Section stacks.
     wp_let.
     iModIntro.
     iApply "HΦ".
-    - iIntros (v) "!#".
+    - iIntros "!#".
       iLöb as "IH".
       wp_rec.
       wp_bind (! #l)%E.
@@ -129,7 +132,7 @@ Section stacks.
           wp_if.
           wp_load.
           wp_proj.
-          iLeft; auto.
+          eauto.
         * simpl in Hne. wp_cas_fail.
           iMod ("Hclose" with "[Hl'' Hstack]").
           { iExists v''; iFrame; auto. }
@@ -172,3 +175,10 @@ Section stacks.
         done.
   Qed.
 End stacks.
+
+Program Definition is_concurrent_bag `{!heapG Σ} : concurrent_bag Σ :=
+  {| spec.mk_bag := mk_stack |}.
+Next Obligation.
+  iIntros (??? P Φ) "_ HΦ". iApply stack_works.
+  iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
+Qed.
