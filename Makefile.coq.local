@@ -19,3 +19,6 @@ logrel: $(filter theories/logrel/%,$(VOFILES))
 
 hocap: $(filter theories/hocap/%,$(VOFILES))
 .PHONY: hocap
+
+logatom_stack: $(filter theories/logatom_stack/%,$(VOFILES))
+.PHONY: logrel

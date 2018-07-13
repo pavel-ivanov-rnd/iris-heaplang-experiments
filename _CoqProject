@@ -80,3 +80,7 @@ theories/hocap/contrib_bag.v
 theories/hocap/lib/oneshot.v
 theories/hocap/concurrent_runners.v
 theories/hocap/parfib.v
+
+theories/logatom_stack/stack.v
+theories/logatom_stack/spec.v
+theories/logatom_stack/hocap_spec.v
