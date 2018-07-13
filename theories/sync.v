@@ -10,7 +10,7 @@ Section sync.
   (* TODO: We could get rid of the x, and hard-code a unit. That would
      be no loss in expressiveness, but probably more annoying to apply.
      How much more annoying? And how much to we gain in terms of things
-     becomign easier to prove? *)
+     becoming easier to prove? *)
   Definition synced R (f f': val) :=
     (□ ∀ P Q (x: val), {{ R ∗ P }} f x {{ v, R ∗ Q v }} →
                        {{ P }} f' x {{ Q }})%I.
