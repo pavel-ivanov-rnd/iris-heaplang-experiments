@@ -26,6 +26,7 @@ Section contents.
       | S n' => fib n + fib n'
       end
     end.
+  Arguments fib !_ / : simpl nomatch.
 
   Definition seqFib : val := rec: "fib" "a" :=
     if: "a" = #0
@@ -38,30 +39,21 @@ Section contents.
     {{{ True }}} seqFib #n {{{ (m : nat), RET #m; ⌜fib n = m⌝ }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    iLöb as "IH" forall (n Φ). rewrite /seqFib.
-    wp_rec. wp_op. case_bool_decide; simplify_eq; wp_if.
+    iLöb as "IH" forall (n Φ). 
+    wp_rec. simpl. wp_op. case_bool_decide; simplify_eq; wp_if.
     { assert (n = O) as -> by lia.
-      assert (1 = S O) as -> by lia.
-      by iApply "HΦ". }
+      by iApply ("HΦ" $! 1%nat). }
     wp_op. case_bool_decide; simplify_eq; wp_if.
-    { assert (n = S O) as -> by lia.
-      assert (1 = S O) as -> by lia.
-      by iApply "HΦ". }
-    wp_op. wp_bind ((rec: "fib" "a" := _)%V #(n - 1)).
-    assert (∃ m, n = S (S m)) as [m ->].
-    { assert (n ≠ O) by naive_solver.
-      assert (n ≠ S O) by naive_solver.
-      exists (n - (S (S O)))%nat. lia. }
-    assert ((S (S m) - 1) = S m) as -> by lia.
-    iApply "IH". iNext. iIntros (? <-).
-    assert (Z.of_nat (S (S m)) = m + 2) as -> by lia.
-    Local Opaque fib.
-    wp_op. assert (m + 2 - 2 = m) as -> by lia.
-    wp_bind ((rec: "fib" "a" := _)%V #m).
-    iApply "IH". iNext. iIntros (? <-).
-    wp_op. rewrite -Nat2Z.inj_add.
-    iApply "HΦ". iPureIntro.
-    Local Transparent fib. done.
+    { assert (n = 1%nat) as -> by lia.
+      by iApply ("HΦ" $! 1%nat). }
+    wp_op. destruct n as [|[|n]]=> //.
+    rewrite !Nat2Z.inj_succ.
+    replace (Z.succ (Z.succ n) - 2) with (Z.of_nat n) by lia.
+    wp_apply "IH". iIntros (? <-).
+    wp_op.
+    replace (Z.succ (Z.succ n) - 1) with (Z.of_nat (S n)) by lia.
+    wp_apply "IH". iIntros (? <-). wp_op.
+    rewrite -Nat2Z.inj_add. by iApply "HΦ".
   Qed.
 
   Definition parFib : val := λ: "r" "a",
@@ -85,38 +77,30 @@ Section contents.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
     iDestruct "HP" as (n) "%"; simplify_eq.
-    do 2 wp_rec. wp_op. case_bool_decide; wp_if.
+    do 2 wp_rec. simpl. wp_op. case_bool_decide; wp_if.
     - iApply seqFib_spec; eauto.
       iNext. iIntros (? <-). iApply "HΦ".
       iExists n; done.
     - do 2 (wp_op; wp_let).
-      assert (∃ m : nat, n = S (S m)) as [m ->].
-      { exists (n - 2)%nat. lia. }
-      assert ((S (S m) - 1) = S m) as -> by lia.
-      assert ((S (S m) - 2) = m) as -> by lia.
-      wp_bind (runner_Fork b r _).
-      iApply (runner_Fork_spec).
-      { iFrame "Hrunner". iExists (S m). eauto. }
-      iNext. iIntros (γ1 γ1' t1) "Ht1". wp_let.
-      wp_bind (runner_Fork b r _).
-      iApply (runner_Fork_spec).
+      destruct n as [|[|n]]=> //.
+      rewrite !Nat2Z.inj_succ.
+      replace (Z.succ (Z.succ n) - 2) with (Z.of_nat n) by lia.
+      replace (Z.succ (Z.succ n) - 1) with (Z.succ n) by lia.
+      wp_apply (runner_Fork_spec).
+      { iFrame "Hrunner". iExists (S n). by rewrite Nat2Z.inj_succ. }
+      iIntros (γ1 γ1' t1) "Ht1". wp_let.
+      wp_apply (runner_Fork_spec).
       { iFrame "Hrunner". eauto. }
-      iNext. iIntros (γ2 γ2' t2) "Ht2". wp_let.
-      wp_bind (task_Join _).
-      iApply (task_Join_spec with "[$Ht1]"); try done.
-      iNext. iIntros (v1) "HQ"; simplify_eq.
-      iDestruct "HQ" as (m1' m1) "%". simplify_eq.
-      assert (m1' = S m) as -> by lia.
-      Local Opaque fib.
-      wp_bind (task_Join _).
-      iApply (task_Join_spec with "[$Ht2]"); try done.
-      iNext. iIntros (v2) "HQ"; simplify_eq.
+      iIntros (γ2 γ2' t2) "Ht2". wp_let.
+      wp_apply (task_Join_spec with "[$Ht2]"); try done.
+      iIntros (v2) "HQ"; simplify_eq.
       iDestruct "HQ" as (m2' m2) "%". simplify_eq.
-      wp_op. iApply "HΦ".
-      Local Transparent fib.
-      iExists (S (S m2')). iSplit; eauto.
-      assert ((fib (S m2') + fib m2') = (fib (S m2') + fib m2')%nat) as -> by lia.
-      done.
+      wp_apply (task_Join_spec with "[$Ht1]"); try done.
+      iIntros (v1) "HQ"; simplify_eq.
+      iDestruct "HQ" as (m1' m1) "%". simplify_eq.
+      wp_op. iApply "HΦ". iExists (S (S m2')).
+      rewrite !Nat2Z.inj_succ -Nat2Z.inj_add.
+      by replace m1' with (S m2') by lia.
   Qed.
 
   Lemma fibRunner_spec (n a : nat) :
@@ -136,4 +120,3 @@ Section contents.
       by iApply "HΦ".
   Qed.
 End contents.
-

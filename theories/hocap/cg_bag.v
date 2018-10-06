@@ -15,7 +15,9 @@ Set Default Proof Using "Type".
 
 (** Coarse-grained bag implementation using a spin lock *)
 Definition newBag : val := λ: <>,
-  (ref NONE, newlock #()).
+  let: "r" := ref NONE in
+  let: "l" := newlock #() in
+  ("r", "l").
 Definition pushBag : val := λ: "b" "v",
   let: "l" := Snd "b" in
   let: "r" := Fst "b" in
@@ -102,12 +104,11 @@ Section proof.
   Proof.
     iIntros (Φ) "_ HΦ".
     unfold newBag. wp_rec.
-    wp_alloc r as "Hr".
+    wp_alloc r as "Hr". wp_let.
     iMod (own_alloc (1%Qp, to_agree ∅)) as (γb) "[Ha Hf]"; first done.
     wp_apply (newlock_spec N (bag_inv γb r) with "[Hr Ha]").
     { iExists []. iFrame. }
-    iIntros (lk γ) "#Hlk".
-    iApply wp_value. iApply "HΦ".
+    iIntros (lk γ) "#Hlk". wp_let. iApply "HΦ".
     rewrite /is_bag /bag_contents. iFrame.
     iExists _,_,_. by iFrame "Hlk".
   Qed.

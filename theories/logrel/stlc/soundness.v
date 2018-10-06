@@ -13,7 +13,7 @@ Theorem soundness e τ e' thp :
   is_Some (to_val e') ∨ reducible e' ().
 Proof.
   set (Σ := invΣ). intros.
-  cut (adequate NotStuck e () (λ _, True)); first (intros [_ Hsafe]; eauto).
+  cut (adequate NotStuck e () (λ _ _, True)); first (intros [_ Hsafe]; eauto).
   eapply (wp_adequacy Σ _). iIntros (Hinv).
   iModIntro. iExists (λ _, True%I). iSplit=>//.
   set (HΣ := IrisG _ _ Hinv (λ _, True)%I).

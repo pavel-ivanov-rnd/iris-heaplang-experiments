@@ -221,8 +221,8 @@ Section contents.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
     unfold newTask. do 2 wp_rec. iApply wp_fupd.
-    wp_alloc status as "Hstatus".
     wp_alloc res as "Hres".
+    wp_alloc status as "Hstatus".
     iMod (new_pending) as (γ) "[Htoken Htask]".
     iMod (new_INIT) as (γ') "[Hinit Hinit']".
     iMod (inv_alloc (N.@"task") _ (task_inv γ γ' status res (Q a))%I with "[-HP HΦ Htask Hinit]") as "#Hinv".
@@ -377,12 +377,12 @@ Section contents.
     iLöb as "IH" forall (i).
     wp_rec. wp_op. case_bool_decide; wp_if; last first.
     { by iApply "HΦ". }
-    wp_bind (Fork _). iApply wp_fork. iSplitL.
+    wp_bind (Fork _). iApply (wp_fork with "[]").
+    - iNext. by iApply runner_runTasks_spec.
     - iNext. wp_rec. wp_op.
       (* Set Printing Coercions. *)
       assert ((Z.of_nat i + 1) = Z.of_nat (i + 1)) as -> by lia.
       iApply ("IH" with "HΦ").
-    - iNext. by iApply runner_runTasks_spec.
   Qed.
 
   Lemma newRunner_spec P Q (fe ne : expr) (f : val) (n : nat) :

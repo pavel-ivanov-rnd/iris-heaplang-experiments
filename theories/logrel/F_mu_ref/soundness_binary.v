@@ -11,7 +11,7 @@ Lemma basic_soundness Σ `{heapPreG Σ, inG Σ (authR cfgUR)}
   (∃ thp' hp' v', rtc step ([e'], ∅) (of_val v' :: thp', hp')).
 Proof.
   intros Hlog Hsteps.
-  cut (adequate NotStuck e ∅ (λ _, ∃ thp' h v, rtc step ([e'], ∅) (of_val v :: thp', h))).
+  cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc step ([e'], ∅) (of_val v :: thp', h))).
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ); first by apply _.
   iIntros (Hinv).

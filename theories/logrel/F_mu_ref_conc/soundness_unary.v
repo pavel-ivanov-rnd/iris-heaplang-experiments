@@ -13,7 +13,7 @@ Theorem soundness Σ `{heapPreIG Σ} e τ e' thp σ σ' :
   rtc step ([e], σ) (thp, σ') → e' ∈ thp →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
-  intros Hlog ??. cut (adequate NotStuck e σ (λ _, True)); first (intros [_ ?]; eauto).
+  intros Hlog ??. cut (adequate NotStuck e σ (λ _ _, True)); first (intros [_ ?]; eauto).
   eapply (wp_adequacy Σ _). iIntros (Hinv).
   iMod (own_alloc (● to_gen_heap σ)) as (γ) "Hh".
   { apply (auth_auth_valid _ (to_gen_heap_valid _ _ σ)). }

@@ -210,7 +210,7 @@ Section Helpers.
     iIntros (u) "(H1 & Hagree & Hx & key)". iDestruct "H1" as (m) "[Hmrk Hu]".
     iDestruct "Hagree" as %Hagree.
     iDestruct "Hmrk" as %Hmrk; iDestruct "Hu" as %Hu; subst.
-    wp_let. wp_bind (Fst _). do 3 wp_proj.
+    wp_let. do 3 wp_proj.
     iApply (wp_store_graph _ (None, w2) with "[Hx key]"); eauto;
       [|iFrame "Hgr"; by iFrame].
     { by destruct w1; destruct w2; destruct v; inversion Hagree; subst. }
