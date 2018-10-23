@@ -14,7 +14,7 @@ Class cfgSG Σ := CFGSG { cfg_inG :> inG Σ (authR cfgUR); cfg_name : gname }.
 
 Definition spec_ctx `{cfgSG Σ} (ρ : cfg F_mu_ref_lang) : iProp Σ :=
   (∃ e, ∃ σ, own cfg_name (● (Excl' e, to_gen_heap σ))
-            ∗ ⌜rtc step ρ ([e],σ)⌝)%I.
+            ∗ ⌜rtc erased_step ρ ([e],σ)⌝)%I.
 
 Definition spec_inv `{cfgSG Σ} `{invG Σ} (ρ : cfg F_mu_ref_lang) : iProp Σ :=
   inv specN (spec_ctx ρ).
@@ -50,14 +50,14 @@ Section cfg.
   Local Hint Resolve to_of_val.
 
   (** Conversion to tpools and back *)
-  Lemma step_insert_no_fork K e σ e' σ' :
-    head_step e σ e' σ' [] → step ([fill K e], σ) ([fill K e'], σ').
-  Proof. intros Hst. eapply (step_atomic _ _ _ _ _ _ [] [] []); eauto.
+  Lemma step_insert_no_fork K e σ κ e' σ' :
+    head_step e σ κ e' σ' [] → erased_step ([fill K e], σ) ([fill K e'], σ').
+  Proof. intros Hst. eexists. eapply (step_atomic _ _ _ _ _ _ _ [] [] []); eauto.
          by apply: Ectx_step'.
   Qed.
 
   Lemma step_pure E ρ K e e' :
-    (∀ σ, head_step e σ e' σ []) →
+    (∀ σ, head_step e σ [] e' σ []) →
     nclose specN ⊆ E →
     spec_inv ρ ∗ ⤇ fill K e ={E}=∗ ⤇ fill K e'.
   Proof.

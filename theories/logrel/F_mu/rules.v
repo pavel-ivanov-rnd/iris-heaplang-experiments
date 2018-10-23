@@ -10,13 +10,13 @@ Section lang_rules.
   Ltac inv_head_step :=
     repeat match goal with
     | H : to_val _ = Some _ |- _ => apply of_to_val in H
-    | H : head_step ?e _ _ _ _ |- _ =>
+    | H : head_step ?e _ _ _ _ _ |- _ =>
        try (is_var e; fail 1); (* inversion yields many goals if [e] is a variable
        and can thus better be avoided. *)
        inversion H; subst; clear H
     end.
 
-  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _; simpl.
+  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _, _; simpl.
 
   Local Hint Constructors head_step.
   Local Hint Resolve to_of_val.

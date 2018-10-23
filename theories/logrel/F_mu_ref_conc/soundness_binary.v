@@ -7,13 +7,13 @@ From iris_examples.logrel.F_mu_ref_conc Require Import soundness_unary.
 Lemma basic_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}
     e e' τ v thp hp :
   (∀ `{heapIG Σ, cfgSG Σ}, [] ⊨ e ≤log≤ e' : τ) →
-  rtc step ([e], ∅) (of_val v :: thp, hp) →
-  (∃ thp' hp' v', rtc step ([e'], ∅) (of_val v' :: thp', hp')).
+  rtc erased_step ([e], ∅) (of_val v :: thp, hp) →
+  (∃ thp' hp' v', rtc erased_step ([e'], ∅) (of_val v' :: thp', hp')).
 Proof.
   intros Hlog Hsteps.
-  cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc step ([e'], ∅) (of_val v :: thp', h))).
+  cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc erased_step ([e'], ∅) (of_val v :: thp', h))).
   { destruct 1; naive_solver. }
-  eapply (wp_adequacy Σ _); iIntros (Hinv).
+  eapply (wp_adequacy Σ _); iIntros (Hinv ?).
   iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
   { apply (auth_auth_valid _ (to_gen_heap_valid _ _ ∅)). }
   iMod (own_alloc (● (to_tpool [e'], ∅)
@@ -23,7 +23,7 @@ Proof.
   iMod (inv_alloc specN _ (spec_inv ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
   { iNext. iExists [e'], ∅. rewrite /to_gen_heap fin_maps.map_fmap_empty. auto. }
   set (HeapΣ := (HeapIG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
-  iExists (λ σ, own γ (● to_gen_heap σ)); iFrame.
+  iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
   iPoseProof ((Hlog _ _ [] [] ([e'], ∅)) with "[$Hcfg]") as "Hrel".

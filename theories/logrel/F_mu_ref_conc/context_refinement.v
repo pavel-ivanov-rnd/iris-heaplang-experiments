@@ -191,8 +191,8 @@ Definition ctx_refines (Γ : list type)
   typed Γ e τ ∧ typed Γ e' τ ∧
   ∀ K thp σ v,
   typed_ctx K Γ τ [] TUnit →
-  rtc step ([fill_ctx K e], ∅) (of_val v :: thp, σ) →
-  ∃ thp' σ' v', rtc step ([fill_ctx K e'], ∅) (of_val v' :: thp', σ').
+  rtc erased_step ([fill_ctx K e], ∅) (of_val v :: thp, σ) →
+  ∃ thp' σ' v', rtc erased_step ([fill_ctx K e'], ∅) (of_val v' :: thp', σ').
 Notation "Γ ⊨ e '≤ctx≤' e' : τ" :=
   (ctx_refines Γ e e' τ) (at level 74, e, e', τ at next level).
 

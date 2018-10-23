@@ -31,7 +31,7 @@ Section definitionsS.
 
   Definition spec_inv (ρ : cfg F_mu_ref_conc_lang) : iProp Σ :=
     (∃ tp σ, own cfg_name (● (to_tpool tp, to_gen_heap σ))
-                 ∗ ⌜rtc step ρ (tp,σ)⌝)%I.
+                 ∗ ⌜rtc erased_step ρ (tp,σ)⌝)%I.
   Definition spec_ctx (ρ : cfg F_mu_ref_conc_lang) : iProp Σ :=
     inv specN (spec_inv ρ).
 
@@ -135,24 +135,24 @@ Section cfg.
   Local Hint Resolve to_tpool_insert'.
   Local Hint Resolve tpool_singleton_included.
 
-  Lemma step_insert K tp j e σ e' σ' efs :
-    tp !! j = Some (fill K e) → head_step e σ e' σ' efs →
-    step (tp, σ) (<[j:=fill K e']> tp ++ efs, σ').
+  Lemma step_insert K tp j e σ κ e' σ' efs :
+    tp !! j = Some (fill K e) → head_step e σ κ e' σ' efs →
+    erased_step (tp, σ) (<[j:=fill K e']> tp ++ efs, σ').
   Proof.
     intros. rewrite -(take_drop_middle tp j (fill K e)) //.
     rewrite insert_app_r_alt take_length_le ?Nat.sub_diag /=;
       eauto using lookup_lt_Some, Nat.lt_le_incl.
-    rewrite -(assoc_L (++)) /=.
+    rewrite -(assoc_L (++)) /=. eexists.
     eapply step_atomic; eauto. by apply: Ectx_step'.
   Qed.
 
-  Lemma step_insert_no_fork K tp j e σ e' σ' :
-    tp !! j = Some (fill K e) → head_step e σ e' σ' [] →
-    step (tp, σ) (<[j:=fill K e']> tp, σ').
+  Lemma step_insert_no_fork K tp j e σ κ e' σ' :
+    tp !! j = Some (fill K e) → head_step e σ κ e' σ' [] →
+    erased_step (tp, σ) (<[j:=fill K e']> tp, σ').
   Proof. rewrite -(right_id_L [] (++) (<[_:=_]>_)). by apply step_insert. Qed.
 
   Lemma step_pure E ρ j K e e' :
-    (∀ σ, head_step e σ e' σ []) →
+    (∀ σ, head_step e σ [] e' σ []) →
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K e ={E}=∗ j ⤇ fill K e'.
   Proof.

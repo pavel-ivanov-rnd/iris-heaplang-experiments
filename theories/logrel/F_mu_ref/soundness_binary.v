@@ -7,14 +7,14 @@ From iris_examples.logrel.F_mu_ref Require Import soundness.
 Lemma basic_soundness Σ `{heapPreG Σ, inG Σ (authR cfgUR)}
     e e' τ v thp hp :
   (∀ `{heapG Σ, cfgSG Σ}, [] ⊨ e ≤log≤ e' : τ) →
-  rtc step ([e], ∅) (of_val v :: thp, hp) →
-  (∃ thp' hp' v', rtc step ([e'], ∅) (of_val v' :: thp', hp')).
+  rtc erased_step ([e], ∅) (of_val v :: thp, hp) →
+  (∃ thp' hp' v', rtc erased_step ([e'], ∅) (of_val v' :: thp', hp')).
 Proof.
   intros Hlog Hsteps.
-  cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc step ([e'], ∅) (of_val v :: thp', h))).
+  cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc erased_step ([e'], ∅) (of_val v :: thp', h))).
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ); first by apply _.
-  iIntros (Hinv).
+  iIntros (Hinv ?).
   iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
   { apply (auth_auth_valid _ (to_gen_heap_valid _ _ ∅)). }
   iMod (own_alloc (● (Excl' e', ∅)
@@ -26,7 +26,7 @@ Proof.
     rewrite /to_gen_heap fin_maps.map_fmap_empty.
     iFrame. }
   set (HeapΣ := HeapG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ)).
-  iExists (λ σ, own γ (● to_gen_heap σ)); iFrame.
+  iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   iApply wp_fupd. iApply (wp_wand with "[-]").
   - iPoseProof (Hlog _ _ with "[$Hcfg]") as "Hrel".
     { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }

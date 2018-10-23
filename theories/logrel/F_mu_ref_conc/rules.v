@@ -16,7 +16,7 @@ Class heapIG Σ := HeapIG {
 
 Instance heapIG_irisG `{heapIG Σ} : irisG F_mu_ref_conc_lang Σ := {
   iris_invG := heapI_invG;
-  state_interp := gen_heap_ctx
+  state_interp σ κs := gen_heap_ctx σ
 }.
 Global Opaque iris_invG.
 
@@ -38,14 +38,14 @@ Section lang_rules.
   | H : to_val _ = Some _ |- _ => apply of_to_val in H
   | H : _ = of_val ?v |- _ =>
      is_var v; destruct v; first[discriminate H|injection H as H]
-  | H : head_step ?e _ _ _ _ |- _ =>
+  | H : head_step ?e _ _ _ _ _ |- _ =>
      try (is_var e; fail 1); (* inversion yields many goals if [e] is a variable
      and can thus better be avoided. *)
      inversion H; subst; clear H
   end.
 
   Local Hint Extern 0 (atomic _) => solve_atomic.
-  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _; simpl.
+  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _, _; simpl.
 
   Local Hint Constructors head_step.
   Local Hint Resolve alloc_fresh.
@@ -57,7 +57,7 @@ Section lang_rules.
     {{{ True }}} Alloc e @ E {{{ l, RET (LocV l); l ↦ᵢ v }}}.
   Proof.
     iIntros (<- Φ) "_ HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1) "Hσ !>"; iSplit; first by auto.
+    iIntros (σ1 ??) "Hσ !>"; iSplit; first by auto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_alloc with "Hσ") as "[Hσ Hl]"; first done.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
@@ -67,7 +67,7 @@ Section lang_rules.
   {{{ ▷ l ↦ᵢ{q} v }}} Load (Loc l) @ E {{{ RET v; l ↦ᵢ{q} v }}}.
   Proof.
     iIntros (Φ) ">Hl HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
@@ -80,7 +80,7 @@ Section lang_rules.
   Proof.
     iIntros (<- Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto. iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_update with "Hσ Hl") as "[$ Hl]".
     iModIntro. iSplit=>//. by iApply "HΦ".
@@ -93,7 +93,7 @@ Section lang_rules.
   Proof.
     iIntros (<- <- ? Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto.
     iNext; iIntros (v2' σ2 efs Hstep); inv_head_step.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
@@ -106,7 +106,7 @@ Section lang_rules.
   Proof.
     iIntros (<- <- Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto. iNext; iIntros (v2' σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_update with "Hσ Hl") as "[$ Hl]".
     iModIntro. iSplit=>//. by iApply "HΦ".
