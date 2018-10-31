@@ -50,19 +50,18 @@ Definition myrec : val :=
 (* Here is the specification for the recursion through the store function.
    See the Iris Lecture Notes for an in-depth discussion of both the specification and
    the proof. *)
-Lemma myrec_spec (P: val -> iProp Σ) (Q: val -> val -> iProp Σ) (F v1: val) (e_F e_v : expr) :
-  IntoVal e_F F → IntoVal e_v v1 →
+Lemma myrec_spec (P: val -> iProp Σ) (Q: val -> val -> iProp Σ) (F v1: val) :
   {{{
-       ( ∀e_f:expr,∀f : val,  ∀v2:val, ⌜IntoVal e_f f⌝ -∗ {{{(∀ v3 :val, {{{P v3 }}} e_f v3 {{{u, RET u; Q u v3 }}})
+       ( ∀f : val,  ∀v2:val, {{{(∀ v3 :val, {{{P v3 }}} f v3 {{{u, RET u; Q u v3 }}})
                                 ∗ P v2 }}}
-            F e_f v2
+            F f v2
             {{{u, RET u; Q u v2}}})
             ∗ P v1
   }}}
-myrec e_F e_v
+myrec F v1
   {{{u, RET u; Q u v1}}}.
 Proof.
-   iIntros (<- <- ϕ) "[#H P] Q".
+   iIntros (ϕ) "[#H P] Q".
    wp_lam.
    wp_alloc r as "r".
    wp_let.
@@ -71,12 +70,12 @@ Proof.
    iMod (inv_alloc (nroot.@"myrec") _ _ with "[r]") as "#inv"; first by iNext; iExact "r".
    iAssert (▷ ∀ u : val, Q u v1 -∗ ϕ u)%I with "[Q]" as "Q"; first done.
    iLöb as "IH" forall(v1 ϕ).
-   wp_let.
+   wp_lam.
    wp_bind (! _)%E.
    iInv (nroot.@"myrec") as "r" "cl".
    wp_load.
    iMod ("cl" with "[r]") as "_"; first done. iModIntro.
-   iApply ("H" with "[][P]"); first (iIntros "!%"; apply _); last done.
+   iApply ("H" with "[P]"); last done.
    iFrame. iIntros (v3).
    iAlways. iIntros (Φ) "P Q". iApply ("IH" with "[P][Q]"); done.
 Qed.
@@ -138,7 +137,7 @@ Section factorial_client.
   Proof.
     iLöb as "IH".
     iIntros (n Φ) "ret".
-    wp_lam. wp_lam.
+    wp_lam. wp_let.
     wp_binop.
     case_bool_decide; simplify_eq/=.
     - wp_if. iApply "ret".
@@ -175,17 +174,17 @@ Section factorial_client.
 
   (* Finally, here is the specification that our implementation of factorial
      really does implement the mathematical factorial function. *)
-  Lemma myfac_spec (n: expr) (n': Z):
-    IntoVal n #n' → (0 ≤ n') →
+  Lemma myfac_spec (n: Z):
+    (0 ≤ n) →
     {{{ True}}}
-      myfac n
-      {{{v, RET v; ⌜v = #(fac_int n')⌝}}}.
+      myfac #n
+    {{{v, RET v; ⌜v = #(fac_int n)⌝}}}.
   Proof.
-    iIntros (<- Hleq Φ) "_ ret"; simplify_eq.
+    iIntros (Hleq Φ) "_ ret"; simplify_eq. unfold myfac. wp_pures.
     iApply (myrec_spec (fun v => ⌜∃m' : Z, 0 ≤ m' ∧ to_val v = Some #m'⌝%I)
                        (fun u => fun v => ⌜∃m' : Z, to_val v = Some #m' ∧ u = #(fac_int m')⌝%I)).
-    - iSplit; last eauto. iIntros (e_f f v <-). iAlways. iIntros (Φ') "spec_f ret".
-      wp_lam. wp_lam. iDestruct "spec_f" as "[spec_f %]".
+    - iSplit; last eauto. iIntros (f v). iAlways. iIntros (Φ') "spec_f ret".
+      wp_lam. wp_let. iDestruct "spec_f" as "[spec_f %]".
       destruct H as [m' [Hleqm' Heq%of_to_val]]; simplify_eq.
       wp_binop.
       case_bool_decide; simplify_eq/=; wp_if.

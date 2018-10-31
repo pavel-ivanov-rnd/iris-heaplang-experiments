@@ -108,7 +108,7 @@ Section proof.
     iMod (own_alloc (1%Qp, to_agree ∅)) as (γb) "[Ha Hf]"; first done.
     wp_apply (newlock_spec N (bag_inv γb r) with "[Hr Ha]").
     { iExists []. iFrame. }
-    iIntros (lk γ) "#Hlk". wp_let. iApply "HΦ".
+    iIntros (lk γ) "#Hlk". wp_pures. iApply "HΦ".
     rewrite /is_bag /bag_contents. iFrame.
     iExists _,_,_. by iFrame "Hlk".
   Qed.
@@ -123,7 +123,7 @@ Section proof.
   Proof.
     iIntros "#Hvs".
     iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
-    unfold pushBag. do 2 wp_rec.
+    unfold pushBag. wp_rec. wp_let.
     rewrite /is_bag /bag_inv.
     iDestruct "Hbag" as (lk b γl) "[% #Hlk]"; simplify_eq/=.
     repeat wp_pure _.
@@ -133,7 +133,7 @@ Section proof.
     wp_bind (_ <- _)%E.
     iApply (wp_mask_mono _ (⊤∖↑N)); first done.
     iMod ("Hvs" with "[$Ha $HP]") as "[Hbc HQ]".
-    wp_store. wp_let.
+    wp_store. wp_seq.
     wp_apply (release_spec with  "[$Hlk $Htok Hbc Hb]").
     { iExists (v::ls); iFrame. }
     iIntros "_". by iApply "HΦ".
@@ -184,4 +184,3 @@ Canonical Structure cg_bag `{!heapG Σ, !bagG Σ} : bag Σ :=
      abstract_bag.newBag_spec := newBag_spec;
      abstract_bag.pushBag_spec := pushBag_spec;
      abstract_bag.popBag_spec := popBag_spec |}.
-

@@ -1,5 +1,3 @@
-
-
 (* In this file we explain how to do the "list examples" from the
    Chapter on Separation Logic for Sequential Programs in the
    Iris Lecture Notes *)
@@ -13,30 +11,30 @@ From iris.program_logic Require Export weakestpre.
    the lang file contains the actual language syntax. *)
 From iris.heap_lang Require Export notation lang.
 
-(* Files related to the interactive proof mode. The first import includes the 
-   general tactics of the proof mode. The second provides some more specialized 
-   tactics particular to the instantiation of Iris to a particular programming 
+(* Files related to the interactive proof mode. The first import includes the
+   general tactics of the proof mode. The second provides some more specialized
+   tactics particular to the instantiation of Iris to a particular programming
    language. *)
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 
-(* The following line makes Coq check that we do not use any admitted facts / 
+(* The following line makes Coq check that we do not use any admitted facts /
    additional assumptions not in the statement of the theorems being proved. *)
 Set Default Proof Using "Type".
 
 (*  ---------------------------------------------------------------------- *)
 
 Section list_model.
-  (* This section contains the definition of our model of lists, i.e., 
+  (* This section contains the definition of our model of lists, i.e.,
      definitions relating pointer data structures to our model, which is
      simply mathematical sequences (Coq lists). *)
-  
-  
+
+
 (* In order to do the proof we need to assume certain things about the
    instantiation of Iris. The particular, even the heap is handled in an
    analogous way as other ghost state. This line states that we assume the
    Iris instantiation has sufficient structure to manipulate the heap, e.g.,
-   it allows us to use the points-to predicate. *)  
+   it allows us to use the points-to predicate. *)
 Context `{!heapG Σ}.
 Implicit Types l : loc.
 
@@ -45,9 +43,9 @@ Implicit Types l : loc.
      But since Σ is the same throughout the development we shall define
      shorthand notation which hides it. *)
 Notation iProp := (iProp Σ).
-  
+
 (* Here is the basic is_list representation predicate:
-    is_list hd xs holds if hd points to a linked list consisting of 
+    is_list hd xs holds if hd points to a linked list consisting of
    the elements in the mathematical sequence (Coq list) xs.
  *)
 Fixpoint is_list (hd : val) (xs : list val) : iProp :=
@@ -58,7 +56,7 @@ end%I.
 
 (* The following predicate
      is_listP P hd xs
-   holds if hd points to a linked list consisting of the elements in xs and 
+   holds if hd points to a linked list consisting of the elements in xs and
    each of those elements satisfy P.
  *)
 Fixpoint is_listP P (hd : val) (xs : list val) : iProp :=
@@ -82,9 +80,9 @@ Proof.
   - iDestruct 1 as "(H_isList & ? & H)". iDestruct "H_isList" as (l hd') "(? & ? & ?)".
     iExists l, hd'. rewrite IHxs'. iFrame.
 Qed.
-    
+
 (* The predicate
-      is_list_nat hd xs 
+      is_list_nat hd xs
    holds if hd is a pointer to a linked list of numbers (integers).
 *)
 Fixpoint is_list_nat (hd : val) (xs : list Z) : iProp :=
@@ -119,9 +117,9 @@ End list_model.
 
 (*  ---------------------------------------------------------------------- *)
 
-Section list_code. 
+Section list_code.
   (* This section contains the code of the list functions we specify *)
-  
+
   (* Function inc hd assumes all values in the linked list pointed to by hd
      are numbers and increments them by 1, in-place *)
   Definition inc : val :=
@@ -147,7 +145,7 @@ Section list_code.
            "l"
     end.
 
-  (* Function rev l acc reverses all the pointers in linked list l and stiches 
+  (* Function rev l acc reverses all the pointers in linked list l and stiches
      the accumulator argument acc at the end *)
   Definition rev : val :=
   rec: "rev" "l" "acc" :=
@@ -159,7 +157,7 @@ Section list_code.
        "p" <- ("h", "acc");;
        "rev" "t" "l"
     end.
-  
+
   (* Function len l returns the lenght of linked list l *)
   Definition len : val :=
   rec: "len" "l" :=
@@ -181,7 +179,7 @@ Section list_code.
       "f" ("hd", ("foldr" "f" "a" "t"))
     end.
 
-  (* sum_list l returns the sum of the list of numbers in linked list l, 
+  (* sum_list l returns the sum of the list of numbers in linked list l,
      implemented by call to foldr *)
   Definition sum_list : val :=
   rec: "sum_list" "l" :=
@@ -209,7 +207,7 @@ Section list_code.
                   else "xs")
     in (foldr "f" empty_list "l").
 
-  (* map_list f l is the usual map function on linked lists with f the function 
+  (* map_list f l is the usual map function on linked lists with f the function
      to be mapped over the list l. Implemented using foldr. *)
   Definition map_list : val :=
   rec: "map_list" "f" "l" :=
@@ -225,7 +223,7 @@ Section list_code.
     rec: "incr" "l" :=
      map_list (λ: "n", "n" + #1)%I "l".
 
-End list_code.  
+End list_code.
 
 (*  ---------------------------------------------------------------------- *)
 
@@ -233,9 +231,9 @@ Section list_spec.
   (* This section contains the specifications and proofs for the list functions.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
-  
+
   Context `{!heapG Σ}.
-  
+
 Lemma inc_spec hd xs :
   {{{ is_list_nat hd xs }}}
     inc hd
@@ -277,12 +275,12 @@ Proof.
   iIntros (ϕ) "[H1 H2] HL".
   iInduction vs as [| v vs'] "IH" forall (acc l us).
    - iSimplifyEq. wp_rec. wp_let. wp_match. iApply "HL". done.
-   - simpl. iDestruct "H1" as (l' t) "(% & H3 & H1)". wp_rec. wp_let.               
+   - simpl. iDestruct "H1" as (l' t) "(% & H3 & H1)". wp_rec. wp_let.
      rewrite -> H at 1. wp_match. do 2 (wp_load; wp_proj; wp_let).
      wp_store. iSpecialize ("IH" $! l t ([v] ++ us)).
      iApply ("IH" with "[H1] [H3 H2]").
      + done.
-     + simpl. iExists l', acc. iFrame. done.                                                                                
+     + simpl. iExists l', acc. iFrame. done.
      + iNext. rewrite -> app_assoc. done.
 Qed.
 
@@ -300,27 +298,26 @@ Proof.
 Qed.
 
 (* The following specifications for foldr are non-trivial because the code is higher-order
-   and hence the specifications involved nested triples. 
+   and hence the specifications involved nested triples.
    The specifications are explained in the Iris Lecture Notes. *)
 
 
-Lemma foldr_spec_PI P I (f a hd : val) (e_f e_a e_hd : expr) (xs : list val) :
-  IntoVal e_f f → IntoVal e_a a → IntoVal e_hd hd →
+Lemma foldr_spec_PI P I  (f a hd : val) (xs : list val) :
   {{{ (∀ (x a' : val) (ys : list val),
           {{{ P x ∗ I ys a'}}}
-            e_f (x, a')
+            f (x, a')
           {{{r, RET r; I (x::ys) r }}})
         ∗ is_list hd xs
         ∗ ([∗ list] x ∈ xs, P x)
         ∗ I [] a
   }}}
-    foldr e_f e_a e_hd
+    foldr f a hd
   {{{
        r, RET r; is_list hd xs
                  ∗ I xs r
   }}}.
 Proof.
-  iIntros (<- <- <- ϕ) "(#H_f & H_isList & H_Px & H_Iempty) H_inv".
+  iIntros (ϕ) "(#H_f & H_isList & H_Px & H_Iempty) H_inv".
   iInduction xs as [|x xs'] "IH" forall (ϕ a hd); wp_rec; do 2 wp_let; iSimplifyEq.
   - wp_match. iApply "H_inv". eauto.
   - iDestruct "H_isList" as (l hd') "[% [H_l H_isList]]".
@@ -335,22 +332,21 @@ Proof.
     iExists l, hd'. by iFrame.
 Qed.
 
-Lemma foldr_spec_PPI P I (f a hd : val ) (e_f e_a e_hd : expr) (xs : list val) :
-  IntoVal e_f f → IntoVal e_a a → IntoVal e_hd hd →
+Lemma foldr_spec_PPI P I (f a hd : val) (xs : list val) :
   {{{ (∀ (x a' : val) (ys : list val),
           {{{ P x ∗ I ys a'}}}
-            e_f (x, a')
+            f (x, a')
           {{{r, RET r; I (x::ys) r }}})
         ∗ is_listP P hd xs
         ∗ I [] a
   }}}
-    foldr e_f e_a e_hd
+    foldr f a hd
   {{{
        r, RET r; is_listP (fun x => True) hd xs
                  ∗ I xs r
   }}}.
 Proof.
-  iIntros (<- <- <- ϕ) "(#H_f & H_isList & H_Iempty) H_inv".
+  iIntros (ϕ) "(#H_f & H_isList & H_Iempty) H_inv".
   rewrite about_isList. iDestruct "H_isList" as "(H_isList & H_Pxs)".
   iApply (foldr_spec_PI with "[-H_inv]").
   - iFrame. by iFrame "H_f".
@@ -364,7 +360,7 @@ Lemma sum_spec (hd: val) (xs: list Z) :
   {{{ v, RET v; ⌜v = # (fold_right Z.add 0 xs)⌝ }}}.
 Proof.
   iIntros (ϕ) "H_is_list H_later".
-  wp_rec. wp_let.
+  wp_rec. wp_pures.
   iApply (foldr_spec_PI
             (fun x => (∃ (n : Z), ⌜x = #n⌝)%I)
             (fun xs' acc => ∃ ys,
@@ -376,7 +372,7 @@ Proof.
     + iIntros (x a' ys). iAlways. iIntros (ϕ') "(H1 & H2) H3".
       do 5 (wp_pure _).
       iDestruct "H2" as (zs) "(% & % & H_list)".
-      iDestruct "H1" as (n2) "%". iSimplifyEq. wp_binop.
+      iDestruct "H1" as (n2) "%". iSimplifyEq. wp_pures.
       iApply "H3". iExists (n2::zs). repeat (iSplit; try done).
       by iExists _.
     + iSplit.
@@ -392,7 +388,7 @@ Qed.
 
 Lemma filter_spec (hd p : val) (xs : list val) (P : val -> bool) :
   {{{ is_list hd xs
-      ∗ (∀ x : val , 
+      ∗ (∀ x : val ,
            {{{ True }}}
            p x
            {{{r, RET r; ⌜r = #(P x)⌝ }}})
@@ -402,17 +398,16 @@ Lemma filter_spec (hd p : val) (xs : list val) (P : val -> bool) :
                 ∗ is_list v (List.filter P xs)
   }}}.
 Proof.
-  iIntros (ϕ) "[H_isList #H_p] H_ϕ".
-  do 3 (wp_pure _).
+  iIntros (ϕ) "[H_isList #H_p] H_ϕ". wp_rec. wp_pures.
   iApply (foldr_spec_PI (fun x => True)%I
-                        (fun xs' acc => is_list acc (List.filter P xs'))%I 
+                        (fun xs' acc => is_list acc (List.filter P xs'))%I
                   with "[$H_isList] [H_ϕ]").
   - iSplitL.
     + iIntros "** !#" (ϕ'). iIntros "[_ H_isList] H_ϕ'".
       repeat (wp_pure _). wp_bind (p x). iApply "H_p"; first done.
       iNext. iIntros (r) "H". iSimplifyEq. destruct (P x); wp_if.
-      * unfold cons. repeat (wp_pure _). wp_alloc l. iApply "H_ϕ'".
-        iExists l, a'. by iFrame. 
+      * wp_rec. wp_pures. wp_alloc l. wp_pures. iApply "H_ϕ'".
+        iExists l, a'. by iFrame.
       * by iApply "H_ϕ'".
     + iSplit; last done.
       rewrite big_sepL_forall. eauto.
@@ -420,24 +415,23 @@ Proof.
 Qed.
 
 
-Lemma map_spec P Q (e_f e_hd : expr) (f hd : val) (xs : list val) :
-  IntoVal e_f f → IntoVal e_hd hd →
+Lemma map_spec P Q (f hd : val) (xs : list val) :
   {{{
        is_list hd xs
         ∗ (∀ (x : val), {{{ P x }}}
-                          e_f x
+                          f x
                         {{{r, RET r; Q x r}}})
         ∗ [∗ list] x ∈ xs, P x
   }}}
-    map_list e_f e_hd
+    map_list f hd
   {{{
        r, RET r; ∃ (ys : list val),  is_list r ys
                                      ∗ ([∗ list] p ∈ zip xs ys, Q (fst p) (snd p))
                                      ∗ ⌜List.length ys = List.length xs⌝
   }}}.
 Proof.
-  iIntros (<- <- ϕ) "[H_is_list [#H1 H_P_xs]] H_ϕ".
-  do 3 (wp_pure _).
+  iIntros (ϕ) "[H_is_list [#H1 H_P_xs]] H_ϕ".
+  wp_rec. wp_pures.
   iApply (foldr_spec_PI
             P
             (fun xs acc => ∃ ys,  (is_list acc ys)
@@ -445,12 +439,12 @@ Proof.
                                  ∗ ⌜length xs = length ys⌝)%I
             with "[H_is_list H1 H_P_xs] [H_ϕ]").
   - iSplitR "H_is_list H_P_xs".
-    + iIntros (x a' ys). iAlways. iIntros (ϕ') "(H_Px & H_Q) H_ϕ'". repeat (wp_pure _).
+    + iIntros (x a' ys). iAlways. iIntros (ϕ') "(H_Px & H_Q) H_ϕ'". wp_pures.
       wp_bind (f x). iApply ("H1" with "[H_Px][H_Q H_ϕ']"); try done.
-      iNext. iIntros (r) "H_Qr". repeat (wp_pure _). wp_alloc l. iApply "H_ϕ'".
+      iNext. iIntros (r) "H_Qr". wp_rec. wp_alloc l. wp_pures. iApply "H_ϕ'".
       iDestruct "H_Q" as (ys') "(H_is_list_ys' & H_Qys' & %)". iExists (r::ys').
       iSplitR "H_Qr H_Qys'".
-      * unfold is_list. iExists l, a'. fold is_list. by iFrame. 
+      * unfold is_list. iExists l, a'. fold is_list. by iFrame.
       * iSimplifyEq. iFrame. eauto.
     + iFrame. iExists []. iSplit; by simpl.
   - iNext. iIntros (r) "H". iApply "H_ϕ". iDestruct "H" as "(_ & H_Q)".
@@ -459,7 +453,7 @@ Qed.
 
 
 Lemma about_length {A : Type} (xs : list A) (n : nat) :
-  length xs = S n -> exists x xs', xs = x::xs'. 
+  length xs = S n -> exists x xs', xs = x::xs'.
 Proof.
   intro H. induction xs as [| x xs' ].
   - inversion H.
@@ -472,27 +466,26 @@ Lemma inc_with_map hd (xs : list Z) :
   {{{ v, RET v; is_list v (List.map (fun (n : Z) => #n) (List.map Z.succ xs)) }}}.
 Proof.
   iIntros (ϕ) "H_isList H_ϕ".
-  wp_rec. iApply (map_spec
+  wp_rec. wp_apply (map_spec
                             (fun x => (∃ (n : Z), ⌜x = #n⌝)%I)
                             (fun x r =>  (∃ (n' : Z),
                                        ⌜r = #(Z.succ n')⌝
                                              ∗ ⌜x = #n'⌝)%I)
                     with "[$H_isList] [H_ϕ]").
-  - iSplit. iIntros (x) "!#". iIntros (ϕ') "H1 H2". wp_let. iDestruct "H1" as (n) "H_x".
+  - iSplit. iIntros (x) "!#". iIntros (ϕ') "H1 H2". wp_lam. iDestruct "H1" as (n) "H_x".
     iSimplifyEq. wp_binop. iApply "H2". by iExists n.
     rewrite big_sepL_fmap. rewrite big_sepL_forall. eauto.
-  - iNext. iIntros (r) "H". iApply "H_ϕ". iDestruct "H" as (ys) "(H_isList & H_post & H_length)". 
+  - iNext. iIntros (r) "H". iApply "H_ϕ". iDestruct "H" as (ys) "(H_isList & H_post & H_length)".
     iAssert (⌜ys = (List.map (λ n : Z, #n) (List.map Z.succ xs))⌝)%I with "[-H_isList]" as %->.
-    { iInduction ys as [| y ys'] "IH" forall (xs); iDestruct "H_length" as %H. 
+    { iInduction ys as [| y ys'] "IH" forall (xs); iDestruct "H_length" as %H.
        - simpl. destruct xs. by simpl. inversion H.
        - rewrite fmap_length in H. symmetry in H. simpl in H.
          destruct (about_length _ _ H) as (x & xs' & ->). simpl.
          iDestruct "H_post" as "(H_head & H_tail)".
          iDestruct "H_head" as (n') "(% & %)". iSimplifyEq.
          iDestruct ("IH" with "H_tail []") as %->. by rewrite fmap_length. done.
-    } 
+    }
     iFrame.
 Qed.
 
-End list_spec. 
-
+End list_spec.

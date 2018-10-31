@@ -315,7 +315,7 @@ Section monotone_counter.
     iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
     { iNext; iExists m; iFrame. }
     iModIntro.
-    wp_lam; wp_op; wp_lam. 
+    wp_let; wp_op; wp_let.
     wp_bind (CAS _ _ _)%E.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
@@ -332,7 +332,7 @@ Section monotone_counter.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       { iNext; iExists (1 + m)%nat.
         rewrite Nat2Z.inj_succ Z.add_1_l; iFrame. }
-      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]"). 
+      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]").
       iExists γ; iFrame "#"; iFrame.
     + wp_cas_fail; first intros ?; simplify_eq.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
@@ -377,9 +377,9 @@ Section auth_update.
     apply auth_update.
     intros ? mz ? Heq.
     split.
-    - apply cmra_valid_validN; auto. 
+    - apply cmra_valid_validN; auto.
     - simpl in *.
-      rewrite Heq. 
+      rewrite Heq.
       destruct mz; simpl; auto.
       rewrite -assoc (comm _ _ z) assoc //.
   Qed.
@@ -425,7 +425,7 @@ Section monotone_counter'.
        The general definition also involves the use of step-indices, which is not needed in our case. *)
     rewrite auth_valid_discrete_2.
     split.
-    - intros [? _]; by apply mnat_included. 
+    - intros [? _]; by apply mnat_included.
     - intros ?%mnat_included; done.
   Qed.
 
@@ -468,7 +468,7 @@ Section monotone_counter'.
       + iApply ("HCont" with "[HFrac HInv]").
         iExists γ; iFrame.
   Qed.
-  
+
   (* The read method specification. *)
   Lemma read_spec' ℓ n: {{{ isCounter' ℓ n }}} read #ℓ {{{ m, RET #m; ⌜n ≤ m⌝%nat }}}.
   Proof.
@@ -500,7 +500,7 @@ Section monotone_counter'.
     iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
     { iNext; iExists m; iFrame. }
     iModIntro.
-    wp_lam; wp_op; wp_lam. 
+    wp_let; wp_op; wp_let.
     wp_bind (CAS _ _ _)%E.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
@@ -511,7 +511,7 @@ Section monotone_counter'.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       { iNext; iExists (1 + m)%nat.
         rewrite Nat2Z.inj_succ Z.add_1_l; iFrame. }
-      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]"). 
+      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]").
       iExists γ; iFrame "#"; iFrame.
     + wp_cas_fail; first intros ?; simplify_eq.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
@@ -559,7 +559,7 @@ Section ccounter.
   Lemma ccounterRA_valid_full (m n : natR): ✓ (●! m ⋅ ◯! n) → (n = m)%nat.
   Proof.
     by intros ?%frac_auth_agree.
-  Qed.    
+  Qed.
 
   Lemma ccounterRA_update (m n : natR) (q : frac): (●! m ⋅ ◯!{q} n) ~~> (●! (S m) ⋅ ◯!{q} (S n)).
   Proof.
@@ -588,7 +588,7 @@ Section ccounter.
   (** The main proofs. *)
 
   (* As explained in the notes the is_ccounter predicate for this specificatin is not persistent.
-     However it is still shareable in the following restricted way. 
+     However it is still shareable in the following restricted way.
    *)
   Lemma is_ccounter_op γ ℓ q1 q2 (n1 n2 : nat) :
     is_ccounter γ ℓ (q1 + q2) (n1 + n2)%nat ⊣⊢ is_ccounter γ ℓ q1 n1 ∗ is_ccounter γ ℓ q2 n2.
@@ -601,11 +601,11 @@ Section ccounter.
   Qed.
 
   Lemma newcounter_contrib_spec (R : iProp Σ) :
-    {{{ True }}} 
+    {{{ True }}}
         newCounter #()
     {{{ γ ℓ, RET #ℓ; is_ccounter γ ℓ 1 0%nat }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_seq. wp_alloc ℓ as "Hpt".
+    iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
     iMod (own_alloc (●! O%nat ⋅ ◯! 0%nat)) as (γ) "[Hγ Hγ']"; first done.
     iMod (inv_alloc N _ (ccounter_inv γ ℓ) with "[Hpt Hγ]").
     { iNext. iExists 0%nat. by iFrame. }
@@ -614,7 +614,7 @@ Section ccounter.
 
   Lemma incr_contrib_spec γ ℓ q n :
     {{{ is_ccounter γ ℓ q n  }}}
-        incr #ℓ 
+        incr #ℓ
     {{{ RET #(); is_ccounter γ ℓ q (S n) }}}.
   Proof.
     iIntros (Φ) "[Hown #Hinv] HΦ". iLöb as "IH". wp_rec.
@@ -634,12 +634,12 @@ Section ccounter.
   Qed.
 
   Lemma read_contrib_spec γ ℓ q n :
-    {{{ is_ccounter γ ℓ q n }}} 
+    {{{ is_ccounter γ ℓ q n }}}
         read #ℓ
     {{{ c, RET #c; ⌜n ≤ c⌝%nat ∧ is_ccounter γ ℓ q n }}}.
   Proof.
     iIntros (Φ) "[Hown #Hinv] HΦ".
-    rewrite /read /=. wp_let. iInv N as (c) ">[Hγ Hpt]" "Hclose". wp_load.
+    rewrite /read /=. wp_lam. iInv N as (c) ">[Hγ Hpt]" "Hclose". wp_load.
     iDestruct (own_valid_2 with "Hγ Hown") as % ?%ccounterRA_valid. (* We use the validity property of our RA. *)
     iMod ("Hclose" with "[Hpt Hγ]") as "_"; [iNext; iExists c; by iFrame|].
     iApply ("HΦ" with "[-]"); rewrite /is_ccounter; eauto.
@@ -650,7 +650,7 @@ Section ccounter.
     {{{ m, RET #m; ⌜m = n⌝ ∗ is_ccounter γ ℓ 1 m }}}.
   Proof.
     iIntros (Φ) "[Hown #Hinv] HΦ".
-    rewrite /read /=. wp_let. iInv N as (c) ">[Hγ Hpt]" "Hclose". wp_load.
+    rewrite /read /=. wp_lam. iInv N as (c) ">[Hγ Hpt]" "Hclose". wp_load.
     iDestruct (own_valid_2 with "Hγ Hown") as % <-%ccounterRA_valid_full. (* We use the validity property of our RA. *)
     iMod ("Hclose" with "[Hpt Hγ]") as "_"; [iNext; iExists n; by iFrame|].
     iApply "HΦ"; iModIntro. iFrame "Hown #"; done.

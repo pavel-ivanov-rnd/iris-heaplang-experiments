@@ -139,10 +139,8 @@ Section proof.
          proved in the par library we have imported above. The rule/lemma is
          called wp_par. The two arguments are the conclusions of the two
          parallel threads. Here they are simply True, as in the paper proof when
-         we used the ht-par rule. The first two subgoals are bookkeeping
-         subgoals about closedness (absence of free variables) of expression
-         incr ℓ and incr ℓ. They are easily dispatched by the done tactic. *)
-      iApply (wp_par (λ _ , ⌜True⌝)%I (λ _ , ⌜True⌝)%I); [done | done | ..].
+         we used the ht-par rule. *)
+      iApply (wp_par (λ _ , ⌜True⌝)%I (λ _ , ⌜True⌝)%I).
       (* We now have three subgoals. The first two are proofs that each thread
       does the correct thing, and the final goal is to show that the combined
       conclusion of the two threads implies the desired conclusion. This last
@@ -236,9 +234,9 @@ Section proof.
            ..., thus we first remove the later modality using the later
            introduction rule, implemented by the iNext tactic. After that we
            have to deal with the application of a function with a dummy argument,
-           i.e., sequencing. The wp_lam tactic handles it. *)
+           i.e., sequencing. The wp_seq tactic handles it. *)
         iNext.
-        wp_lam.
+        wp_seq.
         (* The last interesting part of the proof is before us. We do exactly as
            we did on paper. We open the invariant, and read the value. And the
            invariant will tell us that the value is at least n. We can then apply

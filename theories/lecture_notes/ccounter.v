@@ -26,7 +26,7 @@ Section ccounter.
   Lemma ccounterRA_valid_full (m n : natR): ✓ (●! m ⋅ ◯! n) → (n = m)%nat.
   Proof.
     by intros ?%frac_auth_agree.
-  Qed.    
+  Qed.
 
   Lemma ccounterRA_update (m n : natR) (q : frac): (●! m ⋅ ◯!{q} n) ~~> (●! (S m) ⋅ ◯!{q} (S n)).
   Proof.
@@ -51,7 +51,7 @@ Section ccounter.
   Qed.
 
   Lemma newcounter_contrib_spec (R : iProp Σ) m:
-    {{{ True }}} 
+    {{{ True }}}
         newcounter #m
     {{{ γ₁ γ₂ ℓ, RET #ℓ; is_ccounter γ₁ γ₂ ℓ 1 m%nat }}}.
   Proof.
@@ -66,21 +66,21 @@ Section ccounter.
 
   Lemma incr_contrib_spec γ₁ γ₂ ℓ q n :
     {{{ is_ccounter γ₁ γ₂ ℓ q n  }}}
-        incr #ℓ 
+        incr #ℓ
     {{{ (y : Z), RET #y; is_ccounter γ₁ γ₂ ℓ q (S n) }}}.
   Proof.
-    iIntros (Φ) "[Hown #[Hinv HCnt]] HΦ". 
+    iIntros (Φ) "[Hown #[Hinv HCnt]] HΦ".
     iApply (incr_spec N γ₂ _ (own γ₁ (◯!{q} n))%I (λ _, (own γ₁ (◯!{q} (S n))))%I with "[] [Hown]"); first set_solver.
-    - iIntros (m) "!# [HOwnElem HP]". 
+    - iIntros (m) "!# [HOwnElem HP]".
       iInv (N .@ "counter") as (k) "[>H1 >H2]" "HClose".
-      iDestruct (makeElem_eq with "HOwnElem H2") as %->. 
+      iDestruct (makeElem_eq with "HOwnElem H2") as %->.
       iMod (makeElem_update _ _ _ (k+1) with "HOwnElem H2") as "[HOwnElem H2]".
       iMod (own_update_2 with "H1 HP") as "[H1 HP]".
-      { apply ccounterRA_update. } 
+      { apply ccounterRA_update. }
       iMod ("HClose" with "[H1 H2]") as "_".
       { iNext; iExists (S k); iFrame.
         rewrite Nat2Z.inj_succ Z.add_1_r //.
-      } 
+      }
       by iFrame.
     - by iFrame.
     - iNext.
@@ -89,7 +89,7 @@ Section ccounter.
   Qed.
 
   Lemma read_contrib_spec γ₁ γ₂ ℓ q n :
-    {{{ is_ccounter γ₁ γ₂ ℓ q n }}} 
+    {{{ is_ccounter γ₁ γ₂ ℓ q n }}}
         read #ℓ
     {{{ (c : Z), RET #c; ⌜Z.of_nat n ≤ c⌝ ∧ is_ccounter γ₁ γ₂ ℓ q n }}}.
   Proof.
@@ -97,7 +97,7 @@ Section ccounter.
     wp_apply (read_spec N γ₂ _ (own γ₁ (◯!{q} n))%I (λ m, ⌜n ≤ m⌝ ∗ (own γ₁ (◯!{q} n)))%I with "[] [Hown]"); first set_solver.
     - iIntros (m) "!# [HownE HOwnfrag]".
       iInv (N .@ "counter") as (k) "[>H1 >H2]" "HClose".
-      iDestruct (makeElem_eq with "HownE H2") as %->. 
+      iDestruct (makeElem_eq with "HownE H2") as %->.
       iDestruct (own_valid_2 with "H1 HOwnfrag") as %Hleq%ccounterRA_valid.
       iMod ("HClose" with "[H1 H2]") as "_".
       { iExists _; by iFrame. }
@@ -118,7 +118,7 @@ Section ccounter.
     wp_apply (read_spec N γ₂ _ (own γ₁ (◯! n))%I (λ m, ⌜Z.of_nat n = m⌝ ∗ (own γ₁ (◯! n)))%I with "[] [Hown]"); first set_solver.
     - iIntros (m) "!# [HownE HOwnfrag]".
       iInv (N .@ "counter") as (k) "[>H1 >H2]" "HClose".
-      iDestruct (makeElem_eq with "HownE H2") as %->. 
+      iDestruct (makeElem_eq with "HownE H2") as %->.
       iDestruct (own_valid_2 with "H1 HOwnfrag") as %Hleq%ccounterRA_valid_full; simplify_eq.
       iMod ("HClose" with "[H1 H2]") as "_".
       { iExists _; by iFrame. }

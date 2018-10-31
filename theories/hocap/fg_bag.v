@@ -150,18 +150,17 @@ Section proof.
     iIntros "#Hvs".
     iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
     unfold pushBag.
-    iLöb as "IH". do 2 wp_rec.
+    iLöb as "IH". wp_rec. wp_pures.
     rewrite /is_bag.
     iDestruct "Hbag" as (b) "[% #Hinv]"; simplify_eq/=.
-    repeat wp_pure _.
     wp_bind (! #b)%E.
     iInv N as (o ls) "[Ho [Hls >Hb]]" "Hcl".
     wp_load.
     iMod ("Hcl" with "[Ho Hls Hb]") as "_".
     { iNext. iExists _,_. iFrame. } clear ls.
-    iModIntro. repeat wp_pure _.
+    iModIntro.
     wp_alloc n as "Hn".
-    wp_bind (CAS _ _ _).
+    wp_pures. wp_bind (CAS _ _ _).
     iInv N as (o' ls) "[Ho [Hls >Hb]]" "Hcl".
     iPoseProof (is_list_unboxed with "Hls") as "#>%".
     destruct (decide (o = o')) as [->|?].
@@ -227,7 +226,7 @@ Section proof.
         iMod ("Hvs1" with "[$Hb $HP]") as "[Hb HQ]".
         iMod ("Hcl" with "[Ho Htl Hb]") as "_".
         { iNext. iExists _,ls. by iFrame "Ho Hb". }
-        iModIntro. wp_if_true. by iApply "HΦ".
+        iModIntro. wp_pures. by iApply "HΦ".
       + wp_cas_fail.
         iMod ("Hcl" with "[Ho Hls Hb]") as "_".
         { iNext. iExists _,ls'. by iFrame "Ho Hb". }

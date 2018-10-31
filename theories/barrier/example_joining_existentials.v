@@ -19,9 +19,10 @@ Definition oneShotΣ (F : cFunctor) : gFunctors :=
 Instance subG_oneShotΣ {Σ F} : subG (oneShotΣ F) Σ → oneShotG Σ F.
 Proof. solve_inG. Qed.
 
-Definition client eM eW1 eW2 : expr :=
+Definition client : val :=
+  λ: "fM" "fW1" "fW2",
   let: "b" := newbarrier #() in
-  (eM ;; signal "b") ||| ((wait "b" ;; eW1) ||| (wait "b" ;; eW2)).
+  ("fM" #() ;; signal "b") ||| ((wait "b" ;; "fW1" #()) ||| (wait "b" ;; "fW2" #())).
 
 Section proof.
 Local Set Default Proof Using "Type*".
@@ -32,7 +33,7 @@ Local Notation X := (F (iProp Σ)).
 Definition barrier_res γ (Φ : X → iProp Σ) : iProp Σ :=
   (∃ x, own γ (Shot x) ∗ Φ x)%I.
 
-Lemma worker_spec e γ l (Φ Ψ : X → iProp Σ) `{!Closed [] e} :
+Lemma worker_spec e γ l (Φ Ψ : X → iProp Σ) :
   recv N l (barrier_res γ Φ) -∗ (∀ x, {{ Φ x }} e {{ _, Ψ x }}) -∗
   WP wait #l ;; e {{ _, barrier_res γ Ψ }}.
 Proof.
@@ -68,31 +69,31 @@ Proof.
   iExists x; iFrame "Hγ". iApply (Ψ_join with "Hx Hx'").
 Qed.
 
-Lemma client_spec_new eM eW1 eW2 `{!Closed [] eM, !Closed [] eW1, !Closed [] eW2} :
+Lemma client_spec_new (fM fW1 fW2 : val) :
   P -∗
-  {{ P }} eM {{ _, ∃ x, Φ x }} -∗
-  (∀ x, {{ Φ1 x }} eW1 {{ _, Ψ1 x }}) -∗
-  (∀ x, {{ Φ2 x }} eW2 {{ _, Ψ2 x }}) -∗
-  WP client eM eW1 eW2 {{ _, ∃ γ, barrier_res γ Ψ }}.
+  {{ P }} fM #() {{ _, ∃ x, Φ x }} -∗
+  (∀ x, {{ Φ1 x }} fW1 #() {{ _, Ψ1 x }}) -∗
+  (∀ x, {{ Φ2 x }} fW2 #() {{ _, Ψ2 x }}) -∗
+  WP client fM fW1 fW2 {{ _, ∃ γ, barrier_res γ Ψ }}.
 Proof using All.
-  iIntros "/= HP #He #He1 #He2"; rewrite /client.
+  iIntros "/= HP #Hf #Hf1 #Hf2"; rewrite /client.
   iMod (own_alloc (Pending : one_shotR Σ F)) as (γ) "Hγ"; first done.
-  wp_apply (newbarrier_spec N (barrier_res γ Φ)); auto.
+  wp_lam. wp_apply (newbarrier_spec N (barrier_res γ Φ)); auto.
   iIntros (l) "[Hr Hs]".
   set (workers_post (v : val) := (barrier_res γ Ψ1 ∗ barrier_res γ Ψ2)%I).
-  wp_let. wp_apply (wp_par  (λ _, True)%I workers_post with "[HP Hs Hγ] [Hr]").
-  - wp_bind eM. iApply (wp_wand with "[HP]"); [by iApply "He"|].
-    iIntros (v) "HP"; iDestruct "HP" as (x) "HP". wp_let.
+  wp_apply (par_spec  (λ _, True)%I workers_post with "[HP Hs Hγ] [Hr]").
+  - wp_lam. wp_bind (fM #()). iApply (wp_wand with "[HP]"); [by iApply "Hf"|].
+    iIntros (v) "HP"; iDestruct "HP" as (x) "HP". wp_seq.
     iMod (own_update with "Hγ") as "Hx".
     { by apply (cmra_update_exclusive (Shot x)). }
     iApply (signal_spec with "[- $Hs]"); last auto.
     iExists x; auto.
   - iDestruct (recv_weaken with "[] Hr") as "Hr"; first by iApply P_res_split.
     iMod (recv_split with "Hr") as "[H1 H2]"; first done.
-    wp_apply (wp_par (λ _, barrier_res γ Ψ1)%I
-                     (λ _, barrier_res γ Ψ2)%I with "[H1] [H2]").
-    + iApply (worker_spec with "H1"); auto.
-    + iApply (worker_spec with "H2"); auto.
+    wp_apply (par_spec (λ _, barrier_res γ Ψ1)%I
+                       (λ _, barrier_res γ Ψ2)%I with "[H1] [H2]").
+    + wp_apply (worker_spec with "H1"); auto.
+    + wp_apply (worker_spec with "H2"); auto.
     + auto.
   - iIntros (_ v) "[_ [H1 H2]]". iDestruct (Q_res_join with "H1 H2") as "?". auto.
 Qed.

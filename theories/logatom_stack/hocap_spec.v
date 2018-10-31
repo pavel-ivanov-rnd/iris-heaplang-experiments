@@ -48,11 +48,10 @@ Record hocap_stack {Σ} `{!heapG Σ} := AtomicStack {
   (* -- operation specs -- *)
   new_stack_spec N :
     {{{ True }}} new_stack #() {{{ γs s, RET s; is_stack N γs s ∗ stack_content_frag γs [] }}};
-  push_spec N γs s e v (Φ : val → iProp Σ) :
-    IntoVal e v →
+  push_spec N γs s (v : val) (Φ : val → iProp Σ) :
     is_stack N γs s -∗
     make_laterable (∀ l, stack_content_auth γs l ={⊤∖↑N}=∗ stack_content_auth γs (v::l) ∗ Φ #()) -∗
-    WP push (s, e) {{ Φ }};
+    WP push s v {{ Φ }};
   pop_spec N γs s (Φ : val → iProp Σ) :
     is_stack N γs s -∗
     make_laterable (∀ l, stack_content_auth γs l ={⊤∖↑N}=∗
@@ -92,14 +91,13 @@ interface. *)
 Section hocap_logatom.
   Context `{!heapG Σ} (stack: hocap_stack Σ).
 
-  Lemma logatom_push N γs s e v :
-    IntoVal e v →
+  Lemma logatom_push N γs s (v : val) :
     stack.(is_stack) N γs s -∗
     <<< ∀ l : list val, stack.(stack_content_frag) γs l >>>
-      stack.(push) (s, e) @ ⊤∖↑N
+      stack.(push) s v @ ⊤∖↑N
     <<< stack.(stack_content_frag) γs (v::l), RET #() >>>.
   Proof.
-    iIntros (?) "Hstack". iApply wp_atomic_intro. iIntros (Φ) "HΦ".
+    iIntros "Hstack". iApply wp_atomic_intro. iIntros (Φ) "HΦ".
     iApply (push_spec with "Hstack").
     iApply (make_laterable_intro with "[%] [] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
@@ -172,13 +170,12 @@ Section logatom_hocap.
     iApply inv_alloc. eauto with iFrame.
   Qed.
 
-  Lemma hocap_push N γs s e v (Φ : val → iProp Σ) :
-    IntoVal e v →
+  Lemma hocap_push N γs s (v : val) (Φ : val → iProp Σ) :
     hocap_is_stack N γs s -∗
     make_laterable (∀ l, hocap_stack_content_auth γs l ={⊤∖↑N}=∗ hocap_stack_content_auth γs (v::l) ∗ Φ #()) -∗
-    WP stack.(logatom.push) (s, e) {{ Φ }}.
+    WP stack.(logatom.push) s v {{ Φ }}.
   Proof using Type*.
-    iIntros (?) "#[Hstack Hwrap] Hupd". iApply (logatom.push_spec with "Hstack"); first iAccu.
+    iIntros "#[Hstack Hwrap] Hupd". iApply (logatom.push_spec with "Hstack"); first iAccu.
     iAuIntro. iInv "Hwrap" as (l) "[>Hcont >H●]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont".

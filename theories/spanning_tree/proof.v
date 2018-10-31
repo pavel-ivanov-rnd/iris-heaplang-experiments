@@ -30,7 +30,7 @@ Section wp_span.
     iIntros (Hgl Hgmx Hgcn) "Hgr".
     iMod (graph_ctx_alloc _ g markings with "[Hgr]") as (Ig κ) "(key & #Hgr & Hg)";
       eauto.
-    iApply wp_fupd.
+    iApply wp_fupd. wp_pures.
     iApply wp_wand_l; iSplitR;
       [|iApply ((rec_wp_span κ g markings 1 1 (SOMEV #l)) with "[Hg key]");
         eauto; iFrame "#"; iFrame].

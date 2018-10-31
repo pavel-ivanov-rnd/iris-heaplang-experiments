@@ -98,7 +98,7 @@ Section stacks.
     iMod (inv_alloc N _ (stack_inv P l) with "[Hl]") as "#Hisstack".
     { iExists None; iFrame; auto.
       iApply is_stack_unfold. auto. }
-    wp_let.
+    wp_pures.
     iModIntro.
     iApply "HΦ".
     - iIntros "!#".
@@ -111,13 +111,13 @@ Section stacks.
       destruct v' as [l'|]; simpl; last first.
       + iMod ("Hclose" with "[Hl' Hstack]") as "_".
         { rewrite /stack_inv. eauto with iFrame. }
-        iModIntro. wp_match. by iRight.
+        iModIntro. wp_match. wp_pures. by iRight.
       + iDestruct (is_stack_copy with "Hstack") as "[Hstack Hmy]".
         iDestruct "Hmy" as (q h t) "Hl".
         iMod ("Hclose" with "[Hl' Hstack]") as "_".
         { rewrite /stack_inv. eauto with iFrame. }
         iModIntro. wp_match.
-        wp_load. wp_proj.
+        wp_load. wp_pures.
         wp_bind (CAS _ _ _).
         iInv N as "Hstack" "Hclose".
         iDestruct "Hstack" as (v'') "[Hl'' Hstack]".
@@ -131,7 +131,7 @@ Section stacks.
           iModIntro.
           wp_if.
           wp_load.
-          wp_proj.
+          wp_pures.
           eauto.
         * simpl in Hne. wp_cas_fail.
           iMod ("Hclose" with "[Hl'' Hstack]").
@@ -151,8 +151,7 @@ Section stacks.
       iModIntro.
       wp_let.
       wp_alloc r'' as "Hr''".
-      wp_let.
-      wp_bind (CAS _ _ _).
+      wp_pures. wp_bind (CAS _ _ _).
       iInv N as "Hstack" "Hclose".
       iDestruct "Hstack" as (v'') "[Hl'' Hstack]".
       wp_cas as ->%oloc_to_val_inj|_.

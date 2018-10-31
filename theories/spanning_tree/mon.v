@@ -97,11 +97,6 @@ Definition child_to_val (c : option loc) : val :=
 Definition children_to_val (ch : option loc * option loc) : val :=
   (child_to_val (ch.1), child_to_val (ch.2)).
 
-Lemma children_to_val_is_val (c c' : option loc) :
-  to_val (child_to_val c, child_to_val c') =
-  Some (child_to_val c, child_to_val c')%V.
-Proof. by destruct c; destruct c'. Qed.
-
 Definition marked_graph := gmap loc (bool * (option loc * option loc)).
 Identity Coercion marked_graph_gmap: marked_graph >-> gmap.
 

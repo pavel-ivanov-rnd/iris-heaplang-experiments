@@ -39,7 +39,7 @@ Section contents.
     {{{ True }}} seqFib #n {{{ (m : nat), RET #m; ⌜fib n = m⌝ }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    iLöb as "IH" forall (n Φ). 
+    iLöb as "IH" forall (n Φ).
     wp_rec. simpl. wp_op. case_bool_decide; simplify_eq; wp_if.
     { assert (n = O) as -> by lia.
       by iApply ("HΦ" $! 1%nat). }
@@ -77,7 +77,7 @@ Section contents.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
     iDestruct "HP" as (n) "%"; simplify_eq.
-    do 2 wp_rec. simpl. wp_op. case_bool_decide; wp_if.
+    wp_lam. wp_let. wp_op. case_bool_decide; wp_if.
     - iApply seqFib_spec; eauto.
       iNext. iIntros (? <-). iApply "HΦ".
       iExists n; done.
@@ -107,7 +107,7 @@ Section contents.
     {{{ True }}} fibRunner #n #a {{{ (m : nat), RET #m; ⌜fib a = m⌝ }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    unfold fibRunner. do 2 wp_rec. wp_bind (newRunner _ _ _).
+    unfold fibRunner. wp_lam. wp_let. wp_bind (newRunner _ _ _).
     iApply (newRunner_spec b N P Q).
     - iIntros (γb r). iAlways. iIntros (a') "[#Hrunner HP]".
       iApply (parFib_spec with "[$HP]"); eauto.

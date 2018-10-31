@@ -15,9 +15,9 @@ From iris.program_logic Require Export weakestpre.
    the lang file contains the actual language syntax. *)
 From iris.heap_lang Require Export notation lang.
 
-(* Files related to the interactive proof mode. The first import includes the 
-   general tactics of the proof mode. The second provides some more specialized 
-   tactics particular to the instantiation of Iris to a particular programming 
+(* Files related to the interactive proof mode. The first import includes the
+   general tactics of the proof mode. The second provides some more specialized
+   tactics particular to the instantiation of Iris to a particular programming
    language. *)
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
@@ -30,18 +30,18 @@ From iris.base_logic.lib Require Export invariants.
 From iris.algebra Require Import excl.
 
 
-Section lock_model. 
+Section lock_model.
 (* In order to do the proof we need to assume certain things about the
    instantiation of Iris. The particular, even the heap is handled in an
    analogous way as other ghost state. This line states that we assume the Iris
    instantiation has sufficient structure to manipulate the heap, e.g., it
    allows us to use the points-to predicate, and that the ghost state includes
    the exclusive resource algebra over the singleton set (represented using the
-   unitR type). *)  
+   unitR type). *)
 
   Context `{heapG Σ}.
   Context `{inG Σ (exclR unitR)}.
- 
+
   (* We use a ghost name with a token to model whether the lock is locked or not.
      The the token is just exclusive ownerwhip of unit value. *)
   Definition locked γ := own γ (Excl ()).
@@ -57,13 +57,13 @@ Section lock_model.
   (* The is_lock predicate is persistent *)
   Global Instance is_lock_persistent γ l Φ : Persistent (is_lock γ l Φ).
   Proof. apply _. Qed.
-  
+
 End lock_model.
 
 Section lock_code.
 
   (* Here is the standard spin lock code *)
-  
+
   Definition newlock : val := λ: <>, ref #false.
   Definition acquire : val :=
     rec: "acquire" "l" :=
@@ -75,11 +75,11 @@ End lock_code.
 Section lock_spec.
   Context `{heapG Σ}.
   Context `{inG Σ (exclR unitR)}.
-  
-  (* Here is the interesting part of this example, namely the new specification 
-     for newlock, which allows one to get a post-condition which can be instantiated 
-     with the lock invariant at some point later, when it is known. 
-     See the discussion in Iris Lecture Notes. 
+
+  (* Here is the interesting part of this example, namely the new specification
+     for newlock, which allows one to get a post-condition which can be instantiated
+     with the lock invariant at some point later, when it is known.
+     See the discussion in Iris Lecture Notes.
      First we show the specs using triples, and afterwards using weakest preconditions.
   *)
 
@@ -111,7 +111,7 @@ Section lock_spec.
     wp_rec.
     wp_bind (CAS _ _ _).
     iInv (lockN l) as "[(Hl & HP & Ht)|Hl]" "Hcl".
-    - wp_cas_suc. 
+    - wp_cas_suc.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
       wp_if.
@@ -132,7 +132,7 @@ Section lock_spec.
     iIntros (HE φ) "(#Hi & Hld & HP) Hcont"; rewrite /release.
     wp_lam.
     iInv (lockN l) as "[(Hl & HQ & >Ht)|Hl]" "Hcl".
-    - iDestruct (own_valid_2 with "Hld Ht") as %Hv. done. 
+    - iDestruct (own_valid_2 with "Hld Ht") as %Hv. done.
     - wp_store.
       iMod ("Hcl" with "[-Hcont]") as "_"; first by iNext; iLeft; iFrame.
       iApply "Hcont".
@@ -140,14 +140,14 @@ Section lock_spec.
   Qed.
 
   (* Here are the specifications again, just written using weakest preconditions *)
-  
+
   Lemma wp_newlock :
     True ⊢ WP newlock #() {{v, ∃ (l: loc) γ, ⌜v = #l⌝ ∧ (∀ P E, P ={E}=∗ is_lock γ l P) }}.
   Proof.
     iIntros "_".
     rewrite -wp_fupd /newlock.
     wp_lam.
-    wp_alloc l as "HPt". 
+    wp_alloc l as "HPt".
     iExists l.
     iMod (own_alloc (Excl ())) as (γ) "Hld"; first done.
     iExists γ.
@@ -159,7 +159,7 @@ Section lock_spec.
     { iNext; iLeft; iFrame. }
   Qed.
 
-  
+
   Lemma wp_acquire E γ l P :
     nclose (lockN l) ⊆ E →
     is_lock γ l P ⊢ WP acquire (#l) @ E {{v, P ∗ locked γ}}.
@@ -169,7 +169,7 @@ Section lock_spec.
     wp_rec.
     wp_bind (CAS _ _ _).
     iInv (lockN l) as "[(Hl & HP & Ht)|Hl]" "Hcl".
-    - wp_cas_suc. 
+    - wp_cas_suc.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
       wp_if.
@@ -189,7 +189,7 @@ Section lock_spec.
     iIntros (HE) "(#Hi & Hld & HP)"; rewrite /release.
     wp_lam.
     iInv (lockN l) as "[(Hl & HQ & >Ht)|Hl]" "Hcl".
-    - iDestruct (own_valid_2 with "Hld Ht") as %Hv. done. 
+    - iDestruct (own_valid_2 with "Hld Ht") as %Hv. done.
     - wp_store.
       iMod ("Hcl" with "[-]") as "_"; first by iNext; iLeft; iFrame.
       done.
@@ -201,7 +201,7 @@ Section lock_spec.
   (* We now present a simple client of the lock which cannot be verified with the
      lock specification described in the Chapter on Invariants and Ghost State in the
      Iris Lecture Notes, but which can be specifed and verified with the current 
-     specification.  
+     specification.
   *)
   Definition test : expr :=
     let: "l" := newlock #() in
@@ -216,11 +216,11 @@ Section lock_spec.
     iApply (wp_newlock_t); auto.
     iNext.
     iIntros (v) "Hs".
-    wp_lam.
+    wp_let.
     wp_bind (ref #0)%E.
     wp_alloc l as "Hl".
-    wp_lam.
-    wp_lam.
+    wp_let.
+    wp_seq.
     wp_bind (acquire v)%E.
     iDestruct "Hs" as (l' γ) "[% H2]".
     subst.
@@ -229,7 +229,7 @@ Section lock_spec.
     wp_apply (wp_acquire_t with "H3"); auto.
     iIntros (v) "(Hpt & Hlocked)".
     iDestruct "Hpt" as (u) "Hpt".
-    wp_lam.
+    wp_seq.
     wp_load.
     wp_op.
     wp_store.

@@ -46,7 +46,7 @@ Section Helpers.
       }}.
   Proof.
     iIntros (Hgx) "(#Hgr & Hx & key)".
-    wp_let; wp_bind (! _)%E. unfold graph_ctx.
+    wp_lam; wp_bind (! _)%E. unfold graph_ctx.
     iMod (cinv_open with "Hgr key") as "(>Hinv & key & Hcl)"; first done.
     unfold graph_inv at 2.
     iDestruct "Hinv" as (G) "(Hi1 & Hi2 & Hi3 & Hi4)".
@@ -157,13 +157,13 @@ Section Helpers.
       (g !! x) = Some v →
       (graph_ctx κ g markings ∗ own_graph q (x [↦] w) ∗ cinv_own κ k)
         ⊢
-        WP (#x <- (#m, children_to_val w'))
+        WP (#x <- (#m, children_to_val w')%V)
         {{ v, own_graph q (x [↦] w') ∗ cinv_own κ k }}.
   Proof.
     iIntros (Hagree Hmrk Hgx) "(#Hgr & Hx & key)".
     assert (Hgx' : x ∈ dom (gset _) g).
     { rewrite elem_of_dom Hgx; eauto. }
-    unfold graph_ctx.
+    unfold graph_ctx. wp_pures.
     iMod (cinv_open _ graphN with "Hgr key")
       as "(>Hinv & key & Hclose)"; first done.
     unfold graph_inv at 2.
@@ -204,13 +204,13 @@ Section Helpers.
       {{ _, own_graph q (x [↦] (None, w2)) ∗ cinv_own κ k }}.
   Proof.
     iIntros (Hgx) "(#Hgr & Hx & key)".
-    wp_let. wp_bind (! _)%E.
+    wp_lam. wp_bind (! _)%E.
     iApply wp_wand_l; iSplitR;
       [|iApply wp_load_graph; eauto; iFrame "Hgr"; by iFrame].
     iIntros (u) "(H1 & Hagree & Hx & key)". iDestruct "H1" as (m) "[Hmrk Hu]".
     iDestruct "Hagree" as %Hagree.
     iDestruct "Hmrk" as %Hmrk; iDestruct "Hu" as %Hu; subst.
-    wp_let. do 3 wp_proj.
+    wp_pures.
     iApply (wp_store_graph _ (None, w2) with "[Hx key]"); eauto;
       [|iFrame "Hgr"; by iFrame].
     { by destruct w1; destruct w2; destruct v; inversion Hagree; subst. }
@@ -224,13 +224,13 @@ Section Helpers.
       {{ _, own_graph q (x [↦] (w1, None)) ∗ cinv_own κ k }}.
   Proof.
     iIntros (Hgx) "(#Hgr & Hx & key)".
-    wp_let. wp_bind (! _)%E.
+    wp_lam. wp_bind (! _)%E.
     iApply wp_wand_l; iSplitR;
       [|iApply wp_load_graph; eauto; iFrame "Hgr"; by iFrame].
     iIntros (u) "(H1 & Hagree & Hx & key)". iDestruct "H1" as (m) "[Hmrk Hu]".
     iDestruct "Hagree" as %Hagree.
     iDestruct "Hmrk" as %Hmrk; iDestruct "Hu" as %Hu; subst.
-    wp_let. wp_bind (Fst _). do 3 wp_proj.
+    wp_pures.
     iApply (wp_store_graph _ (w1, None) with "[Hx key]"); eauto;
       [|iFrame "Hgr"; by iFrame].
     { by destruct w1; destruct w2; destruct v; inversion Hagree; subst. }
@@ -329,7 +329,7 @@ Section Helpers.
       [|iApply wp_load_graph; eauto; iFrame "Hgr"; by iFrame].
     iIntros (v) "(H1 & Hagree & Hx & key)". iDestruct "H1" as (m) "[Hmrk Hv]".
     iDestruct "Hagree" as %Hagree. iDestruct "Hv" as %Hv; subst v.
-    wp_let. wp_bind (par _).
+    wp_let. wp_pures. wp_bind (par _ _).
     iDestruct "key" as "[K1 K2]".
     iDestruct (empty_graph_divide with "Hx1") as "[Hx11 Hx12]".
     destruct u as [u1 u2]. iApply (par_spec with "[Hx11 K1] [Hx12 K2]").
@@ -359,7 +359,7 @@ Section Helpers.
     (* separating all four cases *)
     iDestruct "Hvl" as "[[% Hvll]|[% Hvlr]]"; subst;
       iDestruct "Hvr" as "[[% Hvrl]|[% Hvrr]]"; subst.
-    - wp_proj. wp_op. wp_if; wp_seq. wp_proj. wp_op. wp_if. wp_seq.
+    - wp_pures.
       iDestruct "Hvll" as (l1) "(Hl1eq & Hg1 & ml1)".
       iDestruct "Hg1" as (G1 mr1 tr1) "(Hxl & Hl1im & Hmx1 & Hfr1 & Hfml)".
       iDestruct "Hfr1" as %Hfr1. iDestruct "Hmx1" as %Hmx1.
@@ -383,7 +383,7 @@ Section Helpers.
       { rewrite dom_op dom_singleton elem_of_union elem_of_singleton; by left. }
       split; auto.
       { eapply maximally_marked_tree_both; eauto. }
-    - wp_proj. wp_op. wp_if. wp_seq. wp_proj. wp_op. wp_if.
+    - wp_pures.
       iDestruct "Hvll" as (l1) "(Hl1eq & Hg1 & ml1)".
       iDestruct "Hg1" as (G1 mr1 tr1) "(Hxl & Hl1im & Hmx1 & Hfr1 & Hfml)".
       iDestruct "Hfr1" as %Hfr1. iDestruct "Hmx1" as %Hmx1.
@@ -416,7 +416,7 @@ Section Helpers.
       { rewrite dom_op dom_singleton elem_of_union elem_of_singleton; by left. }
       split; auto.
       { eapply maximally_marked_tree_left; eauto. }
-    - wp_proj. wp_op. wp_if.
+    - wp_pures.
       iDestruct "Hvlr" as "(Hvl & Hxl)".
       iDestruct "Hvrl" as (l2) "(Hl2eq & Hg2 & ml2)".
       iDestruct "Hg2" as (G2 mr2 tr2) "(Hxr & Hl2im & Hmx2 & Hfr2 & Hfmr)".

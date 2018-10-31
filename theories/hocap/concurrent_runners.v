@@ -220,28 +220,27 @@ Section contents.
     {{{ γ γ' t, RET t; isTask r γ γ' t P Q ∗ task γ γ' t a P Q }}}.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
-    unfold newTask. do 2 wp_rec. iApply wp_fupd.
+    wp_rec. wp_pures. iApply wp_fupd.
     wp_alloc res as "Hres".
     wp_alloc status as "Hstatus".
     iMod (new_pending) as (γ) "[Htoken Htask]".
     iMod (new_INIT) as (γ') "[Hinit Hinit']".
     iMod (inv_alloc (N.@"task") _ (task_inv γ γ' status res (Q a))%I with "[-HP HΦ Htask Hinit]") as "#Hinv".
     { iNext. iLeft. iFrame. }
-    iModIntro. iApply "HΦ".
+    wp_pures. iModIntro. iApply "HΦ".
     iFrame. iSplitL; iExists _,_,_; iFrame "Hinv"; eauto.
   Qed.
 
-  Lemma task_Join_spec γb γ γ' (te : expr) (r t a : val) P Q :
-    IntoVal te t →
+  Lemma task_Join_spec γb γ γ' (r t a : val) P Q :
     {{{ runner γb P Q r ∗ task γ γ' t a P Q }}}
-       task_Join te
+       task_Join t
     {{{ res, RET res; Q a res }}}.
   Proof.
-    iIntros (<- Φ) "[#Hrunner Htask] HΦ".
+    iIntros (Φ) "[#Hrunner Htask] HΦ".
     iLöb as "IH".
     rewrite {2}/task_Join.
     iDestruct "Htask" as (r' state res) "(% & Htoken & #Htask)". simplify_eq.
-    repeat wp_pure _.
+    wp_rec. wp_pures.
     wp_bind (! #state)%E. iInv (N.@"task") as "Hstatus" "Hcl".
     rewrite {2}/task_inv.
     iDestruct "Hstatus" as "[>(Hstate & Hres)|[Hstatus|Hstatus]]".
@@ -294,7 +293,7 @@ Section contents.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)".
     iDestruct "Htask" as (arg state res) "(% & HP & HINIT & #Htask)".
     simplify_eq. rewrite /task_Run.
-    repeat wp_pure _.
+    wp_rec. wp_pures.
     wp_bind (body _ arg).
     iDestruct ("Hbody" $! (PairV body bag) arg) as "Hbody'".
     iSpecialize ("Hbody'" with "[HP]").
@@ -302,7 +301,7 @@ Section contents.
       iExists _,_; iSplitR; eauto. }
     iApply (wp_wand with "Hbody'").
     iIntros (v) "HQ". wp_let.
-    wp_bind (#res <- SOME v)%E.
+    wp_bind (#res <- SOME v)%E. wp_inj.
     iInv (N.@"task") as "[>(Hstate & Hres & Hpending & HINIT')|[Hstatus|Hstatus]]" "Hcl".
     - wp_store.
       iMod (INIT_SET_RES v γ' with "[HINIT HINIT']") as "[HSETRES HSETRES']".
@@ -311,7 +310,7 @@ Section contents.
         apply _. }
       iMod ("Hcl" with "[HSETRES Hstate Hres Hpending]") as "_".
       { iNext. iRight. iLeft. iExists _; iFrame. }
-      iModIntro. wp_let.
+      iModIntro. wp_seq.
       iInv (N.@"task") as "[>(Hstate & Hres & Hpending & HINIT')|[Hstatus|Hstatus]]" "Hcl".
       { iExFalso. iApply (INIT_not_SET_RES with "HINIT' HSETRES'"). }
       + iDestruct "Hstatus" as (v') "(Hstate & Hres & Hpending & HSETRES)".
@@ -340,7 +339,7 @@ Section contents.
     iIntros (Φ) "#Hrunner HΦ".
     rewrite runner_unfold /runner_runTask.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)"; simplify_eq.
-    repeat wp_pure _.
+    wp_rec. wp_pures.
     wp_bind (popBag b _).
     iApply (popBag_spec with "Hbag").
     iNext. iIntros (t') "[_ [%|Ht]]"; simplify_eq.
@@ -362,15 +361,15 @@ Section contents.
     iLöb as "IH". rewrite /runner_runTasks.
     wp_rec. wp_bind (runner_runTask r).
     iApply runner_runTask_spec; eauto.
-    iNext. iIntros "_". wp_rec. by iApply "IH".
+    iNext. iIntros "_". wp_seq. by iApply "IH".
   Qed.
 
   Lemma loop_spec (n i : nat) P Q γb r:
     {{{ runner γb P Q r }}}
-      (rec: "loop" "i" :=
+      (RecV "loop" "i" (
          if: "i" < #n
          then Fork (runner_runTasks r);; "loop" ("i" + #1)
-         else r) #i
+         else r)) #i
     {{{ r, RET r; runner γb P Q r }}}.
   Proof.
     iIntros (Φ) "#Hrunner HΦ".
@@ -379,50 +378,48 @@ Section contents.
     { by iApply "HΦ". }
     wp_bind (Fork _). iApply (wp_fork with "[]").
     - iNext. by iApply runner_runTasks_spec.
-    - iNext. wp_rec. wp_op.
+    - iNext. wp_seq. wp_op.
       (* Set Printing Coercions. *)
       assert ((Z.of_nat i + 1) = Z.of_nat (i + 1)) as -> by lia.
       iApply ("IH" with "HΦ").
   Qed.
 
-  Lemma newRunner_spec P Q (fe ne : expr) (f : val) (n : nat) :
-    IntoVal fe f → IntoVal ne (#n) →
+  Lemma newRunner_spec P Q (f : val) (n : nat) :
     {{{ ∀ (γ: name Σ b) (r: val),
           □ ∀ a: val, (runner γ P Q r ∗ P a -∗ WP f r a {{ v, Q a v }}) }}}
-       newRunner fe ne
+       newRunner f #n
     {{{ γb r, RET r; runner γb P Q r }}}.
   Proof.
-    iIntros (<- <- Φ) "#Hf HΦ".
+    iIntros (Φ) "#Hf HΦ".
     unfold newRunner. iApply wp_fupd.
-    repeat wp_pure _.
+    wp_lam. wp_pures.
     wp_bind (newBag b #()).
     iApply (newBag_spec b (N.@"bag") (λ x y, ∃ γ γ', isTask (f,x) γ γ' y P Q)%I); auto.
     iNext. iIntros (bag). iDestruct 1 as (γb) "#Hbag".
-    do 3 wp_let.
+    wp_let. wp_pair. wp_let. wp_closure. wp_let.
     iAssert (runner γb P Q (PairV f bag))%I with "[]" as "#Hrunner".
     { rewrite runner_unfold. iExists _,_. iSplit; eauto. }
     iApply (loop_spec n 0 with "Hrunner [HΦ]"); eauto.
     iNext. iIntros (r) "Hr". by iApply "HΦ".
   Qed.
 
-  Lemma runner_Fork_spec γb (re ae:expr) (r a:val) P Q :
-    IntoVal re r → IntoVal ae a →
+  Lemma runner_Fork_spec γb (r a:val) P Q :
     {{{ runner γb P Q r ∗ P a }}}
-       runner_Fork re ae
+       runner_Fork r a
     {{{ γ γ' t, RET t; task γ γ' t a P Q }}}.
   Proof.
-    iIntros (<- <- Φ) "[#Hrunner HP] HΦ".
+    iIntros (Φ) "[#Hrunner HP] HΦ".
     rewrite /runner_Fork runner_unfold.
     iDestruct "Hrunner" as (body bag) "(% & #Hbag & #Hbody)". simplify_eq.
     Local Opaque newTask.
-    repeat wp_pure _. wp_bind (newTask _ _).
+    wp_lam. wp_pures. wp_bind (newTask _ _).
     iApply (newTask_spec γb (body,bag) a P Q with "[Hbag Hbody HP]").
     { iFrame "HP". rewrite runner_unfold.
       iExists _,_; iSplit; eauto. }
     iNext. iIntros (γ γ' t) "[Htask Htask']". wp_let.
     wp_bind (pushBag _ _ _).
     iApply (pushBag_spec with "[$Hbag Htask]"); eauto.
-    iNext. iIntros "_". wp_rec. by iApply "HΦ".
+    iNext. iIntros "_". wp_seq. by iApply "HΦ".
   Qed.
 End contents.
 

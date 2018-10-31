@@ -92,7 +92,7 @@ Lemma newbarrier_spec (P : iProp Σ) :
   {{{ True }}} newbarrier #() {{{ l, RET #l; recv l P ∗ send l P }}}.
 Proof.
   iIntros (Φ) "_ HΦ".
-  rewrite -wp_fupd /newbarrier /=. wp_seq. wp_alloc l as "Hl".
+  rewrite -wp_fupd /newbarrier /=. wp_lam. wp_alloc l as "Hl".
   iApply ("HΦ" with "[> -]").
   iMod (saved_prop_alloc P) as (γ) "#?".
   iMod (sts_alloc (barrier_inv l P) _ N (State Low {[ γ ]}) with "[-]")
@@ -117,7 +117,7 @@ Lemma signal_spec l P :
   {{{ send l P ∗ P }}} signal #l {{{ RET #(); True }}}.
 Proof.
   rewrite /signal /=.
-  iIntros (Φ) "[Hs HP] HΦ". iDestruct "Hs" as (γ) "[#Hsts Hγ]". wp_let.
+  iIntros (Φ) "[Hs HP] HΦ". iDestruct "Hs" as (γ) "[#Hsts Hγ]". wp_lam.
   iMod (sts_openS (barrier_inv l P) _ _ γ with "[Hγ]")
     as ([p I]) "(% & [Hl Hr] & Hclose)"; eauto.
   destruct p; [|done]. wp_store.

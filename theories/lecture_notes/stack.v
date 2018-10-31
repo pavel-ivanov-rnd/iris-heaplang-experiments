@@ -10,7 +10,7 @@ Set Default Proof Using "Type".
 
 (*  ---------------------------------------------------------------------- *)
 
-Section stack_code. 
+Section stack_code.
   (* This section contains the code of the stack functions we specify *)
 
   Definition new_stack : val := λ: <>, ref NONEV.
@@ -29,7 +29,7 @@ Section stack_code.
                              let: "x" := Fst "p" in
                              "s" <- Snd "p" ;; SOME "x"
                            end).
-End stack_code.  
+End stack_code.
 
 (*  ---------------------------------------------------------------------- *)
 
@@ -59,14 +59,14 @@ Section stack_spec.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
   Context `{!heapG Σ}.
-  
+
   Lemma new_stack_spec:
     {{{ True }}}
       new_stack #()
       {{{ s, RET s; is_stack s [] }}}.
   Proof.
     iIntros (ϕ) "_ HΦ".
-    wp_let.
+    wp_lam.
     wp_alloc ℓ as "Hpt".
     iApply "HΦ".
     iExists ℓ, NONEV.
@@ -80,9 +80,10 @@ Section stack_spec.
   Proof.
     iIntros (ϕ) "Hstack HΦ".
     iDestruct "Hstack" as (ℓ hd ->) "[Hpt Hlist]".
-    wp_lam; wp_lam.
+    wp_lam. wp_let.
     wp_load.
-    wp_let. 
+    wp_let.
+    wp_pair.
     wp_let.
     wp_alloc ℓ' as "Hptℓ'".
     wp_store.
@@ -90,7 +91,7 @@ Section stack_spec.
     iExists ℓ, (SOMEV #ℓ'); iFrame.
     iSplitR; first done.
     iExists ℓ', hd; by iFrame.
-  Qed.  
+  Qed.
 
   Lemma pop_spec_nonempty s (x : val) xs:
     {{{ is_stack s (x :: xs) }}}
@@ -102,7 +103,7 @@ Section stack_spec.
     iDestruct "Hlist" as (ℓ' hd' ->) "[Hptℓ' Hlist]".
     wp_lam.
     wp_load.
-    wp_let. 
+    wp_let.
     wp_match.
     wp_load.
     wp_let.
@@ -110,9 +111,10 @@ Section stack_spec.
     wp_let.
     wp_proj.
     wp_store.
+    wp_pures.
     iApply "HΦ".
     iExists ℓ, hd'; by iFrame.
-  Qed.  
+  Qed.
 
   Lemma pop_spec_empty s:
     {{{ is_stack s [] }}}
@@ -123,11 +125,10 @@ Section stack_spec.
     iDestruct "Hstack" as (ℓ hd ->) "[Hpt %]"; subst.
     wp_lam.
     wp_load.
-    wp_let. 
-    wp_match.
+    wp_pures.
     iApply "HΦ".
     iExists ℓ, NONEV; by iFrame.
-  Qed.  
+  Qed.
 
 End stack_spec.
 
@@ -155,14 +156,14 @@ Section stack_ownership_spec.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
   Context `{!heapG Σ}.
-  
+
 Lemma newstack_ownership_spec:
   {{{ True }}}
     new_stack #()
   {{{ s, RET s; is_stack s [] }}}.
 Proof.
   iIntros (ϕ) "_ HΦ".
-  wp_let.
+  wp_lam.
   wp_alloc ℓ as "Hpt".
   iApply "HΦ".
   iExists ℓ, NONEV.
@@ -176,17 +177,15 @@ Lemma push_ownership_spec s Φ Φs (x : val):
 Proof.
   iIntros (Ψ) "[Hstack HΦx] HΨ".
   iDestruct "Hstack" as (ℓ hd ->) "[Hpt Hlist]".
-  wp_lam; wp_lam.
+  wp_lam; wp_let.
   wp_load.
-  wp_let. 
-  wp_let.
   wp_alloc ℓ' as "Hptℓ'".
   wp_store.
   iApply "HΨ".
   iExists ℓ, (SOMEV #ℓ'); iFrame.
   iSplitR; first done.
   iExists ℓ', x, hd; by iFrame.
-Qed.  
+Qed.
 
 Lemma pop_ownership_spec_nonempty s Φ Φs:
   {{{ is_stack_own s (Φ :: Φs) }}}
@@ -198,7 +197,7 @@ Proof.
   iDestruct "Hlist" as (ℓ' x hd' ->) "[Hptℓ' [HΦ Hlist]]".
   wp_lam.
   wp_load.
-  wp_let. 
+  wp_let.
   wp_match.
   wp_load.
   wp_let.
@@ -206,10 +205,11 @@ Proof.
   wp_let.
   wp_proj.
   wp_store.
+  wp_inj.
   iApply "HΨ".
   iFrame "HΦ".
   iExists ℓ, hd'; by iFrame.
-Qed.  
+Qed.
 
 Lemma pop_ownership_spec_empty s:
   {{{ is_stack s [] }}}
@@ -220,11 +220,10 @@ Proof.
   iDestruct "Hstack" as (ℓ hd ->) "[Hpt %]"; subst.
   wp_lam.
   wp_load.
-  wp_let. 
-  wp_match.
+  wp_pures.
   iApply "HΦ".
   iExists ℓ, NONEV; by iFrame.
-Qed.  
+Qed.
 
 End stack_ownership_spec.
 

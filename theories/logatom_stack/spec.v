@@ -22,11 +22,10 @@ Record atomic_stack {Σ} `{!heapG Σ} := AtomicStack {
   (* -- operation specs -- *)
   new_stack_spec N :
     {{{ True }}} new_stack #() {{{ γs s, RET s; is_stack N γs s ∗ stack_content γs [] }}};
-  push_spec N γs s e v :
-    IntoVal e v →
+  push_spec N γs s (v : val) :
     is_stack N γs s -∗
     <<< ∀ l : list val, stack_content γs l >>>
-      push (s, e) @ ⊤∖↑N
+      push s v @ ⊤∖↑N
     <<< stack_content γs (v::l), RET #() >>>;
   pop_spec N γs s :
     is_stack N γs s -∗

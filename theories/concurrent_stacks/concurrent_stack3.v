@@ -113,11 +113,11 @@ Section stack_works.
   Proof.
     iIntros "HΦ HP".
     rename ι into N.
-    wp_let.
+    wp_rec.
     wp_alloc l as "Hl".
     iMod (inv_alloc N _ (stack_inv P #l) with "[Hl HP]") as "#Istack".
     { iNext; iExists l, (InjLV #()), []; iSplit; iFrame; auto. }
-    wp_let.
+    wp_pures.
     iApply "HΦ".
     - iIntros "!# Hcont".
       iLöb as "IH".
@@ -137,7 +137,7 @@ Section stack_works.
         iMod ("Hclose" with "[Hl' Hstack HP]").
         { iExists l', (InjLV #()), []; iSplit; iFrame; auto. }
         iModIntro.
-        wp_match.
+        wp_pures.
         iRight; auto.
       * iDestruct "H" as (q l h t) "[% Hl]".
         subst.
@@ -148,10 +148,9 @@ Section stack_works.
         assert (to_val (h, t)%V = Some (h, t)%V) by apply to_of_val.
         assert (is_Some (to_val (h, t)%V)) by (exists (h, t)%V; auto).
         wp_match.
-        unfold subst; simpl; fold of_val.
 
         wp_load.
-        wp_proj.
+        wp_pures.
         wp_bind (CAS _ _ _).
         iInv N as "Hstack" "Hclose".
         iDestruct "Hstack" as (l'' v' ys) "[>% [Hl'' [Hstack HP]]]".
@@ -171,7 +170,7 @@ Section stack_works.
         iModIntro.
         wp_if.
         wp_load.
-        wp_proj.
+        wp_pures.
         iLeft; iExists _; auto.
       + wp_cas_fail.
         iMod ("Hclose" with "[Hl'' Hstack HP]").
@@ -192,7 +191,7 @@ Section stack_works.
       iModIntro.
       wp_let.
       wp_alloc lp as "Hlp".
-      wp_let.
+      wp_pures.
       wp_bind (CAS _ _ _).
       iInv N as "Hstack" "Hclose".
       iDestruct "Hstack" as (l'' v'' xs) "[>% [Hl'' [Hstack HP]]]".

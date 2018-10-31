@@ -51,7 +51,7 @@ Section cnt_model.
     by rewrite /= agree_idemp.
   Qed.
 
-  Global Instance makeElem_as_fractional γ m q: 
+  Global Instance makeElem_as_fractional γ m q:
     AsFractional (own γ (makeElem q m)) (λ q, γ ⤇[q] m)%I q.
   Proof.
     split. done. apply _.
@@ -59,13 +59,13 @@ Section cnt_model.
 
   Global Instance makeElem_Exclusive m: Exclusive (makeElem 1 m).
   Proof.
-    intros [y ?] [H _]. apply (exclusive_l _ _ H). 
+    intros [y ?] [H _]. apply (exclusive_l _ _ H).
   Qed.
 
   Lemma makeElem_op p q n:
     makeElem p n ⋅ makeElem q n ≡ makeElem (p + q) n.
   Proof.
-    rewrite /makeElem; split; first done. 
+    rewrite /makeElem; split; first done.
     by rewrite /= agree_idemp.
   Qed.
 
@@ -86,7 +86,7 @@ Section cnt_model.
     iCombine "H1" "H2" as "H".
     by rewrite makeElem_op.
   Qed.
-  
+
   Lemma makeElem_update γ (n m k : Z):
     γ ⤇½ n -∗ γ ⤇½ m ==∗ γ ⤇[1] k.
   Proof.
@@ -95,7 +95,7 @@ Section cnt_model.
     rewrite Qp_div_2.
     iApply (own_update with "H"); by apply cmra_update_exclusive.
   Qed.
-End cnt_model.  
+End cnt_model.
 
 Notation "γ ⤇[ q ] m" := (own γ (makeElem q m))
   (at level 20, q at level 50, format "γ ⤇[ q ]  m") : bi_scope.
@@ -104,7 +104,7 @@ Notation "γ ⤇½ m" := (own γ (makeElem (1/2) m))
 
 Section cnt_spec.
   Context `{!heapG Σ, !cntG Σ} (N : namespace).
-  
+
   Definition cnt_inv ℓ γ := (∃ (m : Z), ℓ ↦ #m ∗ γ ⤇½ m)%I.
 
   Definition Cnt (ℓ : loc) (γ : gname) : iProp Σ :=
@@ -125,7 +125,7 @@ Section cnt_spec.
     {{{ True }}} newcounter #m @ E {{{ (ℓ : loc), RET #ℓ; ∃ γ, Cnt ℓ γ ∗ γ ⤇½ m}}}.
   Proof.
     iIntros (Hsubset Φ) "#Ht HΦ".
-    rewrite -wp_fupd. 
+    rewrite -wp_fupd.
     wp_lam.
     wp_alloc ℓ as "Hl".
     iApply "HΦ".
@@ -133,7 +133,7 @@ Section cnt_spec.
   Qed.
 
   Theorem read_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q : Z → iProp Σ) (ℓ : loc):
-    ↑(N .@ "internal") ⊆ E → 
+    ↑(N .@ "internal") ⊆ E →
     (∀ m, (γ ⤇½ m ∗ P ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ m ∗ Q m)) ⊢
     {{{ Cnt ℓ γ ∗ P}}} read #ℓ @ E {{{ (m : Z), RET #m; Cnt ℓ γ ∗ Q m }}}.
   Proof.
@@ -150,10 +150,10 @@ Section cnt_spec.
     iModIntro.
     iFrame.
     done.
-  Qed.    
+  Qed.
 
   Theorem incr_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q : Z → iProp Σ) (ℓ : loc):
-    ↑(N .@ "internal") ⊆ E → 
+    ↑(N .@ "internal") ⊆ E →
     (∀ (n : Z), γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q n) ⊢
     {{{ Cnt ℓ γ ∗ P }}} incr #ℓ @ E {{{ (m : Z), RET #m; Cnt ℓ γ ∗ Q m}}}.
   Proof.
@@ -198,7 +198,7 @@ Section cnt_spec.
     wp_bind (! _)%E.
     iInv (N .@ "internal") as (m) "[>Hpt >Hown]" "HClose".
     wp_load.
-    iDestruct (makeElem_eq with "Hγ Hown") as %->. 
+    iDestruct (makeElem_eq with "Hγ Hown") as %->.
     iMod ("HClose" with "[Hpt Hown]") as "_".
     { iNext; iExists _; iFrame. }
     iModIntro.
@@ -210,10 +210,10 @@ Section cnt_spec.
     wp_store.
     iMod ("HClose" with "[Hpt Hown]") as "_".
     { iNext; iExists _; iFrame. }
-    iModIntro. 
+    iModIntro.
     iApply "HCont"; by iFrame.
   Qed.
-  
+
   Theorem wk_incr_spec' (γ : gname) (E : coPset) (P Q : iProp Σ) (ℓ : loc) (n : Z) (q : Qp):
     ↑(N .@ "internal") ⊆ E →
     (γ ⤇½ n ∗ γ ⤇[q] n ∗ P ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗  γ ⤇[q] (n + 1) ∗ Q) -∗
@@ -221,7 +221,7 @@ Section cnt_spec.
   Proof.
     iIntros (Hsubset) "#HVS".
     iApply wk_incr_spec; done.
-Qed. 
+Qed.
 
 End cnt_spec.
 Global Opaque newcounter incr read wk_incr.
@@ -229,21 +229,21 @@ Global Opaque newcounter incr read wk_incr.
 Section incr_twice.
   Context `{!heapG Σ, !cntG Σ} (N : namespace).
   Definition incr_twice : val := λ: "ℓ", incr "ℓ" ;; incr "ℓ".
-  
+
   Theorem incr_twice_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q Q' : Z → iProp Σ) (ℓ : loc):
     ↑(N .@ "internal") ⊆ E →
     (∀ (n : Z), (γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q n))
-      -∗ 
+      -∗
       (∀ (n : Z), γ ⤇½ n ∗ (∃ m, Q m)  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q' n)
       -∗
       {{{ Cnt N ℓ γ ∗ P }}} incr_twice #ℓ @ E {{{ (m : Z), RET #m; Cnt N ℓ γ ∗ Q' m}}}.
   Proof.
     iIntros (?) "#HVS1 #HVS2 !#".
     iIntros (Φ) "HPre HΦ".
-    wp_let. wp_bind (incr _)%E.
+    wp_lam. wp_bind (incr _)%E.
     wp_apply (incr_spec with "HVS1 HPre"); auto.
     iIntros (m) "[HCnt HPre]".
-    wp_let.
+    wp_seq.
     wp_apply (incr_spec with "HVS2 [$HCnt HPre]"); auto.
   Qed.
 End incr_twice.
@@ -279,10 +279,10 @@ Section example_1.
     }
     wp_let.
     wp_bind (_ ||| _)%E.
-    let tac := iApply ("HIncr" with "[$HInc]"); iNext; by iIntros (?) "_" in 
+    let tac := iApply ("HIncr" with "[$HInc]"); iNext; by iIntros (?) "_" in
     iApply (wp_par (λ _, True%I) (λ _, True%I)); [tac | tac | ].
     { iIntros (v1 v2) "_ !>".
-      wp_let.
+      wp_seq.
       wp_apply (read_spec _ _ _ True%I (λ _, True%I)); auto.
       iIntros (n) "!# [Hown _] !>"; by iFrame.
     }
