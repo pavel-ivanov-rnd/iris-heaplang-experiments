@@ -11,7 +11,7 @@ Proof.
   eapply (wp_adequacy Σ); eauto.
   iIntros (Hinv ?). iModIntro. iExists (λ _ _, True%I). iSplit=> //.
   rewrite -(empty_env_subst e).
-  set (HΣ := IrisG _ _ _ Hinv (λ _ _, True)%I).
+  set (HΣ := IrisG _ _ Hinv (λ _ _ _, True)%I (λ _, True)%I).
   iApply (wp_wand with "[]"). iApply Hlog; eauto. by iApply interp_env_nil. auto.
 Qed.
 

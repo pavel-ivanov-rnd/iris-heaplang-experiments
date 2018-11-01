@@ -14,7 +14,8 @@ Class heapG Σ := HeapG {
 
 Instance heapG_irisG `{heapG Σ} : irisG F_mu_ref_lang Σ := {
   iris_invG := heapG_invG;
-  state_interp σ κs := gen_heap_ctx σ
+  state_interp σ κs _ := gen_heap_ctx σ;
+  fork_post _ := True%I;
 }.
 Global Opaque iris_invG.
 
@@ -62,7 +63,7 @@ Section lang_rules.
   Proof.
     iIntros (<- Φ) "_ HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1 ??) "Hσ !>"; iSplit; first by auto.
+    iIntros (σ1 ???) "Hσ !>"; iSplit; first by auto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_alloc with "Hσ") as "[Hσ Hl]"; first done.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
@@ -72,7 +73,7 @@ Section lang_rules.
   {{{ ▷ l ↦{q} v }}} Load (Loc l) @ E {{{ RET v; l ↦{q} v }}}.
   Proof.
     iIntros (Φ) ">Hl HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ???) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto.
     iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
@@ -85,7 +86,7 @@ Section lang_rules.
   Proof.
     iIntros (<-%of_to_val Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.
-    iIntros (σ1 ??) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iIntros (σ1 ???) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
     iSplit; first by eauto. iNext; iIntros (v2 σ2 efs Hstep); inv_head_step.
     iMod (@gen_heap_update with "Hσ Hl") as "[$ Hl]".
     iModIntro. iSplit=>//. by iApply "HΦ".
