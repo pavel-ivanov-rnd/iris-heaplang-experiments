@@ -91,7 +91,7 @@ Section proof.
     ∀ (Φ: val → iProp Σ),
       (∀ s, is_stack s [] -∗ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
   Proof.
-    iIntros (Φ) "HΦ". wp_seq.
+    iIntros (Φ) "HΦ". wp_lam.
     wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc l' as "Hl'".
     iApply "HΦ". rewrite /is_stack. iExists l.
@@ -144,7 +144,7 @@ Section proof.
       iDestruct "Hhd" as (q) "[Hhd Hhd']".
       iMod ("Hvs'" with "[-Hhd]") as "HQ".
       { iFrame. eauto. }
-      iModIntro. wp_let. wp_load. wp_match.
+      iModIntro. wp_let. wp_load. wp_pures.
       eauto.
     - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
@@ -166,7 +166,7 @@ Section proof.
           iDestruct (uniq_is_list with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
           repeat (iSplitR "Hxs1 Hs"; first done).
           iFrame. }
-        iModIntro. wp_if. wp_proj. eauto.
+        iModIntro. wp_if. wp_pures. eauto.
       + wp_cas_fail. iDestruct "Hvs'" as "[Hvs' _]".
         iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
         iModIntro. wp_if. by iApply "IH".

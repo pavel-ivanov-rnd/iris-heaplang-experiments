@@ -107,7 +107,7 @@ Section proof.
     {{{ p ts, RET #p; installed_recp ts x Q ∗ inv N (p_inv R γm γr ts p) }}}.
   Proof.
     iIntros (Φ) "(#? & HP & Hf) HΦ".
-    wp_seq. wp_let. wp_let. wp_alloc p as "Hl".
+    wp_lam. wp_pures. wp_alloc p as "Hl".
     iApply fupd_wp.
     iMod (own_alloc (Excl ())) as (γ1) "Ho1"; first done.
     iMod (own_alloc (Excl ())) as (γ3) "Ho3"; first done.
@@ -151,10 +151,10 @@ Section proof.
         by apply pair_l_frac_op'. }
       wp_load. iMod ("Hclose" with "[-Hf' Ho1 Hx2 HoQ HR HΦ Hpx]").
       { iNext. iFrame. iFrame "#". iRight. iRight. iLeft. iExists f, x. iFrame. }
-      iModIntro. wp_match. wp_proj. wp_proj.
+      iModIntro. wp_match. wp_pures.
       wp_bind (f _). iApply wp_wand_r. iSplitL "Hpx Hf' HR".
       { iApply "Hf'". iFrame. }
-      iIntros (v) "[HR HQ]".
+      iIntros (v) "[HR HQ]". wp_pures.
       iInv N as "Hx" "Hclose".
       iDestruct "Hx" as "[Hp | [Hp | [Hp | Hp]]]"; subst.
       * iDestruct "Hp" as (?) "(_ & >Ho1' & _)".
@@ -215,7 +215,7 @@ Section proof.
     is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗ Φ #()
     ⊢ WP try_srv lk #s {{ Φ }}.
   Proof.
-    iIntros "(#? & #? & HΦ)". wp_seq. wp_let.
+    iIntros "(#? & #? & HΦ)". wp_lam. wp_pures.
     wp_bind (try_acquire _). iApply (try_acquire_spec with "[]"); first done.
     iNext. iIntros ([]); last by (iIntros; wp_if).
     iIntros "[Hlocked [Ho2 HR]]".
@@ -271,16 +271,16 @@ Section proof.
   Proof.
     iIntros (R Φ) "HR HΦ".
     iMod (own_alloc (Excl ())) as (γr) "Ho2"; first done.
-    wp_seq. wp_bind (newlock _).
+    wp_lam. wp_bind (newlock _).
     iApply (newlock_spec _ (own γr (Excl ()) ∗ R)%I with "[$Ho2 $HR]")=>//.
     iNext. iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
     iApply (new_bag_spec N (p_inv' R γm γr))=>//.
     iNext. iIntros (s) "#Hss".
-    wp_let. iApply "HΦ". rewrite /synced.
-    iAlways. iIntros (f). wp_let. iAlways.
+    wp_pures. iApply "HΦ". rewrite /synced.
+    iAlways. iIntros (f). wp_pures. iAlways.
     iIntros (P Q x) "#Hf".
-    iIntros "!# Hp". wp_let. wp_bind (install _ _ _).
+    iIntros "!# Hp". wp_pures. wp_bind (install _ _ _).
     iApply (install_spec R P Q f x γm γr s with "[-]")=>//.
     { iFrame. iFrame "#". }
     iNext. iIntros (p [[[[γx γ1] γ3] γ4] γq]) "[(Ho3 & Hx & HoQ) #?]".

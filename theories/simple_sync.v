@@ -22,12 +22,12 @@ Section syncer.
   Lemma mk_sync_spec: mk_syncer_spec mk_sync.
   Proof.
     iIntros (R Φ) "HR HΦ".
-    wp_seq. wp_bind (newlock _).
+    wp_lam. wp_bind (newlock _).
     iApply (newlock_spec N R with "[HR]"); first done. iNext.
-    iIntros (lk γ) "#Hl". wp_let. iApply "HΦ". iIntros "!#".
-    iIntros (f). wp_let. iAlways.
+    iIntros (lk γ) "#Hl". wp_pures. iApply "HΦ". iIntros "!#".
+    iIntros (f). wp_pures. iAlways.
     iIntros (P Q x) "#Hf !# HP".
-    wp_let. wp_bind (acquire _).
+    wp_pures. wp_bind (acquire _).
     iApply (acquire_spec with "Hl"). iNext.
     iIntros "[Hlocked R]". wp_seq. wp_bind (f _).
     iSpecialize ("Hf" with "[R HP]"); first by iFrame.

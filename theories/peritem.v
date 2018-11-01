@@ -47,7 +47,7 @@ Section proofs.
     {{{ True }}} new_stack #() {{{ s, RET #s; bag_inv s }}}.
   Proof.
     iIntros (Φ) "_ HΦ". iApply wp_fupd.
-    wp_seq. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
+    wp_lam. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc s as "Hs".
     iAssert ((∃ xs, is_bag_R N R xs s))%I with "[-HΦ]" as "Hxs".
     { iFrame. iExists [], l.
