@@ -16,7 +16,7 @@ Section Autosubst_Lemmas.
     upn m f x = if lt_dec x m then ids x else rename (+m) (f (x - m)).
   Proof.
     revert x; induction m as [|m IH]=> -[|x];
-      repeat (case_match || asimpl || rewrite IH); auto with omega.
+      repeat (destruct (lt_dec _ _) || asimpl || rewrite IH); auto with lia.
   Qed.
 End Autosubst_Lemmas.
 

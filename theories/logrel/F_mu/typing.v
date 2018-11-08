@@ -44,8 +44,8 @@ Proof.
   { intros ??. by rewrite fmap_length. } 
   assert (∀ {A} `{Ids A} `{Rename A} (s1 s2 : nat → A) x,
     (x ≠ 0 → s1 (pred x) = s2 (pred x)) → up s1 x = up s2 x).
-  { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal omega. }
-  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with omega.
+  { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal lia. }
+  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with lia.
 Qed.
 
 Definition env_subst (vs : list val) (x : var) : expr :=
@@ -57,7 +57,7 @@ Lemma typed_subst_head_simpl Δ τ e w ws :
 Proof.
   intros H1 H2. rewrite /env_subst.
   eapply typed_subst_invariant; eauto=> /= -[|x] ? //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' ?]; first omega.
+  destruct (lookup_lt_is_Some_2 ws x) as [v' ?]; first lia.
   by simplify_option_eq.
 Qed.
 

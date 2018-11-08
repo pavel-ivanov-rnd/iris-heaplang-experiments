@@ -74,8 +74,8 @@ Proof.
   { intros ??. by rewrite fmap_length. } 
   assert (∀ {A} `{Ids A} `{Rename A} (s1 s2 : nat → A) x,
     (x ≠ 0 → s1 (pred x) = s2 (pred x)) → up s1 x = up s2 x).
-  { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal omega. }
-  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with omega.
+  { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal lia. }
+  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with lia.
 Qed.
 Lemma n_closed_invariant n (e : expr) s1 s2 :
   (∀ f, e.[upn n f] = e) → (∀ x, x < n → s1 x = s2 x) → e.[s1] = e.[s2].
@@ -86,28 +86,27 @@ Proof.
     try (match goal with H : _ |- _ => eapply H end; eauto;
          try inversion Hmc; try match goal with H : _ |- _ => by rewrite H end;
          fail).
-  - apply H1. rewrite iter_up in Hmc. destruct lt_dec; try omega.
-    asimpl in *. cbv in x. replace (m + (x - m)) with x in Hmc by omega.
-    inversion Hmc; omega.
+  - apply H1. rewrite iter_up in Hmc. destruct lt_dec; try lia.
+    asimpl in *. injection Hmc as Hmc. unfold var in *. omega.
   - unfold upn in *.
     change (e.[up (up (upn m (ren (+1))))]) with
     (e.[iter (S (S m)) up (ren (+1))]) in *.
     apply (IHe (S (S m))).
     + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
     + intros [|[|x]] H2; [by cbv|by cbv |].
-      asimpl; rewrite H1; auto with omega.
+      asimpl; rewrite H1; auto with lia.
   - change (e1.[up (upn m (ren (+1)))]) with
     (e1.[iter (S m) up (ren (+1))]) in *.
     apply (IHe0 (S m)).
     + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
     + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with omega.
+      asimpl; rewrite H1; auto with lia.
   - change (e2.[up (upn m (ren (+1)))]) with
     (e2.[upn (S m) (ren (+1))]) in *.
     apply (IHe1 (S m)).
     + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
     + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with omega.
+      asimpl; rewrite H1; auto with lia.
 Qed.
 
 Definition env_subst (vs : list val) (x : var) : expr :=
@@ -116,7 +115,7 @@ Definition env_subst (vs : list val) (x : var) : expr :=
 Lemma typed_n_closed Γ τ e : Γ ⊢ₜ e : τ → (∀ f, e.[upn (length Γ) f] = e).
 Proof.
   intros H. induction H => f; asimpl; simpl in *; auto with f_equal.
-  - apply lookup_lt_Some in H. rewrite iter_up. destruct lt_dec; auto with omega.
+  - apply lookup_lt_Some in H. rewrite iter_up. destruct lt_dec; auto with lia.
   - f_equal. apply IHtyped.
   - by f_equal; rewrite map_length in IHtyped.
 Qed.
@@ -128,7 +127,7 @@ Lemma n_closed_subst_head_simpl n e w ws :
 Proof.
   intros H1 H2.
   rewrite /env_subst. eapply n_closed_invariant; eauto=> /= -[|x] ? //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first omega; simpl.
+  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first lia; simpl.
   by rewrite Hv.
 Qed.
 
@@ -143,7 +142,7 @@ Lemma n_closed_subst_head_simpl_2 n e w w' ws :
 Proof.
   intros H1 H2.
   rewrite /env_subst. eapply n_closed_invariant; eauto => /= -[|[|x]] H3 //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first omega; simpl.
+  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first lia; simpl.
   by rewrite Hv.
 Qed.
 
@@ -165,11 +164,11 @@ Proof.
   induction H1 => Γ1 Γ2 ξ HeqΞ; subst; asimpl in *; eauto using typed.
   - rewrite iter_up; destruct lt_dec as [Hl | Hl].
     + constructor. rewrite lookup_app_l; trivial. by rewrite lookup_app_l in H.
-    + asimpl. constructor. rewrite lookup_app_r; auto with omega.
-      rewrite lookup_app_r; auto with omega.
-      rewrite lookup_app_r in H; auto with omega.
+    + asimpl. constructor. rewrite lookup_app_r; auto with lia.
+      rewrite lookup_app_r; auto with lia.
+      rewrite lookup_app_r in H; auto with lia.
       match goal with
-        |- _ !! ?A = _ => by replace A with (x - length Γ1) by omega
+        |- _ !! ?A = _ => by replace A with (x - length Γ1) by lia
       end.
   - econstructor; eauto. by apply (IHtyped2 (_::_)). by apply (IHtyped3 (_::_)).
   - constructor. by apply (IHtyped (_ :: _ :: _)).

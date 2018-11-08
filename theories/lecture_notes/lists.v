@@ -294,7 +294,7 @@ Proof.
    - wp_rec. wp_match. iApply "H". done.
    - iDestruct "Hl" as (p hd') "(% & Hp & Hhd')". wp_rec. iSimplifyEq.
      wp_match. wp_load. wp_proj. wp_bind (len hd')%I. iApply ("IH" with "[Hhd'] [Hp H]"); try done.
-     iNext. iIntros. iSimplifyEq. wp_op. iApply "H". iPureIntro. rewrite Zpos_P_of_succ_nat. done.
+     iNext. iIntros. iSimplifyEq. wp_op. iApply "H". iPureIntro. do 2 f_equal. lia.
 Qed.
 
 (* The following specifications for foldr are non-trivial because the code is higher-order

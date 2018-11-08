@@ -42,7 +42,7 @@ Lemma interp_env_cons Γ vs τ v :
     ⟦ τ :: Γ ⟧* (v :: vs) ⊣⊢ ⟦ τ ⟧ v ∗ ⟦ Γ ⟧* vs.
   Proof.
     rewrite /interp_env /= (assoc _ (⟦ _ ⟧ _)) -(comm _ ⌜(_ = _)⌝%I) -assoc.
-    by apply bi.sep_proper; [apply bi.pure_proper; omega|].
+    by apply bi.sep_proper; [apply bi.pure_proper; lia|].
   Qed.
 
 Lemma interp_env_length Γ vs : ⟦ Γ ⟧* vs ⊢ ⌜length Γ = length vs⌝.

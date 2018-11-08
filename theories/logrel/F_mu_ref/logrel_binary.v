@@ -217,7 +217,7 @@ Section logrel.
     ⟦ τ :: Γ ⟧* Δ (vv :: vvs) ⊣⊢ ⟦ τ ⟧ Δ vv ∗ ⟦ Γ ⟧* Δ vvs.
   Proof.
     rewrite /interp_env /= (assoc _ (⟦ _ ⟧ _ _)) -(comm _ ⌜_ = _⌝%I) -assoc.
-    by apply sep_proper; [apply pure_proper; omega|].
+    by apply sep_proper; [apply pure_proper; lia|].
   Qed.
 
   Lemma interp_env_ren Δ (Γ : list type) vvs τi :

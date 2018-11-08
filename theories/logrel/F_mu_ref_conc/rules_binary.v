@@ -350,7 +350,7 @@ Section cfg.
     iMod (own_update with "Hown") as "[Hown Hfork]".
     { eapply auth_update_alloc, prod_local_update_1,
         (alloc_singleton_local_update _ (length tp) (Excl e)); last done.
-      rewrite lookup_insert_ne ?tpool_lookup; last omega.
+      rewrite lookup_insert_ne ?tpool_lookup; last lia.
       by rewrite lookup_ge_None_2. }
     iExists (length tp). iFrame "Hj Hfork". iApply "Hclose". iNext.
     iExists (<[j:=fill K Unit]> tp ++ [e]), σ.

@@ -79,7 +79,7 @@ Section proof.
   Local Ltac multiset_solver :=
     intro;
     repeat (rewrite multiplicity_difference || rewrite multiplicity_union);
-    (omega || naive_solver).
+    (lia || naive_solver).
 
   Lemma popBag_spec γb γ x X :
     {{{ bagM γb γ x ∗ bagPart γ 1 X }}}
