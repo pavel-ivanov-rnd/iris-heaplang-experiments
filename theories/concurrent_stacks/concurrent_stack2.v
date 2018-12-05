@@ -84,7 +84,7 @@ Section side_channel.
     iMod (own_alloc (Excl ())) as (γ) "Hγ"; first done.
     iMod (inv_alloc N _ (stages γ P l v) with "[Hl HP]") as "#Hinv".
     { iNext; iLeft; iFrame. }
-    iModIntro; iApply "HΦ"; iFrame; iExists _, _; auto.
+    wp_pures; iModIntro; iApply "HΦ"; iFrame; iExists _, _; auto.
   Qed.
 
   (* A partial specification for revoke that will be useful later *)
@@ -94,20 +94,20 @@ Section side_channel.
     {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}}.
   Proof.
     iIntros (Φ) "[Hinv Hγ] HΦ". iDestruct "Hinv" as (v' l) "[-> #Hinv]".
-    wp_let. wp_proj. wp_bind (CAS _ _ _).
+    wp_lam. wp_bind (CAS _ _ _). wp_pures.
     iInv N as "Hstages" "Hclose".
     iDestruct "Hstages" as "[[Hl HP] | [H | [Hl H]]]".
     - wp_cas_suc.
       iMod ("Hclose" with "[Hl Hγ]") as "_".
       { iRight; iRight; iFrame. }
       iModIntro.
-      wp_if. wp_proj.
+      wp_pures.
       by iApply "HΦ"; iLeft; iExists _; iSplit.
     - wp_cas_fail.
       iMod ("Hclose" with "[H]") as "_".
       { iRight; iLeft; auto. }
       iModIntro.
-      wp_if.
+      wp_pures.
       by iApply "HΦ"; iRight.
     - wp_cas_fail.
       iDestruct (own_valid_2 with "H Hγ") as %[].
@@ -127,19 +127,19 @@ Section side_channel.
       iMod ("Hclose" with "[H]") as "_".
       { by iRight; iLeft. }
       iModIntro.
-      wp_if. wp_proj.
+      wp_pures.
       iApply "HΦ"; iLeft; auto.
     - wp_cas_fail.
       iMod ("Hclose" with "[H]") as "_".
       { by iRight; iLeft. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply "HΦ"; auto.
     - wp_cas_fail.
       iMod ("Hclose" with "[Hl Hγ]").
       { iRight; iRight; iFrame. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply "HΦ"; auto.
   Qed.
 End side_channel.
@@ -181,7 +181,7 @@ Section mailbox.
       iMod ("Hclose" with "[Hnone]") as "_".
       { by iNext; iLeft. }
       iModIntro.
-      wp_let. wp_match.
+      wp_pures.
       iApply "HΦ"; auto.
     - iDestruct "Hsome" as (v' γ) "[Hl #Hoffer]".
       wp_load.
@@ -204,13 +204,13 @@ Section mailbox.
     iIntros (Φ) "[Hmailbox HP] HΦ"; iDestruct "Hmailbox" as (l) "[-> #Hmailbox]".
     wp_lam. wp_let. wp_apply (mk_offer_works with "HP").
     iIntros (offer γ) "[#Hoffer Hrevoke]".
-    wp_let. wp_bind (Store _ _).
+    wp_let. wp_bind (Store _ _). wp_pures.
     iInv N as "[HNone | HSome]" "Hclose".
     - wp_store.
       iMod ("Hclose" with "[HNone]") as "_".
       { by iNext; iRight; iExists _, _; iFrame. }
       iModIntro.
-      wp_let.
+      wp_pures.
       wp_apply (revoke_works with "[Hrevoke]"); first by iFrame.
       iIntros (v') "H"; iDestruct "H" as "[HSome | HNone]".
       * iApply ("HΦ" with "[HSome]"); by iLeft.
@@ -220,7 +220,7 @@ Section mailbox.
       iMod ("Hclose" with "[Hl]") as "_".
       { by iNext; iRight; iExists _, _; iFrame. }
       iModIntro.
-      wp_let.
+      wp_pures.
       wp_apply (revoke_works with "[Hrevoke]"); first by iFrame.
       iIntros (v'') "H"; iDestruct "H" as "[HSome | HNone]".
       * iApply ("HΦ" with "[HSome]"); by iLeft.
@@ -294,13 +294,12 @@ Section stack_works.
   Proof.
     rewrite -wp_fupd.
     wp_lam.
+    wp_alloc l as "Hl".
     wp_apply mk_mailbox_works; first done.
     iIntros (mailbox) "#Hmailbox".
-    wp_alloc l as "Hl".
     iMod (inv_alloc N _ (stack_inv P l) with "[Hl]") as "#Hinv".
     { by iNext; iExists _; iFrame; rewrite is_list_unfold; iLeft. }
-    iModIntro.
-    iExists _, _; auto.
+    wp_pures; iModIntro; iExists _, _; auto.
   Qed.
 
   Theorem push_works P s v :
@@ -319,7 +318,7 @@ Section stack_works.
       iMod ("Hclose" with "[Hl Hlist]") as "_".
       { iNext; iExists _; iFrame. }
       iModIntro.
-      wp_let. wp_alloc l' as "Hl'". wp_let. wp_bind (CAS _ _ _).
+      wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
       iInv N as (list) "(Hl & Hlist)" "Hclose".
       destruct (decide (v'' = list)) as [ -> |].
       * iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
@@ -346,7 +345,7 @@ Section stack_works.
   Proof.
     iIntros (Φ) "Hstack HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hstack)".
     iLöb as "IH".
-    wp_lam. wp_proj. wp_let. wp_proj. wp_lam.
+    wp_lam. wp_proj. wp_let. wp_proj. wp_pures.
     wp_apply get_works; first done.
     iIntros (ov) "[-> | HSome]".
     - wp_match. wp_bind (Load _).
@@ -367,7 +366,7 @@ Section stack_works.
         iMod ("Hclose" with "[Hl Hlist]") as "_".
         { iNext; iExists _; by iFrame. }
         iModIntro.
-        wp_let. wp_proj. wp_bind (CAS _ _ _).
+        wp_let. wp_proj. wp_bind (CAS _ _ _). wp_pures.
         iInv N as (v'') "[Hl Hlist]" "Hclose".
         destruct (decide (v'' = InjRV #l')) as [-> |].
         + rewrite is_list_unfold.
@@ -379,7 +378,7 @@ Section stack_works.
           iMod ("Hclose" with "[Hl Hlist]") as "_".
           { iNext; iExists _; by iFrame. }
           iModIntro.
-          wp_if. wp_proj.
+          wp_pures.
           iApply ("HΦ" with "[HP]"); iRight; iExists h; by iFrame.
         + wp_cas_fail.
           iMod ("Hclose" with "[Hl Hlist]") as "_".
@@ -388,7 +387,7 @@ Section stack_works.
           wp_if.
           iApply ("IH" with "HΦ").
     - iDestruct "HSome" as (v) "[-> HP]".
-      wp_match.
+      wp_pures.
       iApply "HΦ"; iRight; iExists _; auto.
   Qed.
 End stack_works.

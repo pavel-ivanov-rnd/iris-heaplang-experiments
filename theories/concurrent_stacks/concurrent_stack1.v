@@ -98,12 +98,12 @@ Section stacks.
   Proof.
     iIntros (Φ) "[#Hstack HP] HΦ".
     iLöb as "IH".
-    wp_lam. wp_lam. wp_bind (Load _).
+    wp_lam. wp_let. wp_bind (Load _).
     iInv N as (ℓ v') "(>% & Hl & Hlist)" "Hclose"; subst.
     wp_load.
     iMod ("Hclose" with "[Hl Hlist]") as "_".
     { iNext; iExists _, _; by iFrame. }
-    iModIntro. wp_let. wp_alloc ℓ' as "Hl'". wp_let. wp_bind (CAS _ _ _).
+    iModIntro. wp_let. wp_alloc ℓ' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
     iInv N as (ℓ'' v'') "(>% & >Hl & Hlist)" "Hclose"; simplify_eq.
     destruct (decide (v' = v'')) as [ -> |].
     - iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
@@ -146,7 +146,7 @@ Section stacks.
       iMod ("Hclose" with "[Hl' Hlist]") as "_".
       { iNext; iExists _, _; by iFrame. }
       iModIntro.
-      wp_let. wp_proj. wp_bind (CAS _ _ _).
+      wp_pures. wp_bind (CAS _ _ _).
       iInv N as (ℓ'' v'') "(>% & Hl' & Hlist)" "Hclose". simplify_eq.
       destruct (decide (v'' = InjRV #l)) as [-> |].
       * rewrite is_list_unfold.
@@ -158,8 +158,7 @@ Section stacks.
         iMod ("Hclose" with "[Hl' Hlist]") as "_".
         { iNext; iExists ℓ'', _; by iFrame. }
         iModIntro.
-        wp_if.
-        wp_proj.
+        wp_pures.
         iApply ("HΦ" with "[HP]"); iRight; iExists h; by iFrame.
       * wp_cas_fail.
         iMod ("Hclose" with "[Hl' Hlist]") as "_".

@@ -91,7 +91,7 @@ Section stack_works.
   Proof.
     iIntros (Φ) "HP HΦ".
     rewrite -wp_fupd.
-    wp_let. wp_alloc l as "Hl".
+    wp_lam. wp_alloc l as "Hl".
     iMod (inv_alloc N _ (stack_inv P l) with "[Hl HP]") as "#Hinv".
     { by iNext; iExists _, []; iFrame. }
     iModIntro; iApply "HΦ"; iExists _; auto.
@@ -104,14 +104,14 @@ Section stack_works.
   Proof.
     iIntros (Φ) "[Hstack Hupd] HΦ". iDestruct "Hstack" as (l) "[-> #Hinv]".
     iLöb as "IH".
-    wp_lam. wp_lam. wp_bind (Load _).
+    wp_lam. wp_pures. wp_bind (Load _).
     iInv N as (list xs) "(Hl & Hlist & HP)" "Hclose".
     wp_load.
     iMod ("Hclose" with "[Hl Hlist HP]") as "_".
     { iNext; iExists _, _; iFrame. }
     clear xs.
     iModIntro.
-    wp_let. wp_alloc l' as "Hl'". wp_let. wp_bind (CAS _ _ _).
+    wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
     iInv N as (list' xs) "(Hl & Hlist & HP)" "Hclose".
     iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
     destruct (decide (list = list')) as [ -> |].
@@ -163,7 +163,7 @@ Section stack_works.
       iMod ("Hclose" with "[Hlist Hl HP]") as "_".
       { iNext; iExists _, _; iFrame. }
       iModIntro.
-      wp_let. wp_proj. wp_bind (CAS _ _ _).
+      wp_let. wp_proj. wp_bind (CAS _ _ _). wp_pures.
       iInv N as (v' xs'') "(Hl & Hlist & HP)" "Hclose".
       destruct (decide (v' = (SOMEV #l'))) as [ -> |].
       * wp_cas_suc.
@@ -176,8 +176,7 @@ Section stack_works.
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
         { iNext; iExists _, _; iFrame. }
         iModIntro.
-        wp_if.
-        wp_proj.
+        wp_pures.
         iApply ("HΦ" with "HΨ").
       * wp_cas_fail.
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
