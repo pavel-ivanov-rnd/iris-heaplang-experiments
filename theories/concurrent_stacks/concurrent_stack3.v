@@ -1,223 +1,189 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
-From iris.algebra Require Import excl.
-
-From iris_examples.concurrent_stacks Require Import spec.
-
 Set Default Proof Using "Type".
 
-(** Stack 3: No helping, view-shift spec. *)
-
-Definition mk_stack : val :=
-  λ: "_",
-  let: "r" := ref NONEV in
-  (rec: "pop" "n" :=
-       (match: !"r" with
-          NONE => NONE
-        | SOME "hd" =>
-          if: CAS "r" (SOME "hd") (Snd !"hd")
-          then SOME (Fst !"hd")
-          else "pop" "n"
-        end),
-    rec: "push" "n" :=
-        let: "r'" := !"r" in
-        let: "r''" := SOME (Alloc ("n", "r'")) in
-        if: CAS "r" "r'" "r''"
-        then #()
-        else "push" "n").
+Definition mk_stack : val := λ: "_", ref NONEV.
+Definition push : val :=
+  rec: "push" "s" "v" :=
+    let: "tail" := ! "s" in
+    let: "new" := SOME (ref ("v", "tail")) in
+    if: CAS "s" "tail" "new" then #() else "push" "s" "v".
+Definition pop : val :=
+  rec: "pop" "s" :=
+    match: !"s" with
+      NONE => NONEV
+    | SOME "l" =>
+      let: "pair" := !"l" in
+      if: CAS "s" (SOME "l") (Snd "pair")
+      then SOME (Fst "pair")
+      else "pop" "s"
+    end.
 
 Section stack_works.
-  Context `{!heapG Σ}.
+  Context `{!heapG Σ} (N : namespace).
   Implicit Types l : loc.
 
-  Fixpoint is_stack xs v : iProp Σ :=
+  Local Notation "l ↦{-} v" := (∃ q, l ↦{q} v)%I
+    (at level 20, format "l  ↦{-}  v") : bi_scope.
+
+  Lemma partial_mapsto_duplicable l v :
+    l ↦{-} v -∗ l ↦{-} v ∗ l ↦{-} v.
+  Proof.
+    iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
+  Qed.
+
+  Lemma partial_mapsto_agree l v1 v2 :
+    l ↦{-} v1 -∗ l ↦{-} v2 -∗ ⌜v1 = v2⌝.
+  Proof.
+    iIntros "H1 H2".
+    iDestruct "H1" as (?) "H1".
+    iDestruct "H2" as (?) "H2".
+    iApply (mapsto_agree with "H1 H2").
+  Qed.
+
+  Fixpoint is_list xs v : iProp Σ :=
     (match xs with
      | [] => ⌜v = NONEV⌝
-     | x :: xs => ∃ q (l : loc) (t : val), ⌜v = SOMEV #l ⌝ ∗ l ↦{q} (x, t) ∗ is_stack xs t
+     | x :: xs => ∃ l (t : val), ⌜v = SOMEV #l%V⌝ ∗ l ↦{-} (x, t)%V ∗ is_list xs t
      end)%I.
 
-  Definition stack_inv P v :=
-    (∃ l v' xs, ⌜v = #l⌝ ∗ l ↦ v' ∗ is_stack xs v' ∗ P xs)%I.
-
-  Lemma is_stack_disj xs v :
-      is_stack xs v -∗ is_stack xs v ∗ (⌜v = NONEV⌝ ∨ ∃ q (l : loc) (h t : val), ⌜v = SOMEV #l⌝ ∗ l ↦{q} (h, t)).
+  Lemma is_list_disj xs v :
+    is_list xs v -∗ is_list xs v ∗ (⌜v = NONEV⌝ ∨ ∃ l (h t : val), ⌜v = SOMEV #l⌝ ∗ l ↦{-} (h, t)%V).
   Proof.
-    iIntros "Hstack".
-    destruct xs.
-    - iSplit; try iLeft; auto.
-    - simpl. iDestruct "Hstack" as (q l t) "[-> [[Hl Hl'] Hstack]]".
-      iSplitR "Hl"; eauto 10 with iFrame.
-  Qed.
-  Lemma is_stack_unboxed xs v :
-    is_stack xs v -∗ ⌜val_is_unboxed v⌝.
-  Proof.
-    iIntros "Hstack". iDestruct (is_stack_disj with "Hstack") as "[_ [->|Hdisj]]".
-    - done.
-    - iDestruct "Hdisj" as (???? ->) "_". done.
-  Qed.
-
-  Lemma is_stack_uniq : ∀ xs ys v,
-      is_stack xs v ∗ is_stack ys v -∗ ⌜xs = ys⌝.
-  Proof.
-    induction xs, ys; iIntros (v') "[Hstack1 Hstack2]"; auto.
-    - iDestruct "Hstack1" as "%".
-      iDestruct "Hstack2" as (???) "[% _]".
-      subst.
-      discriminate.
-    - iDestruct "Hstack2" as "%".
-      iDestruct "Hstack1" as (???) "[% _]".
-      subst.
-      discriminate.
-    - simpl. iDestruct "Hstack1" as (q1 l1 t) "[% [Hl1 Hstack1]]".
-      iDestruct "Hstack2" as (q2 l2 t') "[% [Hl2 Hstack2]]".
-      subst; injection H0; intros; subst; clear H0.
-      iDestruct (mapsto_agree with "Hl1 Hl2") as %[= -> ->].
-      iDestruct (IHxs with "[Hstack1 Hstack2]") as "%". by iFrame.
-      subst; auto.
-  Qed.
-
-  Lemma is_stack_empty : ∀ xs,
-      is_stack xs NONEV -∗ ⌜xs = []⌝.
-  Proof.
-    iIntros (xs) "Hstack".
     destruct xs; auto.
-    iDestruct "Hstack" as (?? t) "[% rest]".
-    discriminate.
-  Qed.
-  Lemma is_stack_cons : ∀ xs l,
-      is_stack xs (SOMEV #l) -∗
-               is_stack xs (SOMEV #l) ∗ ∃ q h t ys, ⌜xs = h :: ys⌝ ∗ l ↦{q} (h, t).
-  Proof.
-    iIntros ([|x xs] l) "Hstack".
-    - iDestruct "Hstack" as "%"; discriminate.
-    - simpl. iDestruct "Hstack" as (q l' t') "[% [[Hl Hl'] Hstack]]".
-      injection H; intros; subst; clear H.
-      iSplitR "Hl'"; eauto 10 with iFrame.
+    iIntros "H"; iDestruct "H" as (l t) "(-> & Hl & Hstack)".
+    iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]".
+    iSplitR "Hl2"; first by (iExists _, _; iFrame). iRight; auto.
   Qed.
 
-  (* Whole-stack invariant (P). However:
-     - The resources for the successful and failing pop must be disjoint.
-       Instead, there should be a normal conjunction between them.
-     Open question: How does this relate to a logically atomic spec? *)
-  Theorem stack_works ι P Q Q' Q'' (Φ : val → iProp Σ) :
-    ▷ (∀ (f₁ f₂ : val),
-        (□((∀ v vs, P (v :: vs) ={⊤∖↑ι}=∗ Q v ∗ P vs) ∧ (* pop *)
-            (P [] ={⊤∖↑ι}=∗ Q' ∗ P []) -∗
-            WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ Q v') ∨ (v ≡ NONEV ∗ Q')}}))
-         -∗ (∀ (v : val), (* push *)
-               □ ((∀ vs, P vs ={⊤∖↑ι}=∗ P (v :: vs) ∗ Q'') -∗
-                  WP f₂ v {{ v, Q'' }}))
-         -∗ Φ (f₁, f₂)%V)%I
-    -∗ P []
-    -∗ WP mk_stack #()  {{ Φ }}.
+  Lemma is_list_unboxed xs v :
+      is_list xs v -∗ ⌜val_is_unboxed v⌝ ∗ is_list xs v.
   Proof.
-    iIntros "HΦ HP".
-    rename ι into N.
-    wp_rec.
-    wp_alloc l as "Hl".
-    iMod (inv_alloc N _ (stack_inv P #l) with "[Hl HP]") as "#Istack".
-    { iNext; iExists l, (InjLV #()), []; iSplit; iFrame; auto. }
-    wp_pures.
-    iApply "HΦ".
-    - iIntros "!# Hcont".
-      iLöb as "IH".
-      wp_rec.
-      wp_bind (! _)%E.
-      iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l' v' xs) "[>% [Hl' [Hstack HP]]]".
-      injection H; intros; subst; clear H.
-      wp_load.
-      iDestruct (is_stack_disj with "[Hstack]") as "[Hstack H]"; auto.
-      iDestruct "H" as "[% | H]".
-      * subst.
-        iDestruct (is_stack_empty with "Hstack") as "%".
-        subst.
-        iDestruct "Hcont" as "[_ Hfail]".
-        iMod ("Hfail" with "HP") as "[HQ' HP]".
-        iMod ("Hclose" with "[Hl' Hstack HP]").
-        { iExists l', (InjLV #()), []; iSplit; iFrame; auto. }
-        iModIntro.
-        wp_pures.
-        iRight; auto.
-      * iDestruct "H" as (q l h t) "[% Hl]".
-        subst.
-        iMod ("Hclose" with "[Hl' Hstack HP]").
-        { iExists l', _, xs; iSplit; iFrame; auto. }
-        iModIntro.
+    iIntros "Hlist"; iDestruct (is_list_disj with "Hlist") as "[$ Heq]".
+    iDestruct "Heq" as "[-> | H]"; first done; by iDestruct "H" as (? ? ?) "[-> ?]".
+  Qed.
 
-        assert (to_val (h, t)%V = Some (h, t)%V) by apply to_of_val.
-        assert (is_Some (to_val (h, t)%V)) by (exists (h, t)%V; auto).
-        wp_match.
+  Lemma is_list_empty xs :
+    is_list xs (InjLV #()) -∗ ⌜xs = []⌝.
+  Proof.
+    destruct xs; iIntros "Hstack"; auto.
+    iDestruct "Hstack" as (? ?) "(% & H)"; discriminate.
+  Qed.
 
-        wp_load.
-        wp_pures.
-        wp_bind (CAS _ _ _).
-        iInv N as "Hstack" "Hclose".
-        iDestruct "Hstack" as (l'' v' ys) "[>% [Hl'' [Hstack HP]]]".
-        injection H1; intros; subst; clear H1.
-        assert (Decision (v' = InjRV #l%V)) as Heq by apply val_eq_dec.
-        destruct Heq.
-      + subst.
-        wp_cas_suc. destruct ys as [|y ys]; simpl.
-        { iDestruct "Hstack" as %?. done. }
-        iDestruct "Hstack" as (q'' l' t'') "[% [Hl' Hstack]]".
-        injection H1; intros; subst; clear H1.
-        iDestruct "Hcont" as "[Hsucc _]".
-        iDestruct ("Hsucc" with "[HP]") as "> [HQ HP]"; auto.
-        iDestruct (mapsto_agree with "Hl Hl'") as %[= -> ->].
-        iMod ("Hclose" with "[Hl'' Hl' Hstack HP]").
-        { iExists l''. eauto 10 with iFrame. }
-        iModIntro.
-        wp_if.
-        wp_load.
-        wp_pures.
-        iLeft; iExists _; auto.
-      + wp_cas_fail.
-        iMod ("Hclose" with "[Hl'' Hstack HP]").
-        { iExists l'', v', ys; iSplit; iFrame; auto. }
-        iModIntro.
-        wp_if.
-        iApply ("IH" with "Hcont").
-    - iIntros (v) "!# Hpush".
-      iLöb as "IH".
-      wp_rec.
-      wp_bind (! _)%E.
-      iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l' v' ys) "[>% [Hl' [Hstack HP]]]".
-      injection H; intros; subst; clear H.
-      wp_load.
-      iMod ("Hclose" with "[Hl' Hstack HP]").
-      { iExists l', v', ys; iSplit; iFrame; auto. }
+  Lemma is_list_cons xs l h t :
+    l ↦{-} (h, t)%V -∗
+    is_list xs (InjRV #l) -∗
+    ∃ ys, ⌜xs = h :: ys⌝.
+  Proof.
+    destruct xs; first by iIntros "? %".
+    iIntros "Hl Hstack"; iDestruct "Hstack" as (l' t') "(% & Hl' & Hrest)"; simplify_eq.
+    iDestruct (partial_mapsto_agree with "Hl Hl'") as "%"; simplify_eq; iExists _; auto.
+  Qed.
+
+  Definition stack_inv P l :=
+    (∃ v xs, l ↦ v ∗ is_list xs v ∗ P xs)%I.
+
+  Definition is_stack P v :=
+    (∃ l, ⌜v = #l⌝ ∗ inv N (stack_inv P l))%I.
+
+  Theorem mk_stack_works P :
+    {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack P v }}}.
+  Proof.
+    iIntros (Φ) "HP HΦ".
+    rewrite -wp_fupd.
+    wp_let. wp_alloc l as "Hl".
+    iMod (inv_alloc N _ (stack_inv P l) with "[Hl HP]") as "#Hinv".
+    { by iNext; iExists _, []; iFrame. }
+    iModIntro; iApply "HΦ"; iExists _; auto.
+  Qed.
+
+  Theorem push_works P s v Ψ :
+    {{{ is_stack P s ∗ ∀ xs, P xs ={⊤ ∖ ↑ N}=∗ P (v :: xs) ∗ Ψ #()}}}
+      push s v
+    {{{ RET #(); Ψ #() }}}.
+  Proof.
+    iIntros (Φ) "[Hstack Hupd] HΦ". iDestruct "Hstack" as (l) "[-> #Hinv]".
+    iLöb as "IH".
+    wp_lam. wp_lam. wp_bind (Load _).
+    iInv N as (list xs) "(Hl & Hlist & HP)" "Hclose".
+    wp_load.
+    iMod ("Hclose" with "[Hl Hlist HP]") as "_".
+    { iNext; iExists _, _; iFrame. }
+    clear xs.
+    iModIntro.
+    wp_let. wp_alloc l' as "Hl'". wp_let. wp_bind (CAS _ _ _).
+    iInv N as (list' xs) "(Hl & Hlist & HP)" "Hclose".
+    iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
+    destruct (decide (list = list')) as [ -> |].
+    - wp_cas_suc.
+      iMod ("Hupd" with "HP") as "[HP HΨ]".
+      iMod ("Hclose" with "[Hl Hl' HP Hlist]") as "_".
+      { iNext; iExists (SOMEV _), (v :: xs); iFrame; iExists _, _; iFrame; auto. }
       iModIntro.
-      wp_let.
-      wp_alloc lp as "Hlp".
-      wp_pures.
-      wp_bind (CAS _ _ _).
-      iInv N as "Hstack" "Hclose".
-      iDestruct "Hstack" as (l'' v'' xs) "[>% [Hl'' [Hstack HP]]]".
-      injection H; intros; subst; clear H.
-      iDestruct (is_stack_unboxed with "Hstack") as "#>%".
-      assert (Decision (v' = v''%V)) as Heq by apply val_eq_dec.
-      destruct Heq.
-      + subst. wp_cas_suc.
-        iDestruct ("Hpush" with "[HP]") as "> [HP HQ]"; auto.
-        iMod ("Hclose" with "[Hl'' Hlp Hstack HP]").
-        { iExists l'', _, _. iFrame. simpl. eauto 10 with iFrame. }
+      wp_if.
+      by iApply ("HΦ" with "HΨ").
+    - wp_cas_fail.
+      iMod ("Hclose" with "[Hl HP Hlist]").
+      { iExists _, _; iFrame. }
+      iModIntro.
+      wp_if.
+      iApply ("IH" with "Hupd HΦ").
+  Qed.
+
+  Theorem pop_works P s Ψ :
+    {{{ is_stack P s ∗
+        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
+        (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
+      pop s
+    {{{ v, RET v; Ψ v }}}.
+  Proof.
+    iIntros (Φ) "(Hstack & Hupdcons & Hupdnil) HΦ".
+    iDestruct "Hstack" as (l) "[-> #Hinv]".
+    iLöb as "IH".
+    wp_lam. wp_bind (Load _).
+    iInv N as (v xs) "(Hl & Hlist & HP)" "Hclose".
+    wp_load.
+    iDestruct (is_list_disj with "Hlist") as "[Hlist H]".
+    iDestruct "H" as "[-> | HSome]".
+    - iDestruct (is_list_empty with "Hlist") as %->.
+      iMod ("Hupdnil" with "HP") as "[HP HΨ]".
+      iMod ("Hclose" with "[Hlist Hl HP]") as "_".
+      { iNext; iExists _, _; iFrame. }
+      iModIntro.
+      wp_match.
+      iApply ("HΦ" with "HΨ").
+    - iDestruct "HSome" as (l' h t) "[-> Hl']".
+      iMod ("Hclose" with "[Hlist Hl HP]") as "_".
+      { iNext; iExists _, _; iFrame. }
+      iModIntro.
+      wp_match. wp_bind (Load _).
+      iInv N as (v xs') "(Hl & Hlist & HP)" "Hclose".
+      iDestruct "Hl'" as (q) "Hl'".
+      wp_load.
+      iMod ("Hclose" with "[Hlist Hl HP]") as "_".
+      { iNext; iExists _, _; iFrame. }
+      iModIntro.
+      wp_let. wp_proj. wp_bind (CAS _ _ _).
+      iInv N as (v' xs'') "(Hl & Hlist & HP)" "Hclose".
+      destruct (decide (v' = (SOMEV #l'))) as [ -> |].
+      * wp_cas_suc.
+        iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
+        simplify_eq.
+        iMod ("Hupdcons" with "HP") as "[HP HΨ]".
+        iDestruct "Hlist" as (l'' t') "(% & Hl'' & Hlist)"; simplify_eq.
+        iDestruct "Hl''" as (q') "Hl''".
+        iDestruct (mapsto_agree with "Hl' Hl''") as "%"; simplify_eq.
+        iMod ("Hclose" with "[Hlist Hl HP]") as "_".
+        { iNext; iExists _, _; iFrame. }
         iModIntro.
         wp_if.
-        done.
-      + wp_cas_fail.
-        iMod ("Hclose" with "[Hl'' Hstack HP]").
-        { iExists l'', v'', xs; iSplit; iFrame; auto. }
+        wp_proj.
+        iApply ("HΦ" with "HΨ").
+      * wp_cas_fail.
+        iMod ("Hclose" with "[Hlist Hl HP]") as "_".
+        { iNext; iExists _, _; iFrame. }
         iModIntro.
         wp_if.
-        iApply ("IH" with "Hpush").
+        iApply ("IH" with "Hupdcons Hupdnil HΦ").
   Qed.
 End stack_works.
-
-Program Definition is_concurrent_stack `{!heapG Σ} : concurrent_stack Σ :=
-  {| spec.mk_stack := mk_stack |}.
-Next Obligation.
-  iIntros (??????? Φ) "HP HΦ". iApply (stack_works with "[HΦ] HP").
-  iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
-Qed.

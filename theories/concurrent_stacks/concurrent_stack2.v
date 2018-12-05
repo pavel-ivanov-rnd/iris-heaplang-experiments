@@ -1,14 +1,8 @@
-(** THIS FILE CURRENTLY DOES NOT COMPILE because it has not been ported to the
-stricter CAS requirements yet. *)
-From iris.program_logic Require Export weakestpre hoare.
-From iris.heap_lang Require Export lang proofmode notation.
+From iris.heap_lang Require Import notation proofmode.
 From iris.algebra Require Import excl.
-
-From iris_examples.concurrent_stacks Require Import spec.
-
+From iris.base_logic.lib Require Import invariants.
+From iris.program_logic Require Export weakestpre.
 Set Default Proof Using "Type".
-
-(** Stack 2: With helping, bag spec. *)
 
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
@@ -17,49 +11,49 @@ Definition revoke_offer : val :=
 Definition take_offer : val :=
   λ: "v", if: CAS (Snd "v") #0 #1 then SOME (Fst "v") else NONE.
 
-Definition mailbox : val :=
-  λ: "_",
-  let: "r" := ref NONEV in
-  (rec: "put" "v" :=
-     let: "off" := mk_offer "v" in
-     "r" <- SOME "off";;
-     revoke_offer "off",
-   rec: "get" "n" :=
-     let: "offopt" := !"r" in
-     match: "offopt" with
-       NONE => NONE
-     | SOME "x" => take_offer "x"
-     end
-  ).
+Definition mk_mailbox : val := λ: "_", ref NONEV.
+Definition put : val :=
+  λ: "r" "v",
+    let: "off" := mk_offer "v" in
+    "r" <- SOME "off";;
+    revoke_offer "off".
 
-Definition mk_stack : val :=
-  λ: "_",
-  let: "mailbox" := mailbox #() in
-  let: "put" := Fst "mailbox" in
-  let: "get" := Snd "mailbox" in
-  let: "r" := ref NONEV in
-  (rec: "pop" "n" :=
-     match: "get" #() with
-       NONE =>
-       (match: !"r" with
-          NONE => NONE
-        | SOME "hd" =>
-          if: CAS "r" (SOME "hd") (Snd "hd")
-          then SOME (Fst "hd")
-          else "pop" "n"
-        end)
-     | SOME "x" => SOME "x"
-     end,
-    rec: "push" "n" :=
-      match: "put" "n" with
-        NONE => #()
-      | SOME "n" =>
-        let: "r'" := !"r" in
-        let: "r''" := SOME ("n", "r'") in
-        if: CAS "r" "r'" "r''"
-        then #()
-        else "push" "n"
-      end).
+Definition get : val :=
+  λ: "r",
+    let: "offopt" := !"r" in
+    match: "offopt" with
+      NONE => NONE
+    | SOME "x" => take_offer "x"
+    end.
+
+Definition mk_stack : val := λ: "_", (mk_mailbox #(), ref NONEV).
+Definition push : val :=
+  rec: "push" "p" "v" :=
+    let: "mailbox" := Fst "p" in
+    let: "s" := Snd "p" in
+    match: put "mailbox" "v" with
+      NONE => #()
+    | SOME "v'" =>
+      let: "tail" := ! "s" in
+      let: "new" := SOME (ref ("v'", "tail")) in
+      if: CAS "s" "tail" "new" then #() else "push" "p" "v'"
+    end.
+Definition pop : val :=
+  rec: "pop" "p" :=
+    let: "mailbox" := Fst "p" in
+    let: "s" := Snd "p" in
+    match: get "mailbox" with
+      NONE =>
+      match: !"s" with
+        NONE => NONEV
+      | SOME "l" =>
+        let: "pair" := !"l" in
+        if: CAS "s" (SOME "l") (Snd "pair")
+        then SOME (Fst "pair")
+        else "pop" "p"
+      end
+    | SOME "x" => SOME "x"
+    end.
 
 Definition channelR := exclR unitR.
 Class channelG Σ := { channel_inG :> inG Σ channelR }.
@@ -68,350 +62,333 @@ Instance subG_channelΣ {Σ} : subG channelΣ Σ → channelG Σ.
 Proof. solve_inG. Qed.
 
 Section side_channel.
-  Context `{!heapG Σ, !channelG Σ}.
+  Context `{!heapG Σ, !channelG Σ} (N : namespace).
   Implicit Types l : loc.
+
+  Definition revoke_tok γ := own γ (Excl ()).
 
   Definition stages γ (P : val → iProp Σ) l v :=
     ((l ↦ #0 ∗ P v)
      ∨ (l ↦ #1)
-     ∨ (l ↦ #2 ∗ own γ (Excl ())))%I.
+     ∨ (l ↦ #2 ∗ revoke_tok γ))%I.
 
   Definition is_offer γ (P : val → iProp Σ) (v : val) : iProp Σ :=
-    (∃ v' l, ⌜v = (v', #l)%V⌝ ∗ ∃ ι, inv ι (stages γ P l v'))%I.
+    (∃ v' l, ⌜v = (v', #l)%V⌝ ∗ inv N (stages γ P l v'))%I.
 
-  Definition mailbox_inv (P : val → iProp Σ) (v : val) : iProp Σ :=
-    (∃ l, ⌜v = #l⌝ ∗ (l ↦ NONEV ∨ (∃ v' γ, l ↦ SOMEV v' ∗ is_offer γ P v')))%I.
+  Lemma mk_offer_works P v :
+    {{{ P v }}} mk_offer v {{{ o γ, RET o; is_offer γ P o ∗ revoke_tok γ }}}.
+  Proof.
+    iIntros (Φ) "HP HΦ".
+    rewrite -wp_fupd.
+    wp_lam. wp_alloc l as "Hl".
+    iMod (own_alloc (Excl ())) as (γ) "Hγ"; first done.
+    iMod (inv_alloc N _ (stages γ P l v) with "[Hl HP]") as "#Hinv".
+    { iNext; iLeft; iFrame. }
+    iModIntro; iApply "HΦ"; iFrame; iExists _, _; auto.
+  Qed.
 
   (* A partial specification for revoke that will be useful later *)
-  Lemma revoke_works N γ P l v :
-    inv N (stages γ P l v) ∗ own γ (Excl ()) -∗
-    WP revoke_offer (v, #l)
-      {{ v', (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}.
+  Lemma revoke_works γ P v :
+    {{{ is_offer γ P v ∗ revoke_tok γ }}}
+      revoke_offer v
+    {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}}.
   Proof.
-    iIntros "[#Hinv Hγ]".
-    wp_let.
-    wp_proj.
-    wp_bind (CAS _ _ _).
+    iIntros (Φ) "[Hinv Hγ] HΦ". iDestruct "Hinv" as (v' l) "[-> #Hinv]".
+    wp_let. wp_proj. wp_bind (CAS _ _ _).
     iInv N as "Hstages" "Hclose".
-    iDestruct "Hstages" as "[H | [H | H]]".
-    - iDestruct "H" as "[Hl HP]".
-      wp_cas_suc.
-      iMod ("Hclose" with "[Hl Hγ]").
-      iRight; iRight; iFrame.
+    iDestruct "Hstages" as "[[Hl HP] | [H | [Hl H]]]".
+    - wp_cas_suc.
+      iMod ("Hclose" with "[Hl Hγ]") as "_".
+      { iRight; iRight; iFrame. }
       iModIntro.
-      wp_if.
-      wp_proj.
-      iLeft.
-      iExists v; iSplit; auto.
+      wp_if. wp_proj.
+      by iApply "HΦ"; iLeft; iExists _; iSplit.
     - wp_cas_fail.
-      iMod ("Hclose" with "[H]").
-      iRight; iLeft; auto.
+      iMod ("Hclose" with "[H]") as "_".
+      { iRight; iLeft; auto. }
       iModIntro.
       wp_if.
-      iRight; auto.
-    - iDestruct "H" as "[Hl H]".
-      wp_cas_fail.
-        by iDestruct (own_valid_2 with "H Hγ") as %?.
+      by iApply "HΦ"; iRight.
+    - wp_cas_fail.
+      iDestruct (own_valid_2 with "H Hγ") as %[].
   Qed.
 
   (* A partial specification for take that will be useful later *)
-  Lemma take_works γ N P v l :
-    inv N (stages γ P l v) -∗
-    WP take_offer (v, LitV l)%V
-      {{ v', (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}.
+  Lemma take_works γ P o :
+    {{{ is_offer γ P o }}}
+      take_offer o
+    {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}}.
   Proof.
-    iIntros "#Hinv".
-    wp_lam.
-    wp_proj.
-    wp_bind (CAS _ _ _).
+    iIntros (Φ) "H HΦ"; iDestruct "H" as (v l) "[-> #Hinv]".
+    wp_lam. wp_proj. wp_bind (CAS _ _ _).
     iInv N as "Hstages" "Hclose".
-    iDestruct "Hstages" as "[H | [H | H]]".
-    - iDestruct "H" as "[H HP]".
-      wp_cas_suc.
-      iMod ("Hclose" with "[H]").
-      iRight; iLeft; done.
+    iDestruct "Hstages" as "[[H HP] | [H | [Hl Hγ]]]".
+    - wp_cas_suc.
+      iMod ("Hclose" with "[H]") as "_".
+      { by iRight; iLeft. }
       iModIntro.
-      wp_if.
-      wp_proj.
-      iLeft.
-      auto.
+      wp_if. wp_proj.
+      iApply "HΦ"; iLeft; auto.
     - wp_cas_fail.
-      iMod ("Hclose" with "[H]").
-      iRight; iLeft; done.
+      iMod ("Hclose" with "[H]") as "_".
+      { by iRight; iLeft. }
       iModIntro.
       wp_if.
-      auto.
-    - iDestruct "H" as "[Hl Hγ]".
-      wp_cas_fail.
+      iApply "HΦ"; auto.
+    - wp_cas_fail.
       iMod ("Hclose" with "[Hl Hγ]").
-      iRight; iRight; iFrame.
+      { iRight; iRight; iFrame. }
       iModIntro.
       wp_if.
-      auto.
+      iApply "HΦ"; auto.
   Qed.
 End side_channel.
 
 Section mailbox.
-  Context `{!heapG Σ}.
+  Context `{!heapG Σ, channelG Σ} (N : namespace).
   Implicit Types l : loc.
 
-  Theorem mailbox_works {channelG0 : channelG Σ} (P : val → iProp Σ) (Φ : val → iProp Σ) :
-    (∀ (v₁ v₂ : val),
-      ⌜Closed [] v₁⌝
-     ∗ ⌜Closed [] v₂⌝
-     ∗ (∀ (v : val), □ (P v -∗ WP v₁ v {{v',
-          (∃ v'', ⌜v' = SOMEV v''⌝ ∗ P v'') ∨ ⌜v' = NONEV⌝}}))
-     ∗ (□ (WP v₂ #() {{v', (∃ v'', ⌜v' = SOMEV v''⌝ ∗ P v'') ∨ ⌜v' = NONEV⌝}}))
-     -∗ Φ (v₁, v₂)%V)
-    -∗ WP mailbox #() {{ Φ }}.
+  Definition Noffer := N .@ "offer".
+
+  Definition mailbox_inv (P : val → iProp Σ) (l : loc) : iProp Σ :=
+    (l ↦ NONEV ∨ (∃ v' γ, l ↦ SOMEV v' ∗ is_offer Noffer γ P v'))%I.
+
+  Definition is_mailbox (P : val → iProp Σ) (v : val) : iProp Σ :=
+    (∃ l, ⌜v = #l⌝ ∗ inv N (mailbox_inv P l))%I.
+
+  Theorem mk_mailbox_works (P : val → iProp Σ) :
+    {{{ True }}} mk_mailbox #() {{{ v, RET v; is_mailbox P v }}}.
   Proof.
-    iIntros "HΦ".
-    pose proof (nroot .@ "N") as N.
+    iIntros (Φ) "_ HΦ".
     rewrite -wp_fupd.
     wp_lam.
     wp_alloc l as "Hl".
-    wp_let.
-    iMod (inv_alloc N _ (mailbox_inv P #l) with "[Hl]") as "#Hinv".
-    iExists l; iSplit; try iLeft; auto.
+    iMod (inv_alloc N _ (mailbox_inv P l) with "[Hl]") as "#Hinv".
+    { by iNext; iLeft. }
     iModIntro.
-    iApply "HΦ"; repeat iSplit; try (iPureIntro; apply _).
-    * iIntros (v) "!# HP".
-      wp_rec.
-      wp_bind (mk_offer v).
-      pose proof (nroot .@ "N'") as N'.
-      rewrite -wp_fupd.
-      wp_lam.
-      iMod (own_alloc (Excl ())) as (γ) "Hγ". done.
-      wp_alloc l' as "Hl'".
-      iMod (inv_alloc N' _ (stages γ P l' v) with "[HP Hl']") as "#Hinv'".
-      iLeft; iFrame.
+    iApply "HΦ"; iExists _; eauto.
+  Qed.
+
+  Theorem get_works (P : val → iProp Σ) mailbox :
+    {{{ is_mailbox P mailbox }}}
+      get mailbox
+    {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v}}}.
+  Proof.
+    iIntros (Φ) "H HΦ". iDestruct "H" as (l) "[-> #Hinv]".
+    wp_lam. wp_bind (Load _).
+    iInv N as "[Hnone | Hsome]" "Hclose".
+    - wp_load.
+      iMod ("Hclose" with "[Hnone]") as "_".
+      { by iNext; iLeft. }
+      iModIntro.
+      wp_let. wp_match.
+      iApply "HΦ"; auto.
+    - iDestruct "Hsome" as (v' γ) "[Hl #Hoffer]".
+      wp_load.
+      iMod ("Hclose" with "[Hl]") as "_".
+      { by iNext; iRight; iExists _, _; iFrame. }
+      iModIntro.
+      wp_let. wp_match.
+      iApply (take_works with "Hoffer").
+      iNext; iIntros (offer) "[Hsome | Hnone]".
+      * iDestruct "Hsome" as (v'') "[-> HP]".
+        iApply ("HΦ" with "[HP]"); iRight; auto.
+      * iApply "HΦ"; iLeft; auto.
+  Qed.
+
+  Theorem put_works (P : val → iProp Σ) (mailbox v : val) :
+    {{{ is_mailbox P mailbox ∗ P v }}}
+      put mailbox v
+    {{{ o, RET o; (∃ v', ⌜o = SOMEV v'⌝ ∗ P v') ∨ ⌜o = NONEV⌝ }}}.
+  Proof.
+    iIntros (Φ) "[Hmailbox HP] HΦ"; iDestruct "Hmailbox" as (l) "[-> #Hmailbox]".
+    wp_lam. wp_let. wp_apply (mk_offer_works with "HP").
+    iIntros (offer γ) "[#Hoffer Hrevoke]".
+    wp_let. wp_bind (Store _ _).
+    iInv N as "[HNone | HSome]" "Hclose".
+    - wp_store.
+      iMod ("Hclose" with "[HNone]") as "_".
+      { by iNext; iRight; iExists _, _; iFrame. }
       iModIntro.
       wp_let.
-      wp_bind (#l <- _)%E.
-      iInv N as "Hmailbox" "Hclose".
-      iDestruct "Hmailbox" as (l'') "[>% H]".
-      injection H; intros; subst.
-      iDestruct "H" as "[H | H]";
-        [idtac | iDestruct "H" as (v' γ') "[Hl H]"];
-        wp_store;
-        [iMod ("Hclose" with "[H]") | iMod ("Hclose" with "[Hl H]")];
-        try  (iExists l''; iSplit; try iRight; auto;
-              iExists (v, #l')%V, γ; iFrame;
-              iExists v, l'; auto);
-        iModIntro;
-        wp_let;
-        iApply (revoke_works with "[Hγ Hinv]"); auto.
-    * iIntros "!#".
-      wp_rec.
-      wp_bind (! _)%E.
-      iInv N as "Hmailbox" "Hclose".
-      iDestruct "Hmailbox" as (l') "[>% H]".
-      injection H; intros; subst.
-      iDestruct "H" as "[H | H]".
-      + wp_load.
-        iMod ("Hclose" with "[H]").
-        iExists l'; iSplit; auto.
-        iModIntro.
-        wp_let.
-        wp_match.
-        iRight; auto.
-      + iDestruct "H" as (v' γ) "[Hl' #Hoffer]".
-        wp_load.
-        iMod ("Hclose" with "[Hl' Hoffer]").
-        { iExists l'; iSplit; auto.
-          iRight; iExists v', γ; by iSplit. }
-        iModIntro.
-        wp_let.
-        wp_match.
-        iDestruct "Hoffer" as (v'' l'') "[% Hoffer]".
-        iDestruct "Hoffer" as (ι) "Hinv'".
-        subst.
-        iApply take_works; auto.
+      wp_apply (revoke_works with "[Hrevoke]"); first by iFrame.
+      iIntros (v') "H"; iDestruct "H" as "[HSome | HNone]".
+      * iApply ("HΦ" with "[HSome]"); by iLeft.
+      * iApply ("HΦ" with "[HNone]"); by iRight.
+    - iDestruct "HSome" as (v' γ') "[Hl #Hoffer']".
+      wp_store.
+      iMod ("Hclose" with "[Hl]") as "_".
+      { by iNext; iRight; iExists _, _; iFrame. }
+      iModIntro.
+      wp_let.
+      wp_apply (revoke_works with "[Hrevoke]"); first by iFrame.
+      iIntros (v'') "H"; iDestruct "H" as "[HSome | HNone]".
+      * iApply ("HΦ" with "[HSome]"); by iLeft.
+      * iApply ("HΦ" with "[HNone]"); by iRight.
   Qed.
 End mailbox.
 
 Section stack_works.
-  Context `{!heapG Σ}.
+  Context `{!heapG Σ, channelG Σ} (N : namespace).
   Implicit Types l : loc.
 
-  Definition is_stack_pre (P : val → iProp Σ) (F : val -c> iProp Σ) :
-     val -c> iProp Σ := λ v,
-    (v ≡ NONEV ∨ ∃ (h t : val), v ≡ SOMEV (h, t)%V ∗ P h ∗ ▷ F t)%I.
+  Definition Nmailbox := N .@ "mailbox".
 
-  Local Instance is_stack_contr (P : val → iProp Σ): Contractive (is_stack_pre P).
+  Local Notation "l ↦{-} v" := (∃ q, l ↦{q} v)%I
+    (at level 20, format "l  ↦{-}  v") : bi_scope.
+
+  Lemma partial_mapsto_duplicable l v :
+    l ↦{-} v -∗ l ↦{-} v ∗ l ↦{-} v.
   Proof.
-    rewrite /is_stack_pre => n f f' Hf v.
+    iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
+  Qed.
+
+  Definition is_list_pre (P : val → iProp Σ) (F : val -c> iProp Σ) :
+     val -c> iProp Σ := λ v,
+    (v ≡ NONEV ∨ ∃ (l : loc) (h t : val), ⌜v ≡ SOMEV #l⌝ ∗ l ↦{-} (h, t)%V ∗ P h ∗ ▷ F t)%I.
+
+  Local Instance is_list_contr (P : val → iProp Σ) : Contractive (is_list_pre P).
+  Proof.
+    rewrite /is_list_pre => n f f' Hf v.
     repeat (f_contractive || f_equiv).
     apply Hf.
   Qed.
 
-  Definition is_stack_def (P : val -> iProp Σ) := fixpoint (is_stack_pre P).
-  Definition is_stack_aux P : seal (@is_stack_def P). by eexists. Qed.
-  Definition is_stack P := unseal (is_stack_aux P).
-  Definition is_stack_eq P : @is_stack P = @is_stack_def P := seal_eq (is_stack_aux P).
+  Definition is_list_def (P : val -> iProp Σ) := fixpoint (is_list_pre P).
+  Definition is_list_aux P : seal (@is_list_def P). by eexists. Qed.
+  Definition is_list P := unseal (is_list_aux P).
+  Definition is_list_eq P : @is_list P = @is_list_def P := seal_eq (is_list_aux P).
 
-  Definition stack_inv P v :=
-    (∃ l v', ⌜v = #l⌝ ∗ l ↦ v' ∗ is_stack P v')%I.
-
-  Lemma is_stack_unfold (P : val → iProp Σ) v :
-      is_stack P v ⊣⊢ is_stack_pre P (is_stack P) v.
+  Lemma is_list_unfold (P : val → iProp Σ) v :
+    is_list P v ⊣⊢ is_list_pre P (is_list P) v.
   Proof.
-    rewrite is_stack_eq. apply (fixpoint_unfold (is_stack_pre P)).
+    rewrite is_list_eq. apply (fixpoint_unfold (is_list_pre P)).
   Qed.
 
-  Lemma is_stack_disj (P : val → iProp Σ) v :
-      is_stack P v -∗ is_stack P v ∗ (v ≡ NONEV ∨ ∃ (h t : val), v ≡ SOMEV (h, t)%V).
+  (* TODO: shouldn't have to explicitly return is_list *)
+  Lemma is_list_unboxed (P : val → iProp Σ) v :
+      is_list P v -∗ ⌜val_is_unboxed v⌝ ∗ is_list P v.
+  Proof.
+    iIntros "Hstack"; iSplit; last done;
+    iDestruct (is_list_unfold with "Hstack") as "[->|Hstack]";
+    last iDestruct "Hstack" as (l h t) "(-> & _)"; done.
+  Qed.
+
+  Lemma is_list_disj (P : val → iProp Σ) v :
+    is_list P v -∗ is_list P v ∗ (⌜v ≡ NONEV⌝ ∨ ∃ (l : loc) h t, ⌜v ≡ SOMEV #l%V⌝ ∗ l ↦{-} (h, t)%V).
   Proof.
     iIntros "Hstack".
-    iDestruct (is_stack_unfold with "Hstack") as "[#Hstack|Hstack]".
-    - iSplit; try iApply is_stack_unfold; iLeft; auto.
-    - iDestruct "Hstack" as (h t) "[#Heq rest]".
-      iSplitL; try iApply is_stack_unfold; iRight; auto.
+    iDestruct (is_list_unfold with "Hstack") as "[%|Hstack]"; simplify_eq.
+    - rewrite is_list_unfold; iSplitR; [iLeft|]; eauto.
+    - iDestruct "Hstack" as (l h t) "(% & Hl & Hlist)".
+      iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]"; simplify_eq.
+      rewrite (is_list_unfold _ (InjRV _)); iSplitR "Hl2"; iRight; iExists _, _, _; by iFrame.
   Qed.
 
-  (* Per-element invariant (i.e., bag spec). *)
-  Theorem stack_works {channelG0 : channelG Σ} P Φ :
-    ▷ (∀ (f₁ f₂ : val),
-            (□ WP f₁ #() {{ v, (∃ (v' : val), v ≡ SOMEV v' ∗ P v')  ∨ v ≡ NONEV }})
-         -∗ (∀ (v : val), □ (P v -∗ WP f₂ v {{ v, True }}))
-         -∗ Φ (f₁, f₂)%V)%I
-    -∗ WP mk_stack #()  {{ Φ }}.
+  Definition stack_inv P l := (∃ v, l ↦ v ∗ is_list P v)%I.
+  Definition is_stack P v :=
+    (∃ mailbox l, ⌜v = (mailbox, #l)%V⌝ ∗ is_mailbox Nmailbox P mailbox ∗ inv N (stack_inv P l))%I.
+
+  Theorem mk_stack_works P :
+    WP mk_stack #() {{ v, is_stack P v }}%I.
   Proof.
-    iIntros "HΦ".
+    rewrite -wp_fupd.
     wp_lam.
-    wp_bind (mailbox _).
-    iApply (mailbox_works P).
-    iIntros (put get) "[% [% [#Hput #Hget]]]".
-    wp_let; wp_proj; wp_let; wp_proj; wp_let; wp_alloc l' as "Hl'".
-    pose proof (nroot .@ "N") as N.
-    iMod (inv_alloc N _ (stack_inv P #l') with "[Hl']") as "#Hisstack".
-    { iExists l', NONEV; iFrame; iSplit; auto. iApply is_stack_unfold; iLeft; done. }
-    wp_let.
-    iApply "HΦ".
-    (* The verification of pop *)
-    - iIntros "!#".
-      iLöb as "IH".
-      wp_rec;  wp_bind (get _).
-      (* Switch from proving WP put #() {{ P }} to
-       * Q -∗ P where Q is the spec we have already assumed for P
-       *)
-      iApply wp_wand; auto.
-      iIntros (v) "Hv".
-      iDestruct "Hv" as "[H | H]".
-      * iDestruct "H" as (v') "[% HP]".
-        subst.
-        (* This is just some technical fidgetting to get wp_match to behave.
-         * It is safe to ignore
-         *)
-        assert (to_val v' = Some v') by apply to_of_val.
-        assert (is_Some (to_val v')) by (exists v'; auto).
-        assert (to_val (InjRV v') = Some (InjRV v')) by apply to_of_val.
-        assert (is_Some (to_val (InjRV v'))) by (exists (InjRV v'); auto).
-        wp_match.
-        iLeft; iExists v'; auto.
-      * iDestruct "H" as "%"; subst.
-        wp_match; wp_bind (! #l')%E.
-        iInv N as "Hstack" "Hclose".
-        iDestruct "Hstack" as (l'' v'') "[>% [Hl' Hstack]]".
-        injection H1; intros; subst.
-        wp_load.
-        iDestruct (is_stack_disj with "Hstack") as "[Hstack #Heq]".
-        iMod ("Hclose" with "[Hl' Hstack]").
-        { iExists l'', v''; iFrame; auto. }
+    wp_apply mk_mailbox_works; first done.
+    iIntros (mailbox) "#Hmailbox".
+    wp_alloc l as "Hl".
+    iMod (inv_alloc N _ (stack_inv P l) with "[Hl]") as "#Hinv".
+    { by iNext; iExists _; iFrame; rewrite is_list_unfold; iLeft. }
+    iModIntro.
+    iExists _, _; auto.
+  Qed.
+
+  Theorem push_works P s v :
+    {{{ is_stack P s ∗ P v }}} push s v {{{ RET #(); True }}}.
+  Proof.
+    iIntros (Φ) "[Hstack HP] HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hinv)".
+    iLöb as "IH" forall (v).
+    wp_lam. wp_let. wp_proj. wp_let. wp_proj. wp_let.
+    wp_apply (put_works _ P with "[HP]"); first by iFrame.
+    iIntros (result) "Hopt".
+    iDestruct "Hopt" as "[HSome | ->]".
+    - iDestruct "HSome" as (v') "[-> HP]".
+      wp_match. wp_bind (Load _).
+      iInv N as (v'') "[Hl Hlist]" "Hclose".
+      wp_load.
+      iMod ("Hclose" with "[Hl Hlist]") as "_".
+      { iNext; iExists _; iFrame. }
+      iModIntro.
+      wp_let. wp_alloc l' as "Hl'". wp_let. wp_bind (CAS _ _ _).
+      iInv N as (list) "(Hl & Hlist)" "Hclose".
+      destruct (decide (v'' = list)) as [ -> |].
+      * iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
+        wp_cas_suc.
+        iMod ("Hclose" with "[HP Hl Hl' Hlist]") as "_".
+        { iNext; iExists (SOMEV _); iFrame.
+          rewrite (is_list_unfold _ (InjRV _)). iRight; iExists _, _, _; iFrame; eauto. }
         iModIntro.
-        iDestruct "Heq" as "[H | H]".
-        + iRewrite "H"; wp_match; iRight; auto.
-        + iDestruct "H" as (h t) "H"; iRewrite "H".
-          (* For technical reasons, wp_match gets confused by this
-           * position. Hence the assertions. They can be safely ignored
-           *)
-          assert (to_val (h, t)%V = Some (h, t)%V) by apply to_of_val.
-          assert (is_Some (to_val (h, t)%V)) by (exists (h, t)%V; auto).
-          wp_match. fold of_val.
-          (* Now back to our regularly scheduled verification *)
-          wp_bind (CAS _ _ _); wp_proj.
-          iInv N as "Hstack" "Hclose".
-          iDestruct "Hstack" as (l''' v''') "[>% [Hl'' Hstack]]".
-          injection H4; intros; subst.
-          (* Case on whether or not the stack has been updated *)
-          destruct (decide (v''' = InjRV (h, t)%V)). 
-          ++ (* If nothing has changed, the cas succeeds *)
-            wp_cas_suc.
-            iDestruct (is_stack_unfold with "Hstack") as "[Hstack | Hstack]".
-            subst.
-            iDestruct "Hstack" as "%"; discriminate.
-            iDestruct "Hstack" as (h' t') "[% [HP Hstack]]".
-            subst.
-            injection H5.
-            intros.
-            subst.
-            iMod ("Hclose" with "[Hl'' Hstack]").
-            { iExists l''', t'; iFrame; auto. }
-            iModIntro.
-            wp_if; wp_proj; iLeft; auto.
-          ++ (* The case in which we fail *)
-            wp_cas_fail.
-            iMod ("Hclose" with "[Hl'' Hstack]").
-            iExists l''', v'''; iFrame; auto.
-            iModIntro.
-            wp_if.
-            (* Now we use our IH to loop *)
-            iApply "IH".
-    (* The verification of push. This is actually markedly simpler. *)
-    - iIntros (v) "!# HP".
-      simpl in *.
-      fold of_val in *.
-      (* We grab an IH to be used in the case that we loop *)
-      iLöb as "IH" forall (v).
-      wp_rec.
-      wp_bind (put _).
-      (* Switch from proving WP put #() {{ P }} to
-       * Q -∗ P where Q is the spec we have already assumed for put
-       *)
-      iApply (wp_wand with "[HP]").
-      iApply "Hput"; auto.
-      iIntros (v') "Hv'".
-      iDestruct "Hv'" as "[H | H]".
-      * iDestruct "H" as (v'') "[% HP]"; subst.
-        wp_match.
-        (* Push the substitution through the term *)
-        wp_bind (! _)%E.
-        iInv N as "Hstack" "Hclose".
-        iDestruct "Hstack" as (l'' v') "[>% [Hl' Hstack]]"; simplify_eq.
-        wp_load.
-        iMod ("Hclose" with "[Hl' Hstack]").
-        { by (iExists l'', v'; iFrame). }
+        wp_if.
+        by iApply "HΦ".
+      * iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
+        wp_cas_fail.
+        iMod ("Hclose" with "[Hl Hlist]") as "_".
+        { iNext; iExists _; by iFrame. }
         iModIntro.
-        wp_let; wp_let; wp_bind (CAS _ _ _).
-        iInv N as "Hstack" "Hclose".
-        iDestruct "Hstack" as (l''' v''') "[>% [Hl'' Hstack]]"; simplify_eq.
-        (* Now we case to see if the stack is unchanged *)
-        destruct (decide (v''' = v'%V)).
-        + wp_cas_suc.
-          iMod ("Hclose" with "[Hl'' HP Hstack]").
-          { iExists l''', (InjRV (v'', v')%V).
-            iSplit; iFrame; auto.
-            iApply is_stack_unfold; iRight.
-            iExists v'', v'; iFrame; iSplit; subst; auto. }
+        wp_if.
+        iApply ("IH" with "HP HΦ").
+    - wp_match.
+      by iApply "HΦ".
+  Qed.
+
+  Theorem pop_works P s :
+    {{{ is_stack P s }}} pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}.
+  Proof.
+    iIntros (Φ) "Hstack HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hstack)".
+    iLöb as "IH".
+    wp_lam. wp_proj. wp_let. wp_proj. wp_lam.
+    wp_apply get_works; first done.
+    iIntros (ov) "[-> | HSome]".
+    - wp_match. wp_bind (Load _).
+      iInv N as (list) "[Hl Hlist]" "Hclose".
+      wp_load.
+      iDestruct (is_list_disj with "Hlist") as "[Hlist Hdisj]".
+      iMod ("Hclose" with "[Hl Hlist]") as "_".
+      { iNext; iExists _; by iFrame. }
+      iModIntro.
+      iDestruct "Hdisj" as "[-> | Heq]".
+      * wp_match.
+        iApply "HΦ"; by iLeft.
+      * iDestruct "Heq" as (l' h t) "[-> Hl']".
+        wp_match. wp_bind (Load _).
+        iInv N as (v') "[>Hl Hlist]" "Hclose".
+        iDestruct "Hl'" as (q) "Hl'".
+        wp_load.
+        iMod ("Hclose" with "[Hl Hlist]") as "_".
+        { iNext; iExists _; by iFrame. }
+        iModIntro.
+        wp_let. wp_proj. wp_bind (CAS _ _ _).
+        iInv N as (v'') "[Hl Hlist]" "Hclose".
+        destruct (decide (v'' = InjRV #l')) as [-> |].
+        + rewrite is_list_unfold.
+          iDestruct "Hlist" as "[>% | H]"; first done.
+          iDestruct "H" as (l'' h' t') "(>% & Hl'' & HP & Hlist)"; simplify_eq.
+          iDestruct "Hl''" as (q') "Hl''".
+          wp_cas_suc.
+          iDestruct (mapsto_agree with "Hl'' Hl'") as "%"; simplify_eq.
+          iMod ("Hclose" with "[Hl Hlist]") as "_".
+          { iNext; iExists _; by iFrame. }
           iModIntro.
-          wp_if.
-          done.
+          wp_if. wp_proj.
+          iApply ("HΦ" with "[HP]"); iRight; iExists h; by iFrame.
         + wp_cas_fail.
-          iMod ("Hclose" with "[Hl'' Hstack]").
-          iExists l''', v'''; iFrame; auto.
+          iMod ("Hclose" with "[Hl Hlist]") as "_".
+          { iNext; iExists _; by iFrame. }
           iModIntro.
           wp_if.
-          iApply ("IH" with "HP").
-      * (* This is the case that our sidechannel offer succeeded *)
-        iDestruct "H" as "%"; subst.
-        wp_match.
-        done.
+          iApply ("IH" with "HΦ").
+    - iDestruct "HSome" as (v) "[-> HP]".
+      wp_match.
+      iApply "HΦ"; iRight; iExists _; auto.
   Qed.
 End stack_works.
-
-Program Definition is_concurrent_bag `{!heapG Σ, !channelG Σ} : concurrent_bag Σ :=
-  {| spec.mk_bag := mk_stack |}.
-Next Obligation.
-  iIntros (???? P Φ) "_ HΦ". iApply stack_works.
-  iNext. iIntros (f₁ f₂) "Hpop Hpush". iApply "HΦ". iFrame.
-Qed.
