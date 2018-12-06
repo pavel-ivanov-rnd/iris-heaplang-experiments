@@ -220,6 +220,60 @@ Section fundamental.
     rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
   Qed.
 
+  Lemma bin_log_related_lam Γ (e e' : expr) τ1 τ2
+      (Hclosed : ∀ f, e.[upn (S (length Γ)) f] = e)
+      (Hclosed' : ∀ f, e'.[upn (S (length Γ)) f] = e')
+      (IHHtyped : τ1 :: Γ ⊨ e ≤log≤ e' : τ2) :
+    Γ ⊨ Lam e ≤log≤ Lam e' : TArrow τ1 τ2.
+  Proof.
+    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iApply wp_value. iExists (LamV _). iIntros "{$Hj} !#".
+    iIntros ([v v']) "#Hiv". iIntros (j' K') "Hj".
+    iDestruct (interp_env_length with "HΓ") as %?.
+    iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
+    iApply fupd_wp.
+    iMod (step_lam _ _ j' K' _ (of_val v') v' with "* [-]") as "Hz"; eauto.
+    asimpl. iFrame "#". change (Lam ?e) with (of_val (LamV e)).
+    erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
+    iApply ('`IHHtyped _  ((v,v') :: vvs)); repeat iSplit; eauto.
+    iModIntro.
+    rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
+  Qed.
+
+  Lemma bin_log_related_letin Γ (e1 e2 e1' e2' : expr) τ1 τ2
+      (Hclosed2 : ∀ f, e2.[upn (S (length Γ)) f] = e2)
+      (Hclosed2' : ∀ f, e2'.[upn (S (length Γ)) f] = e2')
+      (IHHtyped1 : Γ ⊨ e1 ≤log≤ e1' : τ1)
+      (IHHtyped2 : τ1 :: Γ ⊨ e2 ≤log≤ e2' : τ2) :
+    Γ ⊨ LetIn e1 e2 ≤log≤ LetIn e1' e2': τ2.
+  Proof.
+    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iDestruct (interp_env_length with "HΓ") as %?.
+    smart_wp_bind (LetInCtx _) v v' "[Hv #Hiv]"
+      ('`IHHtyped1 _ _ _ j ((LetInCtx _) :: K)); cbn.
+    iMod (step_letin _ _ j K with "[-]") as "Hz"; eauto.
+    iApply wp_pure_step_later; auto. iModIntro.
+    asimpl.
+    erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
+    iApply ('`IHHtyped2 _ ((v, v') :: vvs)); repeat iSplit; eauto.
+    rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
+  Qed.
+
+  Lemma bin_log_related_seq Γ (e1 e2 e1' e2' : expr) τ1 τ2
+      (IHHtyped1 : Γ ⊨ e1 ≤log≤ e1' : τ1)
+      (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ2) :
+    Γ ⊨ Seq e1 e2 ≤log≤ Seq e1' e2': τ2.
+  Proof.
+    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iDestruct (interp_env_length with "HΓ") as %?.
+    smart_wp_bind (SeqCtx _) v v' "[Hv #Hiv]"
+      ('`IHHtyped1 _ _ _ j ((SeqCtx _) :: K)); cbn.
+    iMod (step_seq _ _ j K with "[-]") as "Hz"; eauto.
+    iApply wp_pure_step_later; auto. iModIntro.
+    asimpl.
+    iApply '`IHHtyped2; repeat iSplit; eauto.
+  Qed.
+
   Lemma bin_log_related_app Γ e1 e2 e1' e2' τ1 τ2
       (IHHtyped1 : Γ ⊨ e1 ≤log≤ e1' : TArrow τ1 τ2)
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ1) :
@@ -429,6 +483,11 @@ Section fundamental.
     - eapply bin_log_related_if; eauto.
     - eapply bin_log_related_rec; eauto;
         match goal with H : _ |- _ => eapply (typed_n_closed _ _ _ H) end.
+    - eapply bin_log_related_lam; eauto;
+        match goal with H : _ |- _ => eapply (typed_n_closed _ _ _ H) end.
+    - eapply bin_log_related_letin; eauto;
+        match goal with H : _ |- _ => eapply (typed_n_closed _ _ _ H) end.
+    - eapply bin_log_related_seq; eauto.
     - eapply bin_log_related_app; eauto.
     - eapply bin_log_related_tlam; eauto with typeclass_instances.
     - eapply bin_log_related_tapp; eauto.

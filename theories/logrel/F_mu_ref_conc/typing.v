@@ -19,7 +19,7 @@ Instance SubstLemmas_typer : SubstLemmas type. derive. Qed.
 
 Fixpoint binop_res_type (op : binop) : type :=
   match op with
-  | Add => TNat | Sub => TNat
+  | Add => TNat | Sub => TNat | Mult => TNat
   | Eq => TBool | Le => TBool | Lt => TBool
   end.
 
@@ -50,6 +50,12 @@ Inductive typed (Γ : list type) : expr → type → Prop :=
      Γ ⊢ₜ e0 : TBool → Γ ⊢ₜ e1 : τ → Γ ⊢ₜ e2 : τ → Γ ⊢ₜ If e0 e1 e2 : τ
   | Rec_typed e τ1 τ2 :
      TArrow τ1 τ2 :: τ1 :: Γ ⊢ₜ e : τ2 → Γ ⊢ₜ Rec e : TArrow τ1 τ2
+  | Lam_typed e τ1 τ2 :
+      τ1 :: Γ ⊢ₜ e : τ2 → Γ ⊢ₜ Lam e : TArrow τ1 τ2
+  | LetIn_typed e1 e2 τ1 τ2 :
+      Γ ⊢ₜ e1 : τ1 → τ1 :: Γ ⊢ₜ e2 : τ2 → Γ ⊢ₜ LetIn e1 e2 : τ2
+  | Seq_typed e1 e2 τ1 τ2 :
+      Γ ⊢ₜ e1 : τ1 → Γ ⊢ₜ e2 : τ2 → Γ ⊢ₜ Seq e1 e2 : τ2
   | App_typed e1 e2 τ1 τ2 :
      Γ ⊢ₜ e1 : TArrow τ1 τ2 → Γ ⊢ₜ e2 : τ1 → Γ ⊢ₜ App e1 e2 : τ2
   | TLam_typed e τ :
@@ -94,6 +100,14 @@ Proof.
     apply (IHe (S (S m))).
     + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
     + intros [|[|x]] H2; [by cbv|by cbv |].
+      asimpl; rewrite H1; auto with lia.
+  - apply (IHe (S m)).
+    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
+    + intros [|x] H2; [by cbv |].
+      asimpl; rewrite H1; auto with lia.
+  - apply (IHe0 (S m)).
+    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
+    + intros [|x] H2; [by cbv |].
       asimpl; rewrite H1; auto with lia.
   - change (e1.[up (upn m (ren (+1)))]) with
     (e1.[iter (S m) up (ren (+1))]) in *.
@@ -172,6 +186,8 @@ Proof.
       end.
   - econstructor; eauto. by apply (IHtyped2 (_::_)). by apply (IHtyped3 (_::_)).
   - constructor. by apply (IHtyped (_ :: _ :: _)).
+  - constructor. by apply (IHtyped (_ :: _)).
+  - econstructor; eauto. by apply (IHtyped2 (_::_)).
   - constructor.
     specialize (IHtyped
       (subst (ren (+1)) <$> Γ1) (subst (ren (+1)) <$> Γ2) (subst (ren (+1)) <$> ξ)).

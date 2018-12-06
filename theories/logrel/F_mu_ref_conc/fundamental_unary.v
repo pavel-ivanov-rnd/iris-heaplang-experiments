@@ -75,6 +75,25 @@ Section typed_interp.
       erewrite typed_subst_head_simpl_2 by naive_solver.
       iApply (IHtyped Δ (_ :: w :: vs)).
       iApply interp_env_cons; iSplit; [|iApply interp_env_cons]; auto.
+    - (* Lam *)
+      iApply wp_value. simpl. iAlways. iIntros (w) "#Hw".
+      iDestruct (interp_env_length with "HΓ") as %?.
+      iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
+      asimpl.
+      erewrite typed_subst_head_simpl by naive_solver.
+      iApply (IHtyped Δ (w :: vs)); auto.
+      iApply interp_env_cons; iSplit; auto.
+    - (* LetIn *)
+      smart_wp_bind (LetInCtx _) v "#Hv" IHtyped1; cbn.
+      iDestruct (interp_env_length with "HΓ") as %?.
+      iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
+      asimpl. erewrite typed_subst_head_simpl by naive_solver.
+      iApply (IHtyped2 Δ (v :: vs)).
+      iApply interp_env_cons; iSplit; eauto.
+    - (* Seq *)
+      smart_wp_bind (SeqCtx _) v "#Hv" IHtyped1; cbn.
+      iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
+      by iApply IHtyped2.
     - (* app *)
       smart_wp_bind (AppLCtx (e2.[env_subst vs])) v "#Hv" IHtyped1.
       smart_wp_bind (AppRCtx v) w "#Hw" IHtyped2.
@@ -124,7 +143,7 @@ Section typed_interp.
       iDestruct "Hv" as (l) "[% #Hv]"; subst.
       iApply wp_atomic.
       iInv (logN .@ l) as (z) "[Hz1 #Hz2]" "Hclose".
-      iApply (wp_store with "Hz1"); auto using to_of_val. 
+      iApply (wp_store with "Hz1"); auto using to_of_val.
       iModIntro. iNext.
       iIntros "Hz1". iMod ("Hclose" with "[Hz1 Hz2]"); eauto.
     - (* CAS *)

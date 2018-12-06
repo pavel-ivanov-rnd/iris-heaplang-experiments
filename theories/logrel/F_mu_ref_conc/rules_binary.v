@@ -1,3 +1,4 @@
+From iris.program_logic Require Export language ectx_language ectxi_language.
 From iris.program_logic Require Import lifting.
 From iris.algebra Require Import auth frac agree gmap list.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules.
@@ -151,22 +152,66 @@ Section cfg.
     erased_step (tp, σ) (<[j:=fill K e']> tp, σ').
   Proof. rewrite -(right_id_L [] (++) (<[_:=_]>_)). by apply step_insert. Qed.
 
-  Lemma step_pure E ρ j K e e' :
-    (∀ σ, head_step e σ [] e' σ []) →
+  Lemma nsteps_inv_r {A} n (R : A → A → Prop) x y :
+    nsteps R (S n) x y → ∃ z, nsteps R n x z ∧ R z y.
+  Proof.
+    revert x y; induction n; intros x y.
+    - inversion 1; subst.
+      match goal with H : nsteps _ 0 _ _ |- _ => inversion H end; subst.
+      eexists; repeat econstructor; eauto.
+    - inversion 1; subst.
+      edestruct IHn as [z [? ?]]; eauto.
+      exists z; split; eauto using nsteps_l.
+  Qed.
+
+  Lemma step_pure' E ρ j K e e' (P : Prop) n :
+    P →
+    PureExec P n e e' →
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K e ={E}=∗ j ⤇ fill K e'.
   Proof.
-    iIntros (??) "[#Hspec Hj]". rewrite /spec_ctx /tpool_mapsto.
-    iInv specN as (tp σ) ">[Hown %]" "Hclose".
+    iIntros (HP Hex ?) "[#Hspec Hj]". rewrite /spec_ctx /tpool_mapsto.
+    iInv specN as (tp σ) ">[Hown Hrtc]" "Hclose".
+    iDestruct "Hrtc" as %Hrtc.
     iDestruct (own_valid_2 with "Hown Hj")
-      as %[[?%tpool_singleton_included' _]%prod_included ?]%auth_valid_discrete_2.
+      as %[[Htpj%tpool_singleton_included' _]%prod_included ?]%auth_valid_discrete_2.
     iMod (own_update_2 with "Hown Hj") as "[Hown Hj]".
     { by eapply auth_update, prod_local_update_1,
         singleton_local_update, (exclusive_local_update _ (Excl (fill K e'))). }
     iFrame "Hj". iApply "Hclose". iNext. iExists (<[j:=fill K e']> tp), σ.
     rewrite to_tpool_insert'; last eauto.
-    iFrame. iPureIntro. eapply rtc_r, step_insert_no_fork; eauto.
+    iFrame. iPureIntro.
+    apply rtc_nsteps in Hrtc; destruct Hrtc as [m Hrtc].
+    specialize (Hex HP). apply (nsteps_rtc (m + n)).
+    eapply nsteps_trans; eauto.
+    revert e e' Htpj Hex.
+    induction n => e e' Htpj Hex.
+    - inversion Hex; subst.
+      rewrite list_insert_id; eauto. econstructor.
+    - apply nsteps_inv_r in Hex.
+      destruct Hex as [z [Hex1 Hex2]].
+      specialize (IHn _ _ Htpj Hex1).
+      eapply nsteps_r; eauto.
+      replace (<[j:=fill K e']> tp) with
+          (<[j:=fill K e']> (<[j:=fill K z]> tp)); last first.
+      { clear. revert tp; induction j; intros tp.
+        - destruct tp; trivial.
+        - destruct tp; simpl; auto. by rewrite IHj. }
+      destruct Hex2 as [Hexs Hexd].
+      specialize (Hexs σ). destruct Hexs as [e'' [σ' [efs Hexs]]].
+      specialize (Hexd σ [] e'' σ' efs Hexs); destruct Hexd as [? [? [? ?]]];
+        subst.
+      inversion Hexs; simpl in *; subst.
+      rewrite -!fill_app.
+      eapply step_insert_no_fork; eauto.
+      { apply list_lookup_insert. apply lookup_lt_is_Some; eauto. }
   Qed.
+
+
+  Lemma do_step_pure E ρ j K e e' `{!PureExec True 1 e e'}:
+    nclose specN ⊆ E →
+    spec_ctx ρ ∗ j ⤇ fill K e ={E}=∗ j ⤇ fill K e'.
+  Proof. by eapply step_pure'; last eauto. Qed.
 
   Lemma step_alloc E ρ j K e v:
     to_val e = Some v → nclose specN ⊆ E →
@@ -285,55 +330,73 @@ Section cfg.
     to_val e2 = Some v → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (App (Rec e1) e2)
     ={E}=∗ j ⤇ fill K (e1.[Rec e1,e2/]).
-  Proof. intros ?; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros ?; apply: do_step_pure. Qed.
+
+  Lemma step_lam E ρ j K e1 e2 v :
+    to_val e2 = Some v → nclose specN ⊆ E →
+    spec_ctx ρ ∗ j ⤇ fill K (App (Lam e1) e2)
+    ={E}=∗ j ⤇ fill K (e1.[e2/]).
+  Proof. by intros ?; apply: do_step_pure. Qed.
+
+  Lemma step_letin E ρ j K e1 e2 v :
+    to_val e1 = Some v → nclose specN ⊆ E →
+    spec_ctx ρ ∗ j ⤇ fill K (LetIn e1 e2)
+    ={E}=∗ j ⤇ fill K (e2.[e1/]).
+  Proof. by intros ?; apply: do_step_pure. Qed.
+
+  Lemma step_seq E ρ j K e1 e2 v :
+    to_val e1 = Some v → nclose specN ⊆ E →
+    spec_ctx ρ ∗ j ⤇ fill K (Seq e1 e2)
+    ={E}=∗ j ⤇ fill K e2.
+  Proof. by intros ?; apply: do_step_pure. Qed.
 
   Lemma step_tlam E ρ j K e :
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (TApp (TLam e)) ={E}=∗ j ⤇ fill K e.
-  Proof. apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros ?; apply: do_step_pure. Qed.
 
   Lemma step_Fold E ρ j K e v :
     to_val e = Some v → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (Unfold (Fold e)) ={E}=∗ j ⤇ fill K e.
-  Proof. intros H1; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros ?; apply: do_step_pure. Qed.
 
   Lemma step_fst E ρ j K e1 v1 e2 v2 :
     to_val e1 = Some v1 → to_val e2 = Some v2 → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (Fst (Pair e1 e2)) ={E}=∗ j ⤇ fill K e1.
-  Proof. intros H1 H2; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_snd E ρ j K e1 v1 e2 v2 :
     to_val e1 = Some v1 → to_val e2 = Some v2 → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (Snd (Pair e1 e2)) ={E}=∗ j ⤇ fill K e2.
-  Proof. intros H1 H2; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_case_inl E ρ j K e0 v0 e1 e2 :
     to_val e0 = Some v0 → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (Case (InjL e0) e1 e2)
       ={E}=∗ j ⤇ fill K (e1.[e0/]).
-  Proof. intros H1; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_case_inr E ρ j K e0 v0 e1 e2 :
     to_val e0 = Some v0 → nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (Case (InjR e0) e1 e2)
       ={E}=∗ j ⤇ fill K (e2.[e0/]).
-  Proof. intros H1; apply step_pure => σ; econstructor; eauto. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_if_false E ρ j K e1 e2 :
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (If (#♭ false) e1 e2) ={E}=∗ j ⤇ fill K e2.
-  Proof. apply step_pure => σ; econstructor. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_if_true E ρ j K e1 e2 :
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (If (#♭ true) e1 e2) ={E}=∗ j ⤇ fill K e1.
-  Proof. apply step_pure => σ; econstructor. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_nat_binop E ρ j K op a b :
     nclose specN ⊆ E →
     spec_ctx ρ ∗ j ⤇ fill K (BinOp op (#n a) (#n b))
       ={E}=∗ j ⤇ fill K (of_val (binop_eval op a b)).
-  Proof. apply step_pure => σ; econstructor. Qed.
+  Proof. by intros; apply: do_step_pure. Qed.
 
   Lemma step_fork E ρ j K e :
     nclose specN ⊆ E →

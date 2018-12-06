@@ -8,7 +8,7 @@ Module F_mu_ref_conc.
 
   Instance loc_dec_eq (l l' : loc) : Decision (l = l') := _.
 
-  Inductive binop := Add | Sub | Eq | Le | Lt.
+  Inductive binop := Add | Sub | Mult | Eq | Le | Lt.
 
   Instance binop_dec_eq (op op' : binop) : Decision (op = op').
   Proof. solve_decision. Defined.
@@ -17,6 +17,9 @@ Module F_mu_ref_conc.
   | Var (x : var)
   | Rec (e : {bind 2 of expr})
   | App (e1 e2 : expr)
+  | Lam (e : {bind expr})
+  | LetIn (e1 : expr) (e2 : {bind expr})
+  | Seq (e1 e2 : expr)
   (* Base Types *)
   | Unit
   | Nat (n : nat)
@@ -62,6 +65,7 @@ Module F_mu_ref_conc.
 
   Inductive val :=
   | RecV (e : {bind 1 of expr})
+  | LamV (e : {bind expr})
   | TLamV (e : {bind 1 of expr})
   | UnitV
   | NatV (n : nat)
@@ -80,6 +84,7 @@ Module F_mu_ref_conc.
     match op with
     | Add => λ a b, #nv(a + b)
     | Sub => λ a b, #nv(a - b)
+    | Mult => λ a b, #nv(a * b)
     | Eq => λ a b, if (eq_nat_dec a b) then #♭v true else #♭v false
     | Le => λ a b, if (le_dec a b) then #♭v true else #♭v false
     | Lt => λ a b, if (lt_dec a b) then #♭v true else #♭v false
@@ -93,6 +98,7 @@ Module F_mu_ref_conc.
   Fixpoint of_val (v : val) : expr :=
     match v with
     | RecV e => Rec e
+    | LamV e => Lam e
     | TLamV e => TLam e
     | UnitV => Unit
     | NatV v => Nat v
@@ -107,6 +113,7 @@ Module F_mu_ref_conc.
   Fixpoint to_val (e : expr) : option val :=
     match e with
     | Rec e => Some (RecV e)
+    | Lam e => Some (LamV e)
     | TLam e => Some (TLamV e)
     | Unit => Some UnitV
     | Nat n => Some (NatV n)
@@ -123,6 +130,8 @@ Module F_mu_ref_conc.
   Inductive ectx_item :=
   | AppLCtx (e2 : expr)
   | AppRCtx (v1 : val)
+  | LetInCtx (e2 : expr)
+  | SeqCtx (e2 : expr)
   | TAppCtx
   | PairLCtx (e2 : expr)
   | PairRCtx (v1 : val)
@@ -148,6 +157,8 @@ Module F_mu_ref_conc.
     match Ki with
     | AppLCtx e2 => App e e2
     | AppRCtx v1 => App (of_val v1) e
+    | LetInCtx e2 => LetIn e e2
+    | SeqCtx e2 => Seq e e2
     | TAppCtx => TApp e
     | PairLCtx e2 => Pair e e2
     | PairRCtx v1 => Pair (of_val v1) e
@@ -177,6 +188,18 @@ Module F_mu_ref_conc.
   | BetaS e1 e2 v2 σ :
       to_val e2 = Some v2 →
       head_step (App (Rec e1) e2) σ [] e1.[(Rec e1), e2/] σ []
+  (* Lam-β *)
+  | LamBetaS e1 e2 v2 σ :
+      to_val e2 = Some v2 →
+      head_step (App (Lam e1) e2) σ [] e1.[e2/] σ []
+  (* LetIn-β *)
+  | LetInBetaS e1 e2 v2 σ :
+      to_val e1 = Some v2 →
+      head_step (LetIn e1 e2) σ [] e2.[e1/] σ []
+  (* Seq-β *)
+  | SeqBetaS e1 e2 v2 σ :
+      to_val e1 = Some v2 →
+      head_step (Seq e1 e2) σ [] e2 σ []
   (* Products *)
   | FstS e1 v1 e2 v2 σ :
       to_val e1 = Some v1 → to_val e2 = Some v2 →

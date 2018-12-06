@@ -133,6 +133,18 @@ Section lang_rules.
     PureExec True 1 (App (Rec e1) e2) e1.[(Rec e1), e2 /].
   Proof. solve_pure_exec. Qed.
 
+  Global Instance pure_lam e1 e2 `{!AsVal e2} :
+    PureExec True 1 (App (Lam e1) e2) e1.[e2 /].
+  Proof. solve_pure_exec. Qed.
+
+  Global Instance pure_LetIn e1 e2 `{!AsVal e1} :
+    PureExec True 1 (LetIn e1 e2) e2.[e1 /].
+  Proof. solve_pure_exec. Qed.
+
+  Global Instance pure_seq e1 e2 `{!AsVal e1} :
+    PureExec True 1 (Seq e1 e2) e2.
+  Proof. solve_pure_exec. Qed.
+
   Global Instance pure_tlam e : PureExec True 1 (TApp (TLam e)) e.
   Proof. solve_pure_exec. Qed.
 
