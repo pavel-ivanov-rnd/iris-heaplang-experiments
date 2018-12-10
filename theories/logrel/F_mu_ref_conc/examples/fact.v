@@ -3,12 +3,6 @@ From iris_examples.logrel.F_mu_ref_conc Require Import
      soundness_binary rules rules_binary.
 From iris.program_logic Require Import adequacy.
 
-Fixpoint mathfact n :=
-  match n with
-  | O => 1
-  | S m => n * (mathfact m)
-  end.
-
 Definition fact : expr :=
   Rec (If (BinOp Eq (Var 1) (#n 0))
           (#n 1)
@@ -85,10 +79,9 @@ Section fact_equiv.
     iIntros (j K) "Hj"; simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
     asimpl.
-    iApply (wp_mono _ _ _ (λ v, j ⤇ fill K (#n (mathfact n)) ∗ ⌜v = #nv (mathfact n)⌝))%I.
-    { iIntros (?) "[? %]"; iExists (#nv _); iFrame; eauto. }
-    replace (fill K (#n mathfact n)) with (fill K (#n (1 * mathfact n)))
-      by by repeat f_equal; lia.
+    iApply (wp_mono _ _ _ (λ v, ∃ m, j ⤇ fill K (#n (1 * m)) ∗ ⌜v = #nv m⌝))%I.
+    { iIntros (?). iDestruct 1 as (m) "[Hm %]"; subst.
+      iExists (#nv _); iFrame; eauto. }
     generalize 1 as l => l.
     iInduction n as [|n] "IH" forall (l).
     - iApply wp_pure_step_later; auto.
@@ -108,7 +101,7 @@ Section fact_equiv.
       iNext; simpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
       iApply wp_value.
-      replace (l * 1) with l by lia.
+      iExists 1. replace (l * 1) with l by lia.
       auto.
     - iApply wp_pure_step_later; auto.
       iNext; simpl; asimpl.
@@ -141,10 +134,11 @@ Section fact_equiv.
       asimpl.
       replace (n -0) with n by lia.
       iApply wp_wand_r; iSplitL; first iApply ("IH" with "[Hj]"); eauto.
-      iIntros (v) "[H %]"; simplify_eq.
+      iIntros (v). iDestruct 1 as (m) "[H %]"; simplify_eq.
       iApply wp_pure_step_later; auto.
       iNext; simpl; iApply wp_value.
-      replace (l * (mathfact n + n * mathfact n)) with ((l + n * l) * mathfact n)
+      iExists ((S n) * m); simpl.
+      replace (l * (m + n * m)) with ((l + n * l) * m)
         by lia.
       iFrame; auto.
   Qed.
@@ -163,9 +157,10 @@ Section fact_equiv.
     iApply wp_pure_step_later; auto.
     iNext; asimpl.
     rewrite -/fact.
-    iApply (wp_mono _ _ _ (λ v, j ⤇ fill K (#n (mathfact n)) ∗ ⌜v = #nv (1 * mathfact n)⌝))%I.
-    { replace (1 * mathfact n) with (mathfact n) by lia.
-      iIntros (?) "[? %]"; iExists (#nv _); iFrame; eauto. }
+    iApply (wp_mono _ _ _ (λ v, ∃ m, j ⤇ fill K (#n m) ∗ ⌜v = #nv (1 * m)⌝))%I.
+    { iIntros (?). iDestruct 1 as (m) "[? %]"; simplify_eq.
+      replace (1 * m) with m by lia.
+      iExists (#nv _); iFrame; eauto. }
     generalize 1 as l => l.
     iInduction n as [|n] "IH" forall (K l).
     - rewrite fact_acc_body_unfold.
@@ -187,6 +182,7 @@ Section fact_equiv.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
       iApply wp_value.
+      iExists 1.
       replace (l * 1) with l by lia; auto.
     - rewrite {2}fact_acc_body_unfold.
       iApply (wp_bind (fill [AppLCtx _])).
@@ -224,11 +220,13 @@ Section fact_equiv.
       iApply wp_fupd.
       iApply wp_wand_r; iSplitL;
         first iApply ("IH" $! (BinOpRCtx _ (#nv _) :: K) with "[$Hj]"); eauto.
-      iIntros (v) "[Hj %]"; simplify_eq.
+      iIntros (v). iDestruct 1 as (m) "[Hj %]"; simplify_eq.
       simpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
       simpl.
-      iModIntro. iFrame.
+      iModIntro.
+      iExists (S n * m).
+      iFrame.
       eauto with lia.
   Qed.
 
