@@ -123,8 +123,21 @@ Proof.
       asimpl; rewrite H1; auto with lia.
 Qed.
 
-Definition env_subst (vs : list val) (x : var) : expr :=
-  from_option id (Var x) (of_val <$> vs !! x).
+Fixpoint env_subst (vs : list val) : var → expr :=
+  match vs with
+  | [] => ids
+  | v :: vs' => (of_val v) .: env_subst vs'
+  end.
+
+Lemma env_subst_lookup vs x v :
+  vs !! x = Some v → env_subst vs x = of_val v.
+Proof.
+  revert vs; induction x => vs.
+  - by destruct vs; inversion 1.
+  - destruct vs as [|w vs]; first by inversion 1.
+    rewrite -lookup_tail /=.
+    apply IHx.
+Qed.
 
 Lemma typed_n_closed Γ τ e : Γ ⊢ₜ e : τ → (∀ f, e.[upn (length Γ) f] = e).
 Proof.
@@ -133,40 +146,6 @@ Proof.
   - f_equal. apply IHtyped.
   - by f_equal; rewrite map_length in IHtyped.
 Qed.
-
-Lemma n_closed_subst_head_simpl n e w ws :
-  (∀ f, e.[upn n f] = e) →
-  S (length ws) = n →
-  e.[of_val w .: env_subst ws] = e.[env_subst (w :: ws)].
-Proof.
-  intros H1 H2.
-  rewrite /env_subst. eapply n_closed_invariant; eauto=> /= -[|x] ? //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first lia; simpl.
-  by rewrite Hv.
-Qed.
-
-Lemma typed_subst_head_simpl Δ τ e w ws :
-  Δ ⊢ₜ e : τ → length Δ = S (length ws) →
-  e.[of_val w .: env_subst ws] = e.[env_subst (w :: ws)].
-Proof. eauto using n_closed_subst_head_simpl, typed_n_closed. Qed.
-
-Lemma n_closed_subst_head_simpl_2 n e w w' ws :
-  (∀ f, e.[upn n f] = e) → (S (S (length ws))) = n →
-  e.[of_val w .: of_val w' .: env_subst ws] = e.[env_subst (w :: w' :: ws)].
-Proof.
-  intros H1 H2.
-  rewrite /env_subst. eapply n_closed_invariant; eauto => /= -[|[|x]] H3 //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first lia; simpl.
-  by rewrite Hv.
-Qed.
-
-Lemma typed_subst_head_simpl_2 Δ τ e w w' ws :
-  Δ ⊢ₜ e : τ → length Δ = 2 + length ws →
-  e.[of_val w .: of_val w' .: env_subst ws] = e.[env_subst (w :: w' :: ws)].
-Proof. eauto using n_closed_subst_head_simpl_2, typed_n_closed. Qed.
-
-Lemma empty_env_subst e : e.[env_subst []] = e.
-Proof. change (env_subst []) with (@ids expr _). by asimpl. Qed.
 
 (** Weakening *)
 Lemma context_gen_weakening ξ Γ' Γ e τ :

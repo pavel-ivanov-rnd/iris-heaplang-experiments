@@ -18,7 +18,7 @@ Section typed_interp.
     induction Htyped; iIntros (vs) "#Hctx /=".
     - (* var *)
       iDestruct (interp_env_Some_l with "[]") as (v) "[#H1 #H2]"; eauto;
-        iDestruct "H1" as %Heq; rewrite /env_subst Heq /=.
+        iDestruct "H1" as %Heq. erewrite env_subst_lookup; eauto.
       by iApply wp_value.
     - (* unit *) by iApply wp_value.
     - (* pair *)
@@ -43,17 +43,15 @@ Section typed_interp.
       iDestruct "Hv" as "[Hv|Hv]"; iDestruct "Hv" as (w) "[% Hw]"; subst.
       + simpl. iApply wp_pure_step_later; auto. asimpl.
         specialize (IHHtyped2 (w::vs)).
-        erewrite <- ?typed_subst_head_simpl in *; eauto; simpl in *; auto.
         iNext. iApply (IHHtyped2). iApply interp_env_cons; by iSplit.
       + simpl. iApply wp_pure_step_later; auto. asimpl.
         specialize (IHHtyped3 (w::vs)).
-        erewrite <- ?typed_subst_head_simpl in *; eauto; simpl in *; auto.
         iNext. iApply (IHHtyped3). iApply interp_env_cons; by iSplit.
     - (* lam *)
       iDestruct (interp_env_length with "[]") as %Hlen; auto.
       iApply wp_value. simpl. iAlways; iIntros (w) "#Hw".
       iApply wp_pure_step_later; auto.
-      asimpl; erewrite typed_subst_head_simpl; [|eauto|cbn]; eauto.
+      asimpl.
       iNext; iApply (IHHtyped (w :: vs)). iApply interp_env_cons; by iSplit.
     - (* app *)
       smart_wp_bind (AppLCtx (e2.[env_subst vs])) v "#Hv" IHHtyped1.

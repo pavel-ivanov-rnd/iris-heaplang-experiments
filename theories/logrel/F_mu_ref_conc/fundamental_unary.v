@@ -23,7 +23,8 @@ Section typed_interp.
     induction 1; iIntros (Δ vs HΔ) "#HΓ /=".
     - (* var *)
       iDestruct (interp_env_Some_l with "HΓ") as (v) "[% ?]"; first done.
-      rewrite /env_subst. simplify_option_eq. by iApply wp_value.
+      erewrite env_subst_lookup; eauto.
+        by iApply wp_value.
     - (* unit *) iApply wp_value; trivial.
     - (* nat *) iApply wp_value; simpl; eauto.
     - (* bool *) iApply wp_value; simpl; eauto.
@@ -57,10 +58,8 @@ Section typed_interp.
       iDestruct (interp_env_length with "HΓ") as %?.
       iDestruct "Hv" as "[Hv|Hv]"; iDestruct "Hv" as (w) "[% Hw]"; simplify_eq/=.
       + iApply wp_pure_step_later; auto 1 using to_of_val; asimpl. iNext.
-        erewrite typed_subst_head_simpl by naive_solver.
         iApply (IHtyped2 Δ (w :: vs)). iApply interp_env_cons; auto.
       + iApply wp_pure_step_later; auto 1 using to_of_val; asimpl. iNext.
-        erewrite typed_subst_head_simpl by naive_solver.
         iApply (IHtyped3 Δ (w :: vs)). iApply interp_env_cons; auto.
     - (* If *)
       smart_wp_bind (IfCtx _ _) v "#Hv" IHtyped1; cbn.
@@ -72,7 +71,6 @@ Section typed_interp.
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl. change (Rec _) with (of_val (RecV e.[upn 2 (env_subst vs)])) at 2.
-      erewrite typed_subst_head_simpl_2 by naive_solver.
       iApply (IHtyped Δ (_ :: w :: vs)).
       iApply interp_env_cons; iSplit; [|iApply interp_env_cons]; auto.
     - (* Lam *)
@@ -80,15 +78,13 @@ Section typed_interp.
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl.
-      erewrite typed_subst_head_simpl by naive_solver.
       iApply (IHtyped Δ (w :: vs)); auto.
       iApply interp_env_cons; iSplit; auto.
     - (* LetIn *)
       smart_wp_bind (LetInCtx _) v "#Hv" IHtyped1; cbn.
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
-      asimpl. erewrite typed_subst_head_simpl by naive_solver.
-      iApply (IHtyped2 Δ (v :: vs)).
+      asimpl. iApply (IHtyped2 Δ (v :: vs)).
       iApply interp_env_cons; iSplit; eauto.
     - (* Seq *)
       smart_wp_bind (SeqCtx _) v "#Hv" IHtyped1; cbn.

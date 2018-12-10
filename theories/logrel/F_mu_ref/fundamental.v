@@ -22,7 +22,7 @@ Section fundamental.
     induction 1; iIntros (Δ vs HΔ) "#HΓ /=".
     - (* var *)
       iDestruct (interp_env_Some_l with "HΓ") as (v) "[% ?]"; first done.
-      rewrite /env_subst. simplify_option_eq. by iApply wp_value.
+      erewrite env_subst_lookup; eauto. by iApply wp_value.
     - (* unit *) by iApply wp_value.
     - (* pair *)
       smart_wp_bind (PairLCtx e2.[env_subst vs]) v "#Hv" IHtyped1.
@@ -47,16 +47,14 @@ Section fundamental.
       iDestruct (interp_env_length with "HΓ") as %?.
       iDestruct "Hv" as "[Hv|Hv]"; iDestruct "Hv" as (w) "[% Hw]"; simplify_eq/=.
       + iApply wp_pure_step_later; auto 1 using to_of_val; asimpl. iNext.
-        erewrite typed_subst_head_simpl by naive_solver.
         iApply (IHtyped2 Δ (w :: vs)). iApply interp_env_cons; auto.
       + iApply wp_pure_step_later; auto 1 using to_of_val; asimpl. iNext.
-        erewrite typed_subst_head_simpl by naive_solver.
         iApply (IHtyped3 Δ (w :: vs)). iApply interp_env_cons; auto.
     - (* lam *)
       iApply wp_value. simpl. iAlways. iIntros (w) "#Hw".
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
-      asimpl. erewrite typed_subst_head_simpl by naive_solver.
+      asimpl.
       iApply (IHtyped Δ (w :: vs)). iApply interp_env_cons; auto.
     - (* app *)
       smart_wp_bind (AppLCtx (e2.[env_subst vs])) v "#Hv" IHtyped1.

@@ -30,8 +30,9 @@ Proof.
   iApply wp_fupd. iApply (wp_wand with "[-]").
   - iPoseProof (Hlog _ _ with "[$Hcfg]") as "Hrel".
     { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }
-    rewrite (empty_env_subst e). iApply ("Hrel" $! []).
-    rewrite /tpool_mapsto (empty_env_subst e'). asimpl. iFrame.
+    replace e with e.[env_subst[]] at 2 by by asimpl.
+    iApply ("Hrel" $! []).
+    rewrite /tpool_mapsto. asimpl. iFrame.
   - iModIntro. iIntros (v'). iDestruct 1 as (v2) "[Hj #Hinterp]".
     iInv specN as ">Hinv" "Hclose".
     iDestruct "Hinv" as (e'' σ) "[Hown %]".

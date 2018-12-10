@@ -4,7 +4,8 @@ From iris.program_logic Require Import adequacy.
 
 Lemma wp_soundness `{irisG stlc_lang Σ} e τ : [] ⊢ₜ e : τ → (WP e {{ ⟦ τ ⟧ }})%I.
 Proof.
-  iIntros (?). rewrite -(empty_env_subst e).
+  iIntros (?).
+  replace e with e.[env_subst[]] by by asimpl.
   iApply fundamental; eauto. iApply interp_env_nil.
 Qed.
 

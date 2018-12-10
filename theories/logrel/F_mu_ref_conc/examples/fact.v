@@ -76,7 +76,6 @@ Section fact_equiv.
   Proof.
     iIntros (? vs ρ _) "[#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
-    rewrite !empty_env_subst.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
     iApply wp_value; iExists (LamV _); iFrame.
@@ -155,7 +154,6 @@ Section fact_equiv.
   Proof.
     iIntros (? vs ρ _) "[#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
-    rewrite !empty_env_subst.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
     iApply wp_value; iExists (RecV _); iFrame.

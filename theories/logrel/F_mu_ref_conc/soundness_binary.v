@@ -29,8 +29,9 @@ Proof.
   iPoseProof ((Hlog _ _ [] [] ([e'], ∅)) with "[$Hcfg]") as "Hrel".
   { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }
   simpl.
-  rewrite empty_env_subst empty_env_subst. iApply ("Hrel" $! 0 []).
-  { rewrite /tpool_mapsto. iAsimpl. by iFrame. }
+  replace e with e.[env_subst[]] at 2 by by asimpl.
+  iApply ("Hrel" $! 0 []).
+  { rewrite /tpool_mapsto. asimpl. by iFrame. }
   iModIntro. iIntros (v1); iDestruct 1 as (v2) "[Hj #Hinterp]".
   iInv specN as (tp σ) ">[Hown Hsteps]" "Hclose"; iDestruct "Hsteps" as %Hsteps'.
   rewrite /tpool_mapsto /=.

@@ -20,7 +20,7 @@ Proof.
   iModIntro. iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   set (HeapΣ := (HeapIG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
   iApply (wp_wand with "[]").
-  - rewrite -(empty_env_subst e).
+  - replace e with e.[env_subst[]] by by asimpl.
     iApply (Hlog HeapΣ [] []). iApply (@interp_env_nil _ HeapΣ).
   - eauto.
 Qed.

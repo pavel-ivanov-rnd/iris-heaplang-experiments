@@ -48,8 +48,10 @@ Section fundamental.
     Γ !! x = Some τ → Γ ⊨ Var x ≤log≤ Var x : τ.
   Proof.
     iIntros (? Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
-    iDestruct (interp_env_Some_l with "HΓ") as ([v v']) "[% ?]"; first done.
-    rewrite /env_subst !list_lookup_fmap; simplify_option_eq. iApply wp_value; eauto.
+    iDestruct (interp_env_Some_l with "HΓ") as ([v v']) "[Heq ?]"; first done.
+    iDestruct "Heq" as %Heq.
+    erewrite !env_subst_lookup; rewrite ?list_lookup_fmap ?Heq; eauto.
+    iApply wp_value; eauto.
   Qed.
 
   Lemma bin_log_related_unit Γ : Γ ⊨ Unit ≤log≤ Unit : TUnit.
@@ -150,14 +152,12 @@ Section fundamental.
       iMod (step_case_inl with "[Hs Hv]") as "Hz"; eauto.
       iApply wp_pure_step_later; auto. fold of_val. iModIntro. iNext.
       asimpl.
-      erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
       iApply ('`IHHtyped2 _ ((w,w') :: vvs)). repeat iSplit; eauto.
       iApply interp_env_cons; auto.
     - iApply fupd_wp.
       iMod (step_case_inr with "[Hs Hv]") as "Hz"; eauto.
       iApply wp_pure_step_later; auto. fold of_val. iModIntro. iNext.
       asimpl.
-      erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
       iApply ('`IHHtyped3 _ ((w,w') :: vvs)); repeat iSplit; eauto.
       iApply interp_env_cons; auto.
   Qed.
@@ -214,7 +214,6 @@ Section fundamental.
     iApply fupd_wp.
     iMod (step_rec _ _ j' K' _ (of_val v') v' with "* [-]") as "Hz"; eauto.
     asimpl. change (Rec ?e) with (of_val (RecV e)).
-    erewrite !n_closed_subst_head_simpl_2 by (rewrite ?fmap_length; eauto).
     iApply ('`IHHtyped _ ((_,_) :: (v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
     rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
@@ -234,7 +233,6 @@ Section fundamental.
     iApply fupd_wp.
     iMod (step_lam _ _ j' K' _ (of_val v') v' with "* [-]") as "Hz"; eauto.
     asimpl. iFrame "#". change (Lam ?e) with (of_val (LamV e)).
-    erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
     iApply ('`IHHtyped _  ((v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
     rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
@@ -254,7 +252,6 @@ Section fundamental.
     iMod (step_letin _ _ j K with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto. iModIntro.
     asimpl.
-    erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
     iApply ('`IHHtyped2 _ ((v, v') :: vvs)); repeat iSplit; eauto.
     rewrite !interp_env_cons; iSplit; try iApply interp_env_cons; auto.
   Qed.

@@ -34,18 +34,18 @@ Proof.
   induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with lia.
 Qed.
 
-Definition env_subst (vs : list val) (x : var) : expr :=
-  from_option id (Var x) (of_val <$> vs !! x).
+Fixpoint env_subst (vs : list val) : var → expr :=
+  match vs with
+  | [] => ids
+  | v :: vs' => #v .: env_subst vs'
+  end.
 
-Lemma typed_subst_head_simpl Δ τ e w ws :
-  Δ ⊢ₜ e : τ → length Δ = S (length ws) →
-  e.[# w .: env_subst ws] = e.[env_subst (w :: ws)].
+Lemma env_subst_lookup vs x v :
+  vs !! x = Some v → env_subst vs x = of_val v.
 Proof.
-  intros H1 H2.
-  rewrite /env_subst. eapply typed_subst_invariant; eauto=> /= -[|x] ? //=.
-  destruct (lookup_lt_is_Some_2 ws x) as [v' Hv]; first lia; simpl.
-  by rewrite Hv.
+  revert vs; induction x => vs.
+  - by destruct vs; inversion 1.
+  - destruct vs as [|w vs]; first by inversion 1.
+    rewrite -lookup_tail /=.
+    apply IHx.
 Qed.
-
-Lemma empty_env_subst e : e.[env_subst []] = e.
-Proof. change (env_subst []) with ids. by asimpl. Qed.

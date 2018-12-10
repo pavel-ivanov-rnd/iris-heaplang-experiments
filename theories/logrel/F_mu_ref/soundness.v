@@ -21,7 +21,7 @@ Proof.
   iModIntro. iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   set (HeapΣ := (HeapG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
   iApply (wp_wand with "[]").
-  - rewrite -(empty_env_subst e).
+  - replace e with e.[env_subst[]] by by asimpl.
     iApply (Hlog HeapΣ [] []). iApply (@interp_env_nil _ HeapΣ).
   - auto.
 Qed.
@@ -32,8 +32,8 @@ Corollary type_soundness e τ e' thp σ σ' :
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
   intros ??. set (Σ := #[invΣ ; gen_heapΣ loc val]).
-  set (HG := HeapPreG Σ _ _). 
+  set (HG := HeapPreG Σ _ _).
   eapply (soundness Σ).
-  - intros ?. by apply fundamental. 
+  - intros ?. by apply fundamental.
   - eauto.
 Qed.

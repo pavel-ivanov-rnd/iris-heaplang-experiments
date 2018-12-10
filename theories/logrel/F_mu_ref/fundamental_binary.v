@@ -48,8 +48,9 @@ Section fundamental.
     Γ !! x = Some τ → Γ ⊨ Var x ≤log≤ Var x : τ.
   Proof.
     iIntros (? Δ vvs ρ ?) "[#Hρ #HΓ]". iIntros (K) "Hj /=".
-    iDestruct (interp_env_Some_l with "HΓ") as ([v v']) "[% Hv]"; first done.
-    rewrite /env_subst !list_lookup_fmap; simplify_option_eq.
+    iDestruct (interp_env_Some_l with "HΓ") as ([v v']) "[Heq Hv]"; first done.
+    iDestruct "Heq" as %Heq.
+    erewrite !env_subst_lookup; rewrite ?list_lookup_fmap ?Heq; eauto.
     iApply wp_value; auto.
   Qed.
 
@@ -137,15 +138,15 @@ Section fundamental.
     iDestruct "Hiv" as "[Hiv|Hiv]".
     - iDestruct "Hiv" as ([w w']) "[% Hw]"; simplify_eq.
       iMod (step_case_inl _ _ K (of_val w') with "* [-]") as "Hz"; eauto.
+      simpl.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
-      asimpl. erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
-      iApply ('`IHHtyped2 _ ((w,w') :: vvs)); repeat iSplit; eauto.
+      asimpl. iApply ('`IHHtyped2 _ ((w,w') :: vvs)); repeat iSplit; eauto.
       iApply interp_env_cons; auto.
     - iDestruct "Hiv" as ([w w']) "[% Hw]"; simplify_eq.
       iMod (step_case_inr _ _ K (of_val w') with "* [-]") as "Hz"; eauto.
+      simpl.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
-      asimpl. erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
-      iApply ('`IHHtyped3 _ ((w,w') :: vvs)); repeat iSplit; eauto.
+      asimpl. iApply ('`IHHtyped3 _ ((w,w') :: vvs)); repeat iSplit; eauto.
       iApply interp_env_cons; auto.
   Qed.
 
@@ -161,8 +162,7 @@ Section fundamental.
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
     iMod (step_lam _ _ K' _ (of_val v') with "* [-]") as "Hz"; eauto.
-    asimpl. erewrite !n_closed_subst_head_simpl by (rewrite ?fmap_length; eauto).
-    iApply ('`IHHtyped _ ((v,v') :: vvs)); repeat iSplit; eauto.
+    asimpl. iApply ('`IHHtyped _ ((v,v') :: vvs)); repeat iSplit; eauto.
     iApply interp_env_cons; iSplit; auto.
   Qed.
 
