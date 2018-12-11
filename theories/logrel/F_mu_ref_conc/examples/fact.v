@@ -49,7 +49,7 @@ Lemma fact_acc_body_unfold :
       ).
 Proof. trivial. Qed.
 
-Global Typeclasses Opaque fact_acc_body.
+Typeclasses Opaque fact_acc_body.
 Global Opaque fact_acc_body.
 
 Definition fact_acc : expr :=

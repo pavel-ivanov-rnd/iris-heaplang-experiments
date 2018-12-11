@@ -97,7 +97,7 @@ Section CG_Stack.
     iModIntro. by iFrame.
   Qed.
 
-  Global Typeclasses Opaque CG_push.
+  Typeclasses Opaque CG_push.
   Global Opaque CG_push.
 
   Lemma CG_locked_push_to_val st l :
@@ -137,7 +137,7 @@ Section CG_Stack.
     iApply steps_CG_push; first done. by iFrame.
   Qed.
 
-  Global Typeclasses Opaque CG_locked_push.
+  Typeclasses Opaque CG_locked_push.
   Global Opaque CG_locked_push.
 
   (* Coarse-grained pop *)
@@ -209,7 +209,7 @@ Section CG_Stack.
     by iFrame "Hj Hx"; trivial.
   Qed.
 
-  Global Typeclasses Opaque CG_pop.
+  Typeclasses Opaque CG_pop.
   Global Opaque CG_pop.
 
   Lemma CG_locked_pop_to_val st l :
@@ -265,7 +265,7 @@ Section CG_Stack.
       iApply steps_CG_pop_fail; eauto.
   Qed.
 
-  Global Typeclasses Opaque CG_locked_pop.
+  Typeclasses Opaque CG_locked_pop.
   Global Opaque CG_locked_pop.
 
   Lemma CG_snap_to_val st l : to_val (CG_snap st l) = Some (CG_snapV st l).
@@ -274,7 +274,7 @@ Section CG_Stack.
   Lemma CG_snap_of_val st l : of_val (CG_snapV st l) = CG_snap st l.
   Proof. trivial. Qed.
 
-  Global Typeclasses Opaque CG_snapV.
+  Typeclasses Opaque CG_snapV.
   Global Opaque CG_snapV.
 
   Lemma CG_snap_type st l Γ τ :
@@ -309,7 +309,7 @@ Section CG_Stack.
     by iFrame.
   Qed.
 
-  Global Typeclasses Opaque CG_snap.
+  Typeclasses Opaque CG_snap.
   Global Opaque CG_snap.
 
   (* Coarse-grained iter *)
@@ -345,7 +345,7 @@ Section CG_Stack.
   Lemma CG_iter_of_val f : of_val (CG_iterV f) = CG_iter f.
   Proof. trivial. Qed.
 
-  Global Typeclasses Opaque CG_iterV.
+  Typeclasses Opaque CG_iterV.
   Global Opaque CG_iterV.
 
   Lemma CG_iter_subst (f : expr) g : (CG_iter f).[g] = CG_iter f.[g].
@@ -386,7 +386,7 @@ Section CG_Stack.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
   Qed.
 
-  Global Typeclasses Opaque CG_iter.
+  Typeclasses Opaque CG_iter.
   Global Opaque CG_iter.
 
   Lemma CG_snap_iter_type st l Γ τ :
@@ -420,7 +420,7 @@ Section CG_Stack.
   Qed.
 
 
-  Global Typeclasses Opaque CG_snap_iter.
+  Typeclasses Opaque CG_snap_iter.
   Global Opaque CG_snap_iter.
 
   Lemma CG_stack_body_subst (st l : expr) f :

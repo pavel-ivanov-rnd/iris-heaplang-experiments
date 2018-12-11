@@ -35,7 +35,7 @@ Proof. trivial. Qed.
 Lemma with_lock_of_val e l : of_val (with_lockV e l) = with_lock e l.
 Proof. trivial. Qed.
 
-Global Typeclasses Opaque with_lockV.
+Typeclasses Opaque with_lockV.
 Global Opaque with_lockV.
 
 Lemma newlock_closed f : newlock.[f] = newlock.
@@ -93,7 +93,7 @@ Section proof.
     by iMod (step_alloc _ _ j K with "[Hj]") as "Hj"; eauto.
   Qed.
 
-  Global Typeclasses Opaque newlock.
+  Typeclasses Opaque newlock.
   Global Opaque newlock.
 
   Lemma steps_acquire E ρ j K l :
@@ -112,7 +112,7 @@ Section proof.
     Unshelve. all:trivial.
   Qed.
 
-  Global Typeclasses Opaque acquire.
+  Typeclasses Opaque acquire.
   Global Opaque acquire.
 
   Lemma steps_release E ρ j K l b:
@@ -126,7 +126,7 @@ Section proof.
     by iIntros "!> {$Hj $Hl}".
   Qed.
 
-  Global Typeclasses Opaque release.
+  Typeclasses Opaque release.
   Global Opaque release.
 
   Lemma steps_with_lock E ρ j K e l P Q v w:
@@ -155,7 +155,7 @@ Section proof.
     iModIntro; by iFrame.
   Qed.
 
-  Global Typeclasses Opaque with_lock.
+  Typeclasses Opaque with_lock.
   Global Opaque with_lock.
 End proof.
 

@@ -132,7 +132,7 @@ Section FG_stack.
   Lemma FG_push_of_val st : of_val (FG_pushV st) = FG_push st.
   Proof. trivial. Qed.
 
-  Global Typeclasses Opaque FG_pushV.
+  Typeclasses Opaque FG_pushV.
   Global Opaque FG_pushV.
 
   Lemma FG_push_type st Γ τ :
@@ -154,7 +154,7 @@ Section FG_stack.
 
   Hint Rewrite FG_push_subst : autosubst.
 
-  Global Typeclasses Opaque FG_push.
+  Typeclasses Opaque FG_push.
   Global Opaque FG_push.
 
   (* Fine-grained push *)
@@ -188,7 +188,7 @@ Section FG_stack.
   Lemma FG_pop_of_val st : of_val (FG_popV st) = FG_pop st.
   Proof. trivial. Qed.
 
-  Global Typeclasses Opaque FG_popV.
+  Typeclasses Opaque FG_popV.
   Global Opaque FG_popV.
 
   Lemma FG_pop_type st Γ τ :
@@ -220,7 +220,7 @@ Section FG_stack.
 
   Hint Rewrite FG_pop_subst : autosubst.
 
-  Global Typeclasses Opaque FG_pop.
+  Typeclasses Opaque FG_pop.
   Global Opaque FG_pop.
 
   (* Fine-grained iter *)
@@ -264,7 +264,7 @@ Section FG_stack.
 
   Hint Rewrite FG_iter_subst : autosubst.
 
-  Global Typeclasses Opaque FG_iter.
+  Typeclasses Opaque FG_iter.
   Global Opaque FG_iter.
 
   Lemma FG_read_iter_type st Γ τ :
@@ -283,7 +283,7 @@ Section FG_stack.
 
   Hint Rewrite FG_read_iter_subst : autosubst.
 
-  Global Typeclasses Opaque FG_read_iter.
+  Typeclasses Opaque FG_read_iter.
   Global Opaque FG_read_iter.
 
   Lemma FG_stack_body_type st Γ τ :
