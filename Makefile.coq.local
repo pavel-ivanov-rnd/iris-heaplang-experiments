@@ -17,6 +17,9 @@ concurrent_stacks: $(filter theories/concurrent_stacks/%,$(VOFILES))
 logrel: $(filter theories/logrel/%,$(VOFILES))
 .PHONY: logrel
 
+logrel_heaplang: $(filter theories/logrel_heaplang/%,$(VOFILES))
+.PHONY: logrel_heaplang
+
 hocap: $(filter theories/hocap/%,$(VOFILES))
 .PHONY: hocap
 
