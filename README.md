@@ -50,6 +50,8 @@ This repository contains the following case studies:
             concurrent counter implementations
           - Proof of refinement for a pair of fine-grained/coarse-grained
             concurrent stack implementations
+* [logrel_heaplang](theories/logrel_heaplang): A unary logical relation for
+  semantic typing of heap lang.
 * [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
   algorithm by Amin Timany.
 * [concurrent-stacks](theories/concurrent_stacks): Proof of an implementation of
