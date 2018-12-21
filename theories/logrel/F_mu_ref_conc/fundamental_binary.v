@@ -39,7 +39,7 @@ Section fundamental.
         j ⤇ fill K (of_val v') ∗ interp τ Δ (v, v') }}.
   Proof.
     iIntros (Hlog Δ vvs ρ j K ?) "(#Hs & HΓ & Hj)".
-    iApply (Hlog with "[HΓ] *"); iFrame; eauto.
+    iApply (Hlog with "[HΓ]"); iFrame; eauto.
   Qed.
 
   Notation "'` H" := (bin_log_related_alt H) (at level 8).
@@ -212,7 +212,7 @@ Section fundamental.
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
     iApply fupd_wp.
-    iMod (step_rec _ _ j' K' _ (of_val v') v' with "* [-]") as "Hz"; eauto.
+    iMod (step_rec _ _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
     asimpl. change (Rec ?e) with (of_val (RecV e)).
     iApply ('`IHHtyped _ ((_,_) :: (v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
@@ -231,7 +231,7 @@ Section fundamental.
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
     iApply fupd_wp.
-    iMod (step_lam _ _ j' K' _ (of_val v') v' with "* [-]") as "Hz"; eauto.
+    iMod (step_lam _ _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
     asimpl. iFrame "#". change (Lam ?e) with (of_val (LamV e)).
     iApply ('`IHHtyped _  ((v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
@@ -281,7 +281,7 @@ Section fundamental.
       ('`IHHtyped1 _ _ _ j (((AppLCtx (e2'.[env_subst (vvs.*2)]))) :: K)); cbn.
     smart_wp_bind (AppRCtx v) w w' "[Hw #Hiw]"
                   ('`IHHtyped2 _ _ _ j ((AppRCtx v') :: K)); cbn.
-    iApply ("Hiv" $! (w, w') with "Hiw *"); simpl; eauto.
+    iApply ("Hiv" $! (w, w') with "Hiw"); simpl; eauto.
   Qed.
 
   Lemma bin_log_related_tlam Γ e e' τ
@@ -293,7 +293,7 @@ Section fundamental.
     iIntros "{$Hj} /= !#"; iIntros (τi ? j' K') "Hv /=".
     iApply wp_pure_step_later; auto. iNext.
     iApply fupd_wp.
-    iMod (step_tlam _ _ j' K' (e'.[env_subst (vvs.*2)]) with "* [-]") as "Hz"; eauto.
+    iMod (step_tlam _ _ j' K' (e'.[env_subst (vvs.*2)]) with "[-]") as "Hz"; eauto.
     iApply '`IHHtyped; repeat iSplit; eauto. iModIntro. rewrite interp_env_ren; auto.
   Qed.
 
@@ -338,7 +338,7 @@ Section fundamental.
     change (fixpoint _) with (interp (TRec τ) Δ).
     iDestruct "Hiw" as ([w w']) "#[% Hiz]"; simplify_eq/=.
     iApply fupd_wp.
-    iMod (step_Fold _ _ j K (of_val w') w' with "* [-]") as "Hz"; eauto.
+    iMod (step_Fold _ _ j K (of_val w') w' with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto.
     iModIntro. iApply wp_value. iNext; iExists _; iFrame "Hz".
       by rewrite -interp_subst.
@@ -350,7 +350,7 @@ Section fundamental.
   Proof.
     iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply fupd_wp.
-    iMod (step_fork _ _ j K with "* [-]") as (j') "[Hj Hj']"; eauto.
+    iMod (step_fork _ _ j K with "[-]") as (j') "[Hj Hj']"; eauto.
     iApply wp_fork; iModIntro. rewrite -bi.later_sep. iNext; iSplitL "Hj".
     - iExists UnitV; eauto.
     - iApply wp_wand_l; iSplitR; [|iApply ('`IHHtyped _ _ _ _ [])]; eauto.
@@ -363,7 +363,7 @@ Section fundamental.
     iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (AllocCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ j (AllocCtx :: K)).
     iApply fupd_wp.
-    iMod (step_alloc _ _ j K (of_val v') v' with "* [-]") as (l') "[Hj Hl]"; eauto.
+    iMod (step_alloc _ _ j K (of_val v') v' with "[-]") as (l') "[Hj Hl]"; eauto.
     iApply wp_atomic; eauto.
     iApply wp_alloc; eauto. do 2 iModIntro. iNext.
     iIntros (l) "Hl'".

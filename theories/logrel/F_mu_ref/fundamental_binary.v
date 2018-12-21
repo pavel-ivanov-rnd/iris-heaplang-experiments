@@ -39,7 +39,7 @@ Section fundamental.
         ⤇ fill K (of_val v') ∗ interp τ Δ (v, v') }}.
   Proof.
     iIntros (Hlog Δ vvs K ρ ?) "[#Hρ [HΓ Hj]]". asimpl.
-    iApply (Hlog with "[HΓ] *"); iFrame.  eauto.
+    iApply (Hlog with "[HΓ]"); iFrame. eauto.
   Qed.
 
   Notation "'` H" := (bin_log_related_alt H) (at level 8).
@@ -93,7 +93,7 @@ Section fundamental.
     iIntros (Δ vvs ρ ?) "#[Hρ HΓ]"; iIntros (K) "Hj /=".
     smart_wp_bind (SndCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ (SndCtx :: K)); cbn.
     iDestruct "Hiv" as ([w1 w1'] [w2 w2']) "#[% [Hw1 Hw2]]"; simplify_eq.
-    iMod (step_snd _ _ K (of_val w1') (of_val w2') with "* [-]") as "Hw"; eauto.
+    iMod (step_snd _ _ K (of_val w1') (of_val w2') with "[-]") as "Hw"; eauto.
     iApply wp_pure_step_later; auto. iApply wp_value; auto.
   Qed.
 
@@ -137,13 +137,13 @@ Section fundamental.
       ('`IHHtyped1 _ _ _ ((CaseCtx _ _) :: K)); cbn.
     iDestruct "Hiv" as "[Hiv|Hiv]".
     - iDestruct "Hiv" as ([w w']) "[% Hw]"; simplify_eq.
-      iMod (step_case_inl _ _ K (of_val w') with "* [-]") as "Hz"; eauto.
+      iMod (step_case_inl _ _ K (of_val w') with "[-]") as "Hz"; eauto.
       simpl.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl. iApply ('`IHHtyped2 _ ((w,w') :: vvs)); repeat iSplit; eauto.
       iApply interp_env_cons; auto.
     - iDestruct "Hiv" as ([w w']) "[% Hw]"; simplify_eq.
-      iMod (step_case_inr _ _ K (of_val w') with "* [-]") as "Hz"; eauto.
+      iMod (step_case_inr _ _ K (of_val w') with "[-]") as "Hz"; eauto.
       simpl.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl. iApply ('`IHHtyped3 _ ((w,w') :: vvs)); repeat iSplit; eauto.
@@ -161,7 +161,7 @@ Section fundamental.
     iIntros ([v v']) "#Hiv". iIntros (K') "Hj".
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
-    iMod (step_lam _ _ K' _ (of_val v') with "* [-]") as "Hz"; eauto.
+    iMod (step_lam _ _ K' _ (of_val v') with "[-]") as "Hz"; eauto.
     asimpl. iApply ('`IHHtyped _ ((v,v') :: vvs)); repeat iSplit; eauto.
     iApply interp_env_cons; iSplit; auto.
   Qed.
@@ -176,7 +176,7 @@ Section fundamental.
       ('`IHHtyped1 _ _ _ (((AppLCtx (e2'.[env_subst (vvs.*2)]))) :: K)); cbn.
     smart_wp_bind (AppRCtx v) w w' "[Hw #Hiw]"
                   ('`IHHtyped2 _ _ _ ((AppRCtx v') :: K)); cbn.
-    iApply ("Hiv" $! (w, w') with "Hiw *"); simpl; eauto.
+    iApply ("Hiv" $! (w, w') with "Hiw"); simpl; eauto.
   Qed.
 
   Lemma bin_log_related_tlam Γ e e' τ
@@ -187,7 +187,7 @@ Section fundamental.
     iApply wp_value. iExists (TLamV _).
     iIntros "{$Hj} /= !#"; iIntros (τi ? K') "Hv /=".
     iApply wp_pure_step_later; auto; iNext.
-    iMod (step_tlam _ _ K' (e'.[env_subst (vvs.*2)]) with "* [-]") as "Hz"; eauto.
+    iMod (step_tlam _ _ K' (e'.[env_subst (vvs.*2)]) with "[-]") as "Hz"; eauto.
     iApply '`IHHtyped; repeat iSplit; eauto. by iApply interp_env_ren.
   Qed.
 
@@ -232,7 +232,7 @@ Section fundamental.
     rewrite /= fixpoint_interp_rec1_eq /=.
     change (fixpoint _) with (interp (TRec τ) Δ).
     iDestruct "Hiw" as ([w w']) "#[% Hiz]"; simplify_eq/=.
-    iMod (step_Fold _ _ K (of_val w') with "* [-]") as "Hz"; eauto.
+    iMod (step_Fold _ _ K (of_val w') with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; cbn; auto.
     iNext. iApply wp_value; auto. iExists _; iFrame "Hz".
       by rewrite -interp_subst.
