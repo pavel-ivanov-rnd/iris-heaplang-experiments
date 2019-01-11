@@ -225,23 +225,22 @@ Section types_properties.
     (Γ ⊨ e1 : A1 → A2) -∗ (Γ ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
   Proof.
     iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (w) "HA1".
-    wp_apply (wp_wand with "H1"); iIntros (v) "#HA". by iApply "HA".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w) "#HA1".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (v) "#HA". by iApply "HA".
   Qed.
 
   Lemma ltyped_fold Γ e (B : ltyC -n> ltyC) :
     (Γ ⊨ e : B (lty_rec B)) -∗ Γ ⊨ e : lty_rec B.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#HB".
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HB".
     by iEval (rewrite lty_rec_unfold /lty_car /=).
   Qed.
   Lemma ltyped_unfold Γ e (B : ltyC -n> ltyC) :
     (Γ ⊨ e : lty_rec B) -∗ Γ ⊨ rec_unfold e : B (lty_rec B).
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "HB".
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "HB".
     iEval (rewrite lty_rec_unfold /lty_car /=) in "HB". by wp_lam.
   Qed.
 
@@ -252,85 +251,81 @@ Section types_properties.
   Qed.
   Lemma ltyped_tapp Γ e C A : (Γ ⊨ e : ∀ A, C A) -∗ Γ ⊨ e #() : C A.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#HB". by iApply ("HB" $! A).
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HB". by iApply ("HB" $! A).
   Qed.
 
   Lemma ltyped_pack Γ e C A : (Γ ⊨ e : C A) -∗ Γ ⊨ e : ∃ A, C A.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#HB". by iExists A.
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HB". by iExists A.
   Qed.
   Lemma ltyped_unpack Γ e1 e2 C B :
     (Γ ⊨ e1 : ∃ A, C A) -∗ (∀ A, Γ ⊨ e2 : C A → B) -∗ Γ ⊨ e2 e1 : B.
   Proof.
-    iIntros "#H1 #H2" (vs) "!# #HΓ /=". iSpecialize ("H1" with "HΓ").
-    wp_apply (wp_wand with "H1"); iIntros (v); iDestruct 1 as (A) "#HC".
-    iSpecialize ("H2" $! A with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (w) "HCB". by iApply "HCB".
+    iIntros "#H1 #H2" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (v); iDestruct 1 as (A) "#HC".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w) "HCB". by iApply "HCB".
   Qed.
 
   Lemma ltyped_pair Γ e1 e2 A1 A2 :
     (Γ ⊨ e1 : A1) -∗ (Γ ⊨ e2 : A2) -∗ Γ ⊨ (e1,e2) : A1 * A2.
   Proof.
     iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (w2) "#HA2".
-    wp_apply (wp_wand with "H1"); iIntros (w1) "#HA1".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w2) "#HA2".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (w1) "#HA1".
     wp_pures. iExists w1, w2. auto.
   Qed.
   Lemma ltyped_fst Γ e A1 A2 : (Γ ⊨ e : A1 * A2) -∗ Γ ⊨ Fst e : A1.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w).
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w).
     iDestruct 1 as (w1 w2 ->) "[??]". by wp_pures.
   Qed.
   Lemma ltyped_snd Γ e A1 A2 : (Γ ⊨ e : A1 * A2) -∗ Γ ⊨ Snd e : A2.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w).
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w).
     iDestruct 1 as (w1 w2 ->) "[??]". by wp_pures.
   Qed.
 
   Lemma ltyped_injl Γ e A1 A2 : (Γ ⊨ e : A1) -∗ Γ ⊨ InjL e : A1 + A2.
   Proof.
-    iIntros "#H" (vs) "!# HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#HA".
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HA".
     wp_pures. iLeft. iExists w. auto.
   Qed.
   Lemma ltyped_injr Γ e A1 A2 : (Γ ⊨ e : A2) -∗ Γ ⊨ InjR e : A1 + A2.
   Proof.
-    iIntros "#H" (vs) "!# HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#HA".
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HA".
     wp_pures. iRight. iExists w. auto.
   Qed.
   Lemma ltyped_case Γ e e1 e2 A1 A2 B :
     (Γ ⊨ e : A1 + A2) -∗ (Γ ⊨ e1 : A1 → B) -∗ (Γ ⊨ e2 : A2 → B) -∗
     Γ ⊨ Case e e1 e2 : B.
   Proof.
-    iIntros "#H #H1 #H2" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w) "#[HA|HA]".
+    iIntros "#H #H1 #H2" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (w) "#[HA|HA]".
     - iDestruct "HA" as (w1 ->) "HA". wp_pures.
-      wp_apply (wp_wand with "H1"); iIntros (v) "#HAB". by iApply "HAB".
+      wp_apply (wp_wand with "(H1 [//])"); iIntros (v) "#HAB". by iApply "HAB".
     - iDestruct "HA" as (w2 ->) "HA". wp_pures.
-      wp_apply (wp_wand with "H2"); iIntros (v) "#HAB". by iApply "HAB".
+      wp_apply (wp_wand with "(H2 [//])"); iIntros (v) "#HAB". by iApply "HAB".
   Qed.
 
   Lemma ltyped_un_op Γ e op A B :
     LTyUnOp op A B → (Γ ⊨ e : A) -∗ Γ ⊨ UnOp op e : B.
   Proof.
-    intros ?. iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (v) "#HA".
+    intros ?. iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H [//])"); iIntros (v) "#HA".
     iDestruct (lty_un_op with "HA") as (w ?) "#HB". by wp_unop.
   Qed.
   Lemma ltyped_bin_op Γ e1 e2 op A1 A2 B :
     LTyBinOp op A1 A2 B → (Γ ⊨ e1 : A1) -∗ (Γ ⊨ e2 : A2) -∗ Γ ⊨ BinOp op e1 e2 : B.
   Proof.
     intros. iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (v2) "#HA2".
-    wp_apply (wp_wand with "H1"); iIntros (v1) "#HA1".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (v2) "#HA2".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (v1) "#HA1".
     iDestruct (lty_bin_op with "HA1 HA2") as (w ?) "#HB". by wp_binop.
   Qed.
 
@@ -338,21 +333,21 @@ Section types_properties.
     (Γ ⊨ e : lty_bool) -∗ (Γ ⊨ e1 : B) -∗ (Γ ⊨ e2 : B) -∗
     Γ ⊨ (if: e then e1 else e2) : B.
   Proof.
-    iIntros "#H #H1 #H2" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
+    iIntros "#H #H1 #H2" (vs) "!# #HΓ /=".
     iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H"); iIntros (w). iDestruct 1 as ([]) "->"; by wp_if.
+    wp_apply (wp_wand with "(H [//])"); iIntros (w). iDestruct 1 as ([]) "->"; by wp_if.
   Qed.
 
   Lemma ltyped_fork Γ e : (Γ ⊨ e : ()) -∗ Γ ⊨ Fork e : ().
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_apply wp_fork; last done. by iApply (wp_wand with "H").
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_apply wp_fork; last done. by iApply (wp_wand with "(H [//])").
   Qed.
 
   Lemma ltyped_alloc Γ e A : (Γ ⊨ e : A) -∗ Γ ⊨ ref e : ref A.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_bind (subst_map _ e). iApply (wp_wand with "H"); iIntros (w) "HA".
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_bind (subst_map _ e). iApply (wp_wand with "(H [//])"); iIntros (w) "HA".
     iApply wp_fupd. wp_alloc l as "Hl".
     iMod (inv_alloc (tyN .@ l) _ (∃ v, l ↦ v ∗ A v)%I with "[Hl HA]") as "#?".
     { iExists w. iFrame. }
@@ -360,8 +355,8 @@ Section types_properties.
   Qed.
   Lemma ltyped_load Γ e A : (Γ ⊨ e : ref A) -∗ Γ ⊨ ! e : A.
   Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". iSpecialize ("H" with "HΓ").
-    wp_bind (subst_map _ e). iApply (wp_wand with "H"); iIntros (w).
+    iIntros "#H" (vs) "!# #HΓ /=".
+    wp_bind (subst_map _ e). iApply (wp_wand with "(H [//])"); iIntros (w).
     iDestruct 1 as (l ->) "#?".
     iInv (tyN.@l) as (v) "[>Hl HA]". wp_load. eauto 10.
   Qed.
@@ -369,18 +364,16 @@ Section types_properties.
     (Γ ⊨ e1 : ref A) -∗ (Γ ⊨ e2 : A) -∗ Γ ⊨ (e1 <- e2) : ().
   Proof.
     iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (w2) "#HA".
-    wp_apply (wp_wand with "H1"); iIntros (w1); iDestruct 1 as (l ->) "#?".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w2) "#HA".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (w1); iDestruct 1 as (l ->) "#?".
     iInv (tyN.@l) as (v) "[>Hl _]". wp_store. eauto 10.
   Qed.
   Lemma ltyped_faa Γ e1 e2 :
     (Γ ⊨ e1 : ref lty_int) -∗ (Γ ⊨ e2 : lty_int) -∗ Γ ⊨ FAA e1 e2 : lty_int.
   Proof.
     iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    iSpecialize ("H1" with "HΓ"). iSpecialize ("H2" with "HΓ").
-    wp_apply (wp_wand with "H2"); iIntros (w2); iDestruct 1 as (n) "->".
-    wp_apply (wp_wand with "H1"); iIntros (w1); iDestruct 1 as (l ->) "#?".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w2); iDestruct 1 as (n) "->".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (w1); iDestruct 1 as (l ->) "#?".
     iInv (tyN.@l) as (v) "[>Hl Hv]"; iDestruct "Hv" as (n') "> ->".
     wp_faa. iModIntro. eauto 10.
   Qed.
@@ -388,12 +381,11 @@ Section types_properties.
     LTyUnboxed A →
     (Γ ⊨ e1 : ref A) -∗ (Γ ⊨ e2 : A) -∗ (Γ ⊨ e3 : A) -∗ Γ ⊨ CAS e1 e2 e3 : lty_bool.
   Proof.
-    intros. iIntros "#H1 #H2 #H3" (vs) "!# #HΓ /=". iSpecialize ("H1" with "HΓ").
-    iSpecialize ("H2" with "HΓ"). iSpecialize ("H3" with "HΓ").
-    wp_apply (wp_wand with "H3"); iIntros (w3) "HA3".
-    wp_apply (wp_wand with "H2"); iIntros (w2) "HA2".
+    intros. iIntros "#H1 #H2 #H3" (vs) "!# #HΓ /=".
+    wp_apply (wp_wand with "(H3 [//])"); iIntros (w3) "HA3".
+    wp_apply (wp_wand with "(H2 [//])"); iIntros (w2) "HA2".
     iDestruct (lty_unboxed with "HA2") as %?.
-    wp_apply (wp_wand with "H1"); iIntros (w1); iDestruct 1 as (l ->) "#?".
+    wp_apply (wp_wand with "(H1 [//])"); iIntros (w1); iDestruct 1 as (l ->) "#?".
     iInv (tyN.@l) as (v) "[>Hl Hv]".
     destruct (decide (v = w2)) as [->|].
     - wp_cas_suc. eauto 10.
