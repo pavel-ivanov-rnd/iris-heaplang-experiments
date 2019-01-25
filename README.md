@@ -52,6 +52,10 @@ This repository contains the following case studies:
             concurrent stack implementations
 * [logrel_heaplang](theories/logrel_heaplang): A unary logical relation for
   semantic typing of heap lang.
+* [logatom](theories/logrel_heaplang): Proofs of various logically atomic specifications:
+  - Elimination Stack
+  - Treiber Stack (by Zhen Zhang)
+  - Flat Combiner (by Zhen Zhang, also see [this archived documentation](https://gitlab.mpi-sws.org/FP/iris-atomic/tree/master/docs))
 * [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
   algorithm by Amin Timany.
 * [concurrent-stacks](theories/concurrent_stacks): Proof of an implementation of
