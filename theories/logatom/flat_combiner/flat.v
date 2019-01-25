@@ -5,7 +5,7 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import auth frac agree excl agree gset gmap.
 From iris.base_logic Require Import saved_prop.
-From iris_atomic Require Import misc peritem sync.
+From iris_examples.logatom.flat_combiner Require Import misc peritem sync.
 
 Definition doOp : val :=
   λ: "p",

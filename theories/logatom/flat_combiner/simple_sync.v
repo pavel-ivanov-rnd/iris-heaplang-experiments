@@ -4,7 +4,7 @@ From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import frac.
-From iris_atomic Require Import sync.
+From iris_examples.logatom.flat_combiner Require Import sync.
 Import uPred.
 
 Definition mk_sync: val :=

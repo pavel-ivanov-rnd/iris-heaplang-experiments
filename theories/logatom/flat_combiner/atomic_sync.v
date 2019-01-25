@@ -1,9 +1,8 @@
-
 From iris.program_logic Require Export weakestpre hoare atomic.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import agree frac.
-From iris_atomic Require Import sync misc.
+From iris_examples.logatom.flat_combiner Require Import sync misc.
 
 (** The simple syncer spec in [sync.v] implies a logically atomic spec. *)
 

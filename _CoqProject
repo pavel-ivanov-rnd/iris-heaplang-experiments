@@ -86,6 +86,13 @@ theories/hocap/lib/oneshot.v
 theories/hocap/concurrent_runners.v
 theories/hocap/parfib.v
 
+theories/logatom/treiber.v
+theories/logatom/elimination_stack/hocap_spec.v
 theories/logatom/elimination_stack/stack.v
 theories/logatom/elimination_stack/spec.v
-theories/logatom/elimination_stack/hocap_spec.v
+theories/logatom/flat_combiner/flat.v
+theories/logatom/flat_combiner/simple_sync.v
+theories/logatom/flat_combiner/sync.v
+theories/logatom/flat_combiner/peritem.v
+theories/logatom/flat_combiner/atomic_sync.v
+theories/logatom/flat_combiner/misc.v
