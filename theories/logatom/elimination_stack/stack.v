@@ -4,7 +4,7 @@ From iris.program_logic Require Import atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode atomic_heap.
 From iris.bi.lib Require Import fractional.
-From iris_examples.logatom_stack Require Import spec.
+From iris_examples.logatom.elimination_stack Require Import spec.
 Set Default Proof Using "Type".
 
 (** * Implement a concurrent stack with helping on top of an arbitrary atomic

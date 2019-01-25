@@ -23,5 +23,5 @@ logrel_heaplang: $(filter theories/logrel_heaplang/%,$(VOFILES))
 hocap: $(filter theories/hocap/%,$(VOFILES))
 .PHONY: hocap
 
-logatom_stack: $(filter theories/logatom_stack/%,$(VOFILES))
-.PHONY: logrel
+logatom: $(filter theories/logatom/%,$(VOFILES))
+.PHONY: logatom

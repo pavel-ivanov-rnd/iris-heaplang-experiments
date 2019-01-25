@@ -4,10 +4,10 @@ From iris.heap_lang Require Export lifting notation.
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Import atomic.
 From iris.heap_lang Require Import proofmode atomic_heap.
-From iris_examples.logatom_stack Require spec.
+From iris_examples.logatom.elimination_stack Require spec.
 Set Default Proof Using "Type".
 
-Module logatom := logatom_stack.spec.
+Module logatom := elimination_stack.spec.
 
 (** A general HoCAP-style interface for a stack, modeled after the spec in
 [hocap/abstract_bag.v].  There are two differences:
