@@ -96,3 +96,5 @@ theories/logatom/flat_combiner/sync.v
 theories/logatom/flat_combiner/peritem.v
 theories/logatom/flat_combiner/atomic_sync.v
 theories/logatom/flat_combiner/misc.v
+theories/logatom/snapshot/spec.v
+theories/logatom/snapshot/atomic_snapshot.v
