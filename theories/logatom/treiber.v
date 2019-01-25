@@ -87,87 +87,81 @@ Section proof.
   Proof. generalize hd. induction xs; apply _. Qed.
 
   Lemma new_stack_spec:
-    ∀ (Φ: val → iProp Σ),
-      (∀ s, is_stack s [] -∗ Φ #s) ⊢ WP new_stack #() {{ Φ }}.
+    {{{ True }}} new_stack #() {{{ s, RET #s; is_stack s [] }}}.
   Proof.
-    iIntros (Φ) "HΦ". wp_lam.
+    iIntros (Φ) "_ HΦ". wp_lam.
     wp_bind (ref NONE)%E. wp_alloc l as "Hl".
     wp_alloc l' as "Hl'".
     iApply "HΦ". rewrite /is_stack. iExists l.
     iFrame. by iExists 1%Qp.
   Qed.
-
-  Definition push_triple (s: loc) (x: val) :=
-    <<< ∀ (xs : list val) (hd : loc), s ↦ #hd ∗ is_list hd xs >>>
-      push #s x @ ⊤
-    <<< ∃ hd' : loc, s ↦ #hd' ∗ hd' ↦ SOMEV (x, #hd) ∗ is_list hd xs, RET #() >>>.
   
   Lemma push_atomic_spec (s: loc) (x: val) :
-    push_triple s x.
+    <<< ∀ (xs : list val), is_stack s xs >>>
+      push #s x @ ⊤
+    <<< is_stack s (x::xs), RET #() >>>.
   Proof.
-    rewrite /push_triple. iApply wp_atomic_intro.
+    iApply wp_atomic_intro. unfold is_stack.
     iIntros (Φ) "HP". iLöb as "IH". wp_rec.
     wp_let. wp_bind (! _)%E.
-    iMod "HP" as (xs hd) "[[Hs Hhd] [Hvs' _]]".
-    wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by iFrame.
+    iMod "HP" as (xs) "[Hxs [Hvs' _]]".
+    iDestruct "Hxs" as (hd) "[Hs Hhd]".
+    wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by eauto with iFrame.
     iModIntro. wp_let. wp_alloc l as "Hl". wp_let.
     wp_bind (CAS _ _ _)%E.
-    iMod "HP" as (xs' hd') "[[Hs Hhd'] Hvs']".
+    iMod "HP" as (xs') "[Hxs' Hvs']".
+    iDestruct "Hxs'" as (hd') "[Hs' Hhd']".
     destruct (decide (hd = hd')) as [->|Hneq].
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" with "[-]") as "HQ".
-      { by iFrame. }
+      { by eauto with iFrame. }
       iModIntro. wp_if. eauto.
     * wp_cas_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
-      iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
+      iMod ("Hvs'" with "[-]") as "HP"; first by eauto with iFrame.
       iModIntro. wp_if. by iApply "IH".
   Qed.
 
-  Definition pop_triple (s: loc) :=
-    <<< ∀ (xs : list val) (hd : loc), s ↦ #hd ∗ is_list hd xs >>>
+  Lemma pop_atomic_spec (s: loc) :
+    <<< ∀ (xs : list val), is_stack s xs >>>
       pop #s @ ⊤
-    <<< match xs with [] => s ↦ #hd ∗ is_list hd []
-                | x::xs' => ∃ q (hd': loc), hd ↦{q} SOMEV (x, #hd') ∗ s ↦ #hd' ∗ is_list hd' xs' end,
+    <<< match xs with [] => is_stack s []
+                | x::xs' => is_stack s xs' end,
     RET match xs with [] => NONEV | x :: _ => SOMEV x end >>>.
-
-  Lemma pop_atomic_spec (s: loc):
-    pop_triple s.
   Proof.
-    rewrite /pop_triple. iApply wp_atomic_intro.
+    iApply wp_atomic_intro. unfold is_stack.
     iIntros (Φ) "HP". iLöb as "IH". wp_rec.
     wp_bind (! _)%E.
-    iMod "HP" as (xs hd) "[[Hs Hhd] Hvs']".
+    iMod "HP" as (xs) "[Hxs Hvs']".
+    iDestruct "Hxs" as (hd) "[Hs Hhd]".
     destruct xs as [|y' xs'].
     - simpl. wp_load. iDestruct "Hvs'" as "[_ Hvs']".
       iDestruct "Hhd" as (q) "[Hhd Hhd']".
       iMod ("Hvs'" with "[-Hhd]") as "HQ".
-      { iFrame. eauto. }
+      { eauto with iFrame. }
       iModIntro. wp_let. wp_load. wp_pures.
       eauto.
     - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
       iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".
       iMod ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
-      { iFrame. iExists hd', (q / 2)%Qp. by iFrame. }
+      { eauto with iFrame. }
       iModIntro. wp_let. wp_load. wp_match. wp_proj.
       wp_bind (CAS _ _ _).
-      iMod "HP" as (xs hd'') "[[Hs Hhd''] Hvs']".
+      iMod "HP" as (xs'') "[Hxs'' Hvs']".
+    iDestruct "Hxs''" as (hd'') "[Hs'' Hhd'']".
       destruct (decide (hd = hd'')) as [->|Hneq].
       + wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
-        destruct xs as [|x' xs''].
+        destruct xs'' as [|x'' xs''].
         { simpl. iDestruct "Hhd''" as (?) "H".
           iExFalso. by iDestruct (@mapsto_agree with "[$Hhd1] [$H]") as %?. }
         simpl. iDestruct "Hhd''" as (hd''' ?) "(Hhd'' & Hxs'')".
         iDestruct (@mapsto_agree with "[$Hhd1] [$Hhd'']") as %[=]. subst.
         iMod ("Hvs'" with "[-]") as "HQ".
-        { iExists (q / 2 / 2)%Qp, _.
-          iDestruct (uniq_is_list with "[Hxs1 Hxs'']") as "%"; first by iFrame. subst.
-          repeat (iSplitR "Hxs1 Hs"; first done).
-          iFrame. }
+        { eauto with iFrame.  }
         iModIntro. wp_if. wp_pures. eauto.
       + wp_cas_fail. iDestruct "Hvs'" as "[Hvs' _]".
-        iMod ("Hvs'" with "[-]") as "HP"; first by iFrame.
+        iMod ("Hvs'" with "[-]") as "HP"; first by eauto with iFrame.
         iModIntro. wp_if. by iApply "IH".
   Qed.
 End proof.
