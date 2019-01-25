@@ -239,7 +239,7 @@ Section atomic_snapshot.
         @ ⊤∖↑N
       <<< pair_content γ (x, y2), RET #() >>>.
   Proof.
-    iIntros "Hp". iApply wp_atomic_intro. iIntros (Φ) "AU".
+    iIntros "Hp". iIntros (Φ) "AU".
     iDestruct "Hp" as (l1 l2 ->) "#Hinv". wp_pures.
     wp_lam. wp_pures.
     iApply wp_fupd.
@@ -262,7 +262,7 @@ Section atomic_snapshot.
         @ ⊤∖↑N
       <<< pair_content γ (x2, y), RET #() >>>.
   Proof.
-    iIntros "Hp". iApply wp_atomic_intro. iIntros (Φ) "AU". iLöb as "IH".
+    iIntros "Hp". iIntros (Φ) "AU". iLöb as "IH".
     iDestruct "Hp" as (l1 l2 ->) "#Hinv". wp_pures. wp_lam. wp_pures.
     (* first read *)
     (* open invariant *)
@@ -324,7 +324,7 @@ Section atomic_snapshot.
       @ ⊤∖↑N
     <<< pair_content γ (v1, v2), RET v2 >>>.
   Proof.
-    iIntros "Hp". iApply wp_atomic_intro. iIntros (Φ) "AU".
+    iIntros "Hp". iIntros (Φ) "AU".
     iDestruct "Hp" as (l1 l2 ->) "#Hinv".
     repeat (wp_lam; wp_proj). wp_let.
     iApply wp_fupd.
@@ -346,7 +346,7 @@ Section atomic_snapshot.
       @ ⊤∖↑N
     <<< ∃ (t: Z), pair_content γ (v1, v2), RET (v1, #t) >>>.
   Proof.
-    iIntros "Hp". iApply wp_atomic_intro. iIntros (Φ) "AU".
+    iIntros "Hp". iIntros (Φ) "AU".
     iDestruct "Hp" as (l1 l2 ->) "#Hinv".
     repeat (wp_lam; wp_proj). wp_let. wp_bind (! #l1)%E.
     (* open invariant for 1st read *)
@@ -378,7 +378,7 @@ Section atomic_snapshot.
        @ ⊤∖↑N
     <<< pair_content γ (v1, v2), RET (v1, v2) >>>.
   Proof.
-    iIntros "Hp". iApply wp_atomic_intro. iIntros (Φ) "AU". iLöb as "IH".
+    iIntros "Hp". iIntros (Φ) "AU". iLöb as "IH".
     wp_pures.
     (* ************ 1st readX ********** *)
     iDestruct "Hp" as (l1 l2 ->) "#Hinv". repeat (wp_lam; wp_pures).

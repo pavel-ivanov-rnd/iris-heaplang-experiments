@@ -101,7 +101,7 @@ Section proof.
       push #s x @ ⊤
     <<< is_stack s (x::xs), RET #() >>>.
   Proof.
-    iApply wp_atomic_intro. unfold is_stack.
+    unfold is_stack.
     iIntros (Φ) "HP". iLöb as "IH". wp_rec.
     wp_let. wp_bind (! _)%E.
     iMod "HP" as (xs) "[Hxs [Hvs' _]]".
@@ -129,7 +129,7 @@ Section proof.
                 | x::xs' => is_stack s xs' end,
     RET match xs with [] => NONEV | x :: _ => SOMEV x end >>>.
   Proof.
-    iApply wp_atomic_intro. unfold is_stack.
+    unfold is_stack.
     iIntros (Φ) "HP". iLöb as "IH". wp_rec.
     wp_bind (! _)%E.
     iMod "HP" as (xs) "[Hxs Hvs']".

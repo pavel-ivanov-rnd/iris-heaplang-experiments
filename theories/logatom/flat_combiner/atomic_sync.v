@@ -57,7 +57,7 @@ Section atomic_sync.
     iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
     iIntros (f') "#Hsynced {Hsyncer}".
     iAlways. iIntros (α β x) "#Hseq". change (ofe_car AC) with A.
-    iApply wp_atomic_intro. iIntros (Φ') "?".
+    iIntros (Φ') "?".
     (* TODO: Why can't I iApply "Hsynced"? *)
     iSpecialize ("Hsynced" $! _ Φ' x).
     iApply wp_wand_r. iSplitL.

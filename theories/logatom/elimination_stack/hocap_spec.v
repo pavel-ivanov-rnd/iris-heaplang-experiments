@@ -97,7 +97,7 @@ Section hocap_logatom.
       stack.(push) s v @ ⊤∖↑N
     <<< stack.(stack_content_frag) γs (v::l), RET #() >>>.
   Proof.
-    iIntros "Hstack". iApply wp_atomic_intro. iIntros (Φ) "HΦ".
+    iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (push_spec with "Hstack").
     iApply (make_laterable_intro with "[%] [] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
@@ -113,7 +113,7 @@ Section hocap_logatom.
     <<< stack.(stack_content_frag) γs (tail l),
         RET match l with [] => NONEV | v :: _ => SOMEV v end >>>.
   Proof.
-    iIntros "Hstack". iApply wp_atomic_intro. iIntros (Φ) "HΦ".
+    iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (pop_spec with "Hstack").
     iApply (make_laterable_intro with "[%] [] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
@@ -175,8 +175,8 @@ Section logatom_hocap.
     make_laterable (∀ l, hocap_stack_content_auth γs l ={⊤∖↑N}=∗ hocap_stack_content_auth γs (v::l) ∗ Φ #()) -∗
     WP stack.(logatom.push) s v {{ Φ }}.
   Proof using Type*.
-    iIntros "#[Hstack Hwrap] Hupd". iApply (logatom.push_spec with "Hstack"); first iAccu.
-    iAuIntro. iInv "Hwrap" as (l) "[>Hcont >H●]".
+    iIntros "#[Hstack Hwrap] Hupd". awp_apply (logatom.push_spec with "Hstack").
+    iInv "Hwrap" as (l) "[>Hcont >H●]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont".
     iMod fupd_intro_mask' as "Hclose";
@@ -192,8 +192,8 @@ Section logatom_hocap.
                 | v :: l' => hocap_stack_content_auth γs l' ∗ Φ (SOMEV v) end) -∗
     WP stack.(logatom.pop) s {{ Φ }}.
   Proof using Type*.
-    iIntros "#[Hstack Hwrap] Hupd". iApply (logatom.pop_spec with "Hstack"); first iAccu.
-    iAuIntro. iInv "Hwrap" as (l) "[>Hcont >H●]".
+    iIntros "#[Hstack Hwrap] Hupd". awp_apply (logatom.pop_spec with "Hstack").
+    iInv "Hwrap" as (l) "[>Hcont >H●]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont". destruct l.
     - iMod fupd_intro_mask' as "Hclose";
