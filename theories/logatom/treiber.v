@@ -114,7 +114,7 @@ Section proof.
     destruct (decide (hd = hd')) as [->|Hneq].
     * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" with "[-]") as "HQ".
-      { by eauto with iFrame. }
+      { simpl. by eauto 10 with iFrame. }
       iModIntro. wp_if. eauto.
     * wp_cas_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
