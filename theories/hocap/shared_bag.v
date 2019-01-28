@@ -55,7 +55,7 @@ Section proof.
       iMod (bag_contents_update b ({[v]} ∪ Y) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
       iFrame. iApply "Hcl".
       iNext. iExists _; iFrame.
-      rewrite big_sepMS_union big_sepMS_singleton. iFrame. }
+      rewrite big_sepMS_singleton. iFrame. }
     { iNext. iIntros "_". iApply "HΦ". by iFrame "Hinv". }
   Qed.
 
