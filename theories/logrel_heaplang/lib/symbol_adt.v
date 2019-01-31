@@ -9,7 +9,7 @@ Definition symbol_adt_inc : val := λ: "x" <>, FAA "x" #1.
 Definition symbol_adt_check : val := λ: "x" "y", assert: "y" < !"x".
 Definition symbol_adt : val := λ: <>,
   let: "x" := Alloc #0 in (symbol_adt_inc "x", symbol_adt_check "x").
-Definition symbol_adt_ty `{heapG Σ} : lty :=
+Definition symbol_adt_ty `{heapG Σ} : lty Σ :=
   (() → ∃ A, (() → A) * (A → ()))%lty.
 
 (* The required ghost theory *)
@@ -68,7 +68,7 @@ Section ltyped_symbol_adt.
   Definition symbol_ctx (γ : gname) (l : loc) : iProp Σ :=
     inv symbol_adtN (symbol_inv γ l).
 
-  Definition lty_symbol (γ : gname) : lty := Lty (λ w,
+  Definition lty_symbol (γ : gname) : lty Σ := Lty (λ w,
     ∃ n : nat, ⌜w = #n⌝ ∧ symbol γ n)%I.
 
   Lemma ltyped_symbol_adt Γ : Γ ⊨ symbol_adt : symbol_adt_ty.

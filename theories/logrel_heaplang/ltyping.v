@@ -3,35 +3,35 @@ From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 
 (* The domain of semantic types: persistent Iris predicates over values *)
-Record lty `{heapG Σ} := Lty {
+Record lty Σ := Lty {
   lty_car :> val → iProp Σ;
   lty_persistent v : Persistent (lty_car v)
 }.
-Arguments Lty {_ _} _%I {_}.
-Arguments lty_car {_ _} _ _ : simpl never.
+Arguments Lty {_} _%I {_}.
+Arguments lty_car {_} _ _ : simpl never.
 Bind Scope lty_scope with lty.
 Delimit Scope lty_scope with lty.
 Existing Instance lty_persistent.
 
 (* The COFE structure on semantic types *)
 Section lty_ofe.
-  Context `{heapG Σ}.
+  Context `{Σ : gFunctors}.
 
-  Instance lty_equiv : Equiv lty := λ A B, ∀ w, A w ≡ B w.
-  Instance lty_dist : Dist lty := λ n A B, ∀ w, A w ≡{n}≡ B w.
-  Lemma lty_ofe_mixin : OfeMixin lty.
+  Instance lty_equiv : Equiv (lty Σ) := λ A B, ∀ w, A w ≡ B w.
+  Instance lty_dist : Dist (lty Σ) := λ n A B, ∀ w, A w ≡{n}≡ B w.
+  Lemma lty_ofe_mixin : OfeMixin (lty Σ).
   Proof. by apply (iso_ofe_mixin (lty_car : _ → val -c> _)). Qed.
-  Canonical Structure ltyC := OfeT lty lty_ofe_mixin.
+  Canonical Structure ltyC := OfeT (lty Σ) lty_ofe_mixin.
   Global Instance lty_cofe : Cofe ltyC.
   Proof.
     apply (iso_cofe_subtype' (λ A : val -c> iProp Σ, ∀ w, Persistent (A w))
-      (@Lty _ _) lty_car)=> //.
+      (@Lty _) lty_car)=> //.
     - apply _.
     - apply limit_preserving_forall=> w.
       by apply bi.limit_preserving_Persistent=> n ??.
   Qed.
 
-  Global Instance lty_inhabited : Inhabited lty := populate (Lty inhabitant).
+  Global Instance lty_inhabited : Inhabited (lty Σ) := populate (Lty inhabitant).
 
   Global Instance lty_car_ne n : Proper (dist n ==> (=) ==> dist n) lty_car.
   Proof. by intros A A' ? w ? <-. Qed.
@@ -39,46 +39,48 @@ Section lty_ofe.
   Proof. by intros A A' ? w ? <-. Qed.
 End lty_ofe.
 
+Arguments ltyC : clear implicits.
+
 (* Typing for operators *)
-Class LTyUnboxed `{heapG Σ} (A : lty) :=
+Class LTyUnboxed `{heapG Σ} (A : lty Σ) :=
   lty_unboxed v : A v -∗ ⌜ val_is_unboxed v ⌝.
 
-Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty) :=
+Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty Σ) :=
   lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∧ B w.
 
-Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty) :=
+Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
   lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∧ B w.
 
 (* The type formers *)
 Section types.
   Context `{heapG Σ}.
 
-  Definition lty_unit : lty := Lty (λ w, ⌜ w = #() ⌝%I).
-  Definition lty_bool : lty := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
-  Definition lty_int : lty := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
+  Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
+  Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
+  Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
 
-  Definition lty_arr (A1 A2 : lty) : lty := Lty (λ w,
+  Definition lty_arr (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     □ ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
 
-  Definition lty_prod (A1 A2 : lty) : lty := Lty (λ w,
+  Definition lty_prod (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∧ A1 w1 ∧ A2 w2)%I.
 
-  Definition lty_sum (A1 A2 : lty) : lty := Lty (λ w,
+  Definition lty_sum (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     (∃ w1, ⌜w = InjLV w1⌝ ∧ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∧ A2 w2))%I.
 
-  Definition lty_forall (C : lty → lty) : lty := Lty (λ w,
-    □ ∀ A : lty, WP w #() {{ w, C A w }})%I.
-  Definition lty_exist (C : lty → lty) : lty := Lty (λ w,
-    ∃ A : lty, C A w)%I.
+  Definition lty_forall (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
+    □ ∀ A : lty Σ, WP w #() {{ w, C A w }})%I.
+  Definition lty_exist (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
+    ∃ A : lty Σ, C A w)%I.
 
-  Definition lty_rec1 (C : ltyC -n> ltyC) (rec : lty) : lty := Lty (λ w,
+  Definition lty_rec1 (C : ltyC Σ -n> ltyC Σ) (rec : lty Σ) : lty Σ := Lty (λ w,
     ▷ C rec w)%I.
   Instance lty_rec1_contractive C : Contractive (lty_rec1 C).
   Proof. solve_contractive. Qed.
-  Definition lty_rec (C : ltyC -n> ltyC) : lty := fixpoint (lty_rec1 C).
+  Definition lty_rec (C : ltyC Σ -n> ltyC Σ) : lty Σ := fixpoint (lty_rec1 C).
 
   Definition tyN := nroot .@ "ty".
-  Definition lty_ref (A : lty) : lty := Lty (λ w,
+  Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ l : loc, ⌜w = #l⌝ ∧ inv (tyN .@ l) (∃ v, l ↦ v ∗ A v))%I.
 End types.
 
@@ -94,12 +96,12 @@ Notation "∃ A1 .. An , C" :=
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 
 (* The semantic typing judgment *)
-Definition env_ltyped `{heapG Σ} (Γ : gmap string lty)
+Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
     (vs : gmap string val) : iProp Σ :=
   (⌜ ∀ x, is_Some (Γ !! x) ↔ is_Some (vs !! x) ⌝ ∧
   [∗ map] i ↦ Av ∈ map_zip Γ vs, lty_car Av.1 Av.2)%I.
 Definition ltyped  `{heapG Σ}
-    (Γ : gmap string lty) (e : expr) (A : lty) : iProp Σ :=
+    (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (□ ∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
@@ -110,26 +112,26 @@ Definition rec_unfold : val := λ: "x", "x".
 
 Section types_properties.
   Context `{heapG Σ}.
-  Implicit Types A B : lty.
-  Implicit Types C : lty → lty.
+  Implicit Types A B : lty Σ.
+  Implicit Types C : lty Σ → lty Σ.
 
   (* Boring stuff: all type formers are non-expansive *)
-  Global Instance lty_prod_ne : NonExpansive2 lty_prod.
+  Global Instance lty_prod_ne : NonExpansive2 (@lty_prod Σ).
   Proof. solve_proper. Qed.
-  Global Instance lty_sum_ne : NonExpansive2 lty_sum.
+  Global Instance lty_sum_ne : NonExpansive2 (@lty_sum Σ).
   Proof. solve_proper. Qed.
-  Global Instance lty_arr_ne : NonExpansive2 lty_arr.
+  Global Instance lty_arr_ne : NonExpansive2 (@lty_arr Σ _).
   Proof. solve_proper. Qed.
-  Global Instance lty_forall_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) lty_forall.
+  Global Instance lty_forall_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _).
   Proof. solve_proper. Qed.
-  Global Instance lty_exist_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) lty_exist.
+  Global Instance lty_exist_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ).
   Proof. solve_proper. Qed.
-  Global Instance lty_rec_ne n : Proper (dist n ==> dist n) lty_rec.
+  Global Instance lty_rec_ne n : Proper (dist n ==> dist n) (@lty_rec Σ).
   Proof. intros C C' HC. apply fixpoint_ne. solve_proper. Qed.
-  Global Instance lty_ref_ne : NonExpansive2 lty_ref.
+  Global Instance lty_ref_ne : NonExpansive2 (@lty_ref Σ _).
   Proof. solve_proper. Qed.
 
-  Lemma lty_rec_unfold (C : ltyC -n> ltyC) : lty_rec C ≡ lty_rec1 C (lty_rec C).
+  Lemma lty_rec_unfold (C : ltyC Σ -n> ltyC Σ) : lty_rec C ≡ lty_rec1 C (lty_rec C).
   Proof. apply fixpoint_unfold. Qed.
 
   (* Environments *)
@@ -229,14 +231,14 @@ Section types_properties.
     wp_apply (wp_wand with "(H1 [//])"); iIntros (v) "#HA". by iApply "HA".
   Qed.
 
-  Lemma ltyped_fold Γ e (B : ltyC -n> ltyC) :
+  Lemma ltyped_fold Γ e (B : ltyC Σ -n> ltyC Σ) :
     (Γ ⊨ e : B (lty_rec B)) -∗ Γ ⊨ e : lty_rec B.
   Proof.
     iIntros "#H" (vs) "!# #HΓ /=".
     wp_apply (wp_wand with "(H [//])"); iIntros (w) "#HB".
     by iEval (rewrite lty_rec_unfold /lty_car /=).
   Qed.
-  Lemma ltyped_unfold Γ e (B : ltyC -n> ltyC) :
+  Lemma ltyped_unfold Γ e (B : ltyC Σ -n> ltyC Σ) :
     (Γ ⊨ e : lty_rec B) -∗ Γ ⊨ rec_unfold e : B (lty_rec B).
   Proof.
     iIntros "#H" (vs) "!# #HΓ /=".
