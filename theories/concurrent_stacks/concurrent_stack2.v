@@ -2,6 +2,7 @@ From iris.heap_lang Require Import notation proofmode.
 From iris.algebra Require Import excl.
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Export weakestpre.
+From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
 Definition mk_offer : val :=
@@ -26,7 +27,7 @@ Definition get : val :=
     | SOME "x" => take_offer "x"
     end.
 
-Definition mk_stack : val := λ: "_", (mk_mailbox #(), ref NONEV).
+Definition new_stack : val := λ: "_", (mk_mailbox #(), ref NONEV).
 Definition push : val :=
   rec: "push" "p" "v" :=
     let: "mailbox" := Fst "p" in
@@ -289,9 +290,10 @@ Section stack_works.
   Definition is_stack P v :=
     (∃ mailbox l, ⌜v = (mailbox, #l)%V⌝ ∗ is_mailbox Nmailbox P mailbox ∗ inv N (stack_inv P l))%I.
 
-  Theorem mk_stack_works P :
-    WP mk_stack #() {{ v, is_stack P v }}%I.
+  Theorem new_stack_spec P :
+    {{{ True }}} new_stack #() {{{ v, RET v; is_stack P v }}}.
   Proof.
+    iIntros (ϕ) "_ Hpost".
     rewrite -wp_fupd.
     wp_lam.
     wp_alloc l as "Hl".
@@ -299,10 +301,10 @@ Section stack_works.
     iIntros (mailbox) "#Hmailbox".
     iMod (inv_alloc N _ (stack_inv P l) with "[Hl]") as "#Hinv".
     { by iNext; iExists _; iFrame; rewrite is_list_unfold; iLeft. }
-    wp_pures; iModIntro; iExists _, _; auto.
+    wp_pures; iModIntro; iApply "Hpost"; iExists _, _; auto.
   Qed.
 
-  Theorem push_works P s v :
+  Theorem push_spec P s v :
     {{{ is_stack P s ∗ P v }}} push s v {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "[Hstack HP] HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hinv)".
@@ -340,7 +342,7 @@ Section stack_works.
       by iApply "HΦ".
   Qed.
 
-  Theorem pop_works P s :
+  Theorem pop_spec P s :
     {{{ is_stack P s }}} pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hstack HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hstack)".
@@ -391,3 +393,7 @@ Section stack_works.
       iApply "HΦ"; iRight; iExists _; auto.
   Qed.
 End stack_works.
+
+Program Definition spec {Σ} `{heapG Σ, channelG Σ} : concurrent_bag Σ :=
+  {| is_bag := is_stack; new_bag := new_stack; bag_push := push; bag_pop := pop |} .
+Solve Obligations of spec with eauto using pop_spec, push_spec, new_stack_spec.

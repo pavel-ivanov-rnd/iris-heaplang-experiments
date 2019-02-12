@@ -1,6 +1,7 @@
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import notation proofmode.
+From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
 Definition new_stack : val := λ: "_", ref NONEV.
@@ -81,16 +82,17 @@ Section stacks.
   Definition is_stack (P : val → iProp Σ) v :=
     inv N (stack_inv P v).
 
-  Theorem mk_stack_spec P :
-    WP new_stack #() {{ s, is_stack P s }}%I.
+  Theorem new_stack_spec P :
+    {{{ True }}} new_stack #() {{{ s, RET s; is_stack P s }}}.
   Proof.
+    iIntros (ϕ) "_ Hpost".
     iApply wp_fupd.
     wp_lam.
     wp_alloc ℓ as "Hl".
     iMod (inv_alloc N ⊤ (stack_inv P #ℓ) with "[Hl]") as "Hinv".
     { iNext; iExists ℓ, NONEV; iFrame;
       by iSplit; last (iApply is_list_unfold; iLeft). }
-    done.
+    by iApply "Hpost".
   Qed.
 
   Theorem push_spec P s v :
@@ -123,7 +125,7 @@ Section stacks.
       iApply ("IH" with "HP HΦ").
   Qed.
 
-  Theorem pop_works P s :
+  Theorem pop_spec P s :
     {{{ is_stack P s }}} pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}.
   Proof.
     iIntros (Φ) "#Hstack HΦ".
@@ -168,3 +170,7 @@ Section stacks.
         iApply ("IH" with "HΦ").
   Qed.
 End stacks.
+
+Program Definition spec {Σ} `{heapG Σ} : concurrent_bag Σ :=
+  {| is_bag := is_stack; new_bag := new_stack; bag_push := push; bag_pop := pop |} .
+Solve Obligations of spec with eauto using pop_spec, push_spec, new_stack_spec.

@@ -1,6 +1,7 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
+From iris_examples.concurrent_stacks Require Import specs.
 
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
@@ -69,6 +70,16 @@ Section proofs.
   Lemma inner_mask_includes :
      ⊤ ∖ ↑ N ⊆ inner_mask.
   Proof. solve_ndisj. Qed.
+
+  Lemma inner_mask_promote (P Q : iProp Σ) :
+     (P ={⊤ ∖ ↑ N}=∗ Q) -∗ (P ={inner_mask}=∗ Q).
+  Proof.
+    iIntros "Himp P".
+    iMod (fupd_intro_mask' inner_mask (⊤ ∖ ↑ N)) as "H"; first by apply inner_mask_includes.
+    iDestruct ("Himp" with "P") as "HQ".
+    iMod "HQ".
+    by iMod "H".
+  Qed.
 
   Definition revoke_tok γ := own γ (Excl ()).
   Definition can_push P Q v : iProp Σ :=
@@ -296,11 +307,11 @@ Section proofs.
   Definition stack_inv P l :=
     (∃ v xs, l ↦ v ∗ is_list xs v ∗ P xs)%I.
 
-  Definition is_stack P v :=
+  Definition is_stack_pred P v :=
     (∃ mailbox l, ⌜v = (mailbox, #l)%V⌝ ∗ is_mailbox P mailbox ∗ inv Nstack (stack_inv P l))%I.
 
   Theorem mk_stack_works (P : list val → iProp Σ) :
-    {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack P v }}}.
+    {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack_pred P v }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
     rewrite -wp_fupd.
@@ -313,11 +324,13 @@ Section proofs.
   Qed.
 
   Theorem push_works P s v Ψ :
-    {{{ is_stack P s ∗ ∀ xs, P xs ={inner_mask}=∗ P (v :: xs) ∗ Ψ #()}}}
+    {{{ is_stack_pred P s ∗ ∀ xs, P xs ={⊤ ∖ ↑ N}=∗ P (v :: xs) ∗ Ψ #()}}}
       push s v
     {{{ RET #(); Ψ #() }}}.
   Proof.
     iIntros (Φ) "[Hstack Hupd] HΦ". iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hinv)".
+    iAssert (∀ (xs : list val), P xs ={inner_mask}=∗ P (v :: xs) ∗ Ψ #())%I with "[Hupd]" as "Hupd".
+    { iIntros (xs). by iApply inner_mask_promote. }
     iLöb as "IH" forall (v).
     wp_lam. wp_pures.
     wp_apply (put_works with "[Hupd]"); first auto. iIntros (o) "H".
@@ -349,19 +362,22 @@ Section proofs.
         { iExists _, _; iFrame. }
         iModIntro.
         wp_if.
-        iApply ("IH" with "Hupd HΦ").
+        iApply ("IH" with "HΦ Hupd").
     - wp_match. iApply ("HΦ" with "HΨ").
   Qed.
 
   Theorem pop_works P s Ψ :
-    {{{ is_stack P s ∗
-        (∀ v xs, P (v :: xs) ={inner_mask}=∗ P xs ∗ Ψ (SOMEV v)) ∗
-        (P [] ={inner_mask}=∗ P [] ∗ Ψ NONEV) }}}
+    {{{ is_stack_pred P s ∗
+        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
+        (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
       pop s
     {{{ v, RET v; Ψ v }}}.
   Proof.
     iIntros (Φ) "(Hstack & Hupdcons & Hupdnil) HΦ".
     iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hinv)".
+    iDestruct (inner_mask_promote with "Hupdnil") as "Hupdnil".
+    iAssert (∀ (v : val) (xs : list val), P (v :: xs) ={inner_mask}=∗ P xs ∗ Ψ (InjRV v))%I with "[Hupdcons]" as "Hupdcons".
+    { iIntros (v xs). by iApply inner_mask_promote. }
     iLöb as "IH".
     wp_lam. wp_proj. wp_let. wp_proj. wp_let.
     wp_apply (get_works _ (λ v, Ψ v) with "[Hupdcons]").
@@ -425,6 +441,10 @@ Section proofs.
           { iNext; iExists _, _; iFrame. }
           iModIntro.
           wp_pures.
-          iApply ("IH" with "Hupdcons Hupdnil HΦ").
+          iApply ("IH" with "HΦ Hupdnil Hupdcons").
   Qed.
 End proofs.
+
+Program Definition spec {Σ} `{heapG Σ, channelG Σ} : concurrent_stack Σ :=
+  {| is_stack := is_stack_pred; new_stack := mk_stack; stack_push := push; stack_pop := pop |} .
+Solve Obligations of spec with eauto using pop_works, push_works, mk_stack_works.

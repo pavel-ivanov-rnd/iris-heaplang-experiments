@@ -1,5 +1,6 @@
 From iris.program_logic Require Export weakestpre hoare.
 From iris.heap_lang Require Export lang proofmode notation.
+From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
 Definition mk_stack : val := λ: "_", ref NONEV.
@@ -83,11 +84,11 @@ Section stack_works.
   Definition stack_inv P l :=
     (∃ v xs, l ↦ v ∗ is_list xs v ∗ P xs)%I.
 
-  Definition is_stack P v :=
+  Definition is_stack_pred P v :=
     (∃ l, ⌜v = #l⌝ ∗ inv N (stack_inv P l))%I.
 
-  Theorem mk_stack_works P :
-    {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack P v }}}.
+  Theorem mk_stack_spec P :
+    {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack_pred P v }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
     rewrite -wp_fupd.
@@ -97,8 +98,8 @@ Section stack_works.
     iModIntro; iApply "HΦ"; iExists _; auto.
   Qed.
 
-  Theorem push_works P s v Ψ :
-    {{{ is_stack P s ∗ ∀ xs, P xs ={⊤ ∖ ↑ N}=∗ P (v :: xs) ∗ Ψ #()}}}
+  Theorem push_spec P s v Ψ :
+    {{{ is_stack_pred P s ∗ ∀ xs, P xs ={⊤ ∖ ↑ N}=∗ P (v :: xs) ∗ Ψ #()}}}
       push s v
     {{{ RET #(); Ψ #() }}}.
   Proof.
@@ -130,8 +131,8 @@ Section stack_works.
       iApply ("IH" with "Hupd HΦ").
   Qed.
 
-  Theorem pop_works P s Ψ :
-    {{{ is_stack P s ∗
+  Theorem pop_spec P s Ψ :
+    {{{ is_stack_pred P s ∗
         (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
         (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
       pop s
@@ -186,3 +187,7 @@ Section stack_works.
         iApply ("IH" with "Hupdcons Hupdnil HΦ").
   Qed.
 End stack_works.
+
+Program Definition spec {Σ} `{heapG Σ} : concurrent_stack Σ :=
+  {| is_stack := is_stack_pred; new_stack := mk_stack; stack_push := push; stack_pop := pop |} .
+Solve Obligations of spec with eauto using pop_spec, push_spec, mk_stack_spec.

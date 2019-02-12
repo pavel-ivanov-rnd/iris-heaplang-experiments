@@ -23,6 +23,7 @@ theories/spanning_tree/mon.v
 theories/spanning_tree/spanning.v
 theories/spanning_tree/proof.v
 
+theories/concurrent_stacks/specs.v
 theories/concurrent_stacks/concurrent_stack1.v
 theories/concurrent_stacks/concurrent_stack2.v
 theories/concurrent_stacks/concurrent_stack3.v
