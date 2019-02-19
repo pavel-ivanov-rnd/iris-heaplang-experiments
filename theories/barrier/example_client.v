@@ -41,8 +41,8 @@ Section client.
   Proof.
     iIntros ""; rewrite /client. wp_alloc y as "Hy". wp_let.
     wp_apply (newbarrier_spec N (y_inv 1 y) with "[//]").
-    iIntros (l) "[Hr Hs]". wp_let.
-    iApply (wp_par (λ _, True%I) (λ _, True%I) with "[Hy Hs] [Hr]"); last auto.
+    iIntros (l) "[Hr Hs]".
+    wp_apply (wp_par (λ _, True%I) (λ _, True%I) with "[Hy Hs] [Hr]"); last auto.
     - (* The original thread, the sender. *)
       wp_store. iApply (signal_spec with "[-]"); last by iNext; auto.
       iSplitR "Hy"; first by eauto.
@@ -51,7 +51,7 @@ Section client.
       iDestruct (recv_weaken with "[] Hr") as "Hr".
       { iIntros "Hy". by iApply (y_inv_split with "Hy"). }
       iMod (recv_split with "Hr") as "[H1 H2]"; first done.
-      iApply (wp_par (λ _, True%I) (λ _, True%I) with "[H1] [H2]"); last auto.
+      wp_apply (wp_par (λ _, True%I) (λ _, True%I) with "[H1] [H2]"); last auto.
       + by iApply worker_safe.
       + by iApply worker_safe.
 Qed.
