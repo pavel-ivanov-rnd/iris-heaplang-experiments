@@ -140,7 +140,7 @@ Section proof.
          called wp_par. The two arguments are the conclusions of the two
          parallel threads. Here they are simply True, as in the paper proof when
          we used the ht-par rule. *)
-      iApply (wp_par (λ _ , ⌜True⌝)%I (λ _ , ⌜True⌝)%I).
+      wp_apply (wp_par (λ _ , ⌜True⌝)%I (λ _ , ⌜True⌝)%I).
       (* We now have three subgoals. The first two are proofs that each thread
       does the correct thing, and the final goal is to show that the combined
       conclusion of the two threads implies the desired conclusion. This last

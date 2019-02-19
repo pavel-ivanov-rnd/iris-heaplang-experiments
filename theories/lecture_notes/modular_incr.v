@@ -280,7 +280,7 @@ Section example_1.
     wp_let.
     wp_bind (_ ||| _)%E.
     let tac := iApply ("HIncr" with "[$HInc]"); iNext; by iIntros (?) "_" in
-    iApply (wp_par (λ _, True%I) (λ _, True%I)); [tac | tac | ].
+    wp_apply (wp_par (λ _, True%I) (λ _, True%I)); [tac | tac | ].
     { iIntros (v1 v2) "_ !>".
       wp_seq.
       wp_apply (read_spec _ _ _ True%I (λ _, True%I)); auto.
