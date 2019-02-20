@@ -19,7 +19,7 @@ Inductive prim_step : relation state :=
   | ChangeI p I2 I1 : prim_step (State p I1) (State p I2)
   | ChangePhase I : prim_step (State Low I) (State High I).
 
-Definition tok (s : state) : set token :=
+Definition tok (s : state) : propset token :=
   {[ t | ∃ i, t = Change i ∧ i ∉ state_I s ]} ∪
   (if state_phase s is High then {[ Send ]} else ∅).
 Global Arguments tok !_ /.
@@ -27,10 +27,10 @@ Global Arguments tok !_ /.
 Canonical Structure sts := sts.Sts prim_step tok.
 
 (* The set of states containing some particular i *)
-Definition i_states (i : gname) : set state := {[ s | i ∈ state_I s ]}.
+Definition i_states (i : gname) : propset state := {[ s | i ∈ state_I s ]}.
 
 (* The set of low states *)
-Definition low_states : set state := {[ s | state_phase s = Low ]}.
+Definition low_states : propset state := {[ s | state_phase s = Low ]}.
 
 Lemma i_states_closed i : sts.closed (i_states i) {[ Change i ]}.
 Proof.
@@ -77,7 +77,7 @@ Proof.
   - destruct p; set_solver.
   - apply elem_of_equiv=> /= -[j|]; last set_solver.
     set_unfold; rewrite !(inj_iff Change).
-    assert (Change j ∈ match p with Low => ∅ : set token | High => {[Send]} end ↔ False)
+    assert (Change j ∈ match p with Low => ∅ : propset token | High => {[Send]} end ↔ False)
       as -> by (destruct p; set_solver).
     destruct (decide (i1 = j)) as [->|]; first naive_solver.
     destruct (decide (i2 = j)) as [->|]; first naive_solver.

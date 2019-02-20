@@ -122,7 +122,7 @@ Proof.
     as ([p I]) "(% & [Hl Hr] & Hclose)"; eauto.
   destruct p; [|done]. wp_store.
   iSpecialize ("HΦ" with "[#]") => //. iFrame "HΦ".
-  iMod ("Hclose" $! (State High I) (∅ : set token) with "[-]"); last done.
+  iMod ("Hclose" $! (State High I) (∅ : propset token) with "[-]"); last done.
   iSplit; [iPureIntro; by eauto using signal_step|].
   rewrite /barrier_inv /ress /=. iNext. iFrame "Hl".
   iDestruct "Hr" as (Ψ) "[Hr Hsp]"; iExists Ψ; iFrame "Hsp".

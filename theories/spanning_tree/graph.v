@@ -57,7 +57,7 @@ Section Graphs.
     z ∈ t → connected g z → front g t t → t = dom (gset _) g.
   Proof.
     intros Hz Hc [Hsb Hdt].
-    apply collection_equiv_spec_L; split; trivial.
+    apply set_equiv_spec_L; split; trivial.
     apply elem_of_subseteq => x Hx. destruct (Hc x Hx) as [p pv].
     clear Hc Hx; revert z Hz pv.
     induction p => z Hz pv.

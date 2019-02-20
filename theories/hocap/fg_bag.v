@@ -91,7 +91,7 @@ Section proof.
 
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
     (∃ (hd : val) (ls : list val),
-        b ↦ hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (of_list ls)))%I.
+        b ↦ hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (list_to_set ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
     (∃ (b : loc), ⌜x = #b⌝ ∗ inv N (bag_inv γb b))%I.
   Definition bag_contents (γb : gname) (X : gmultiset val) : iProp Σ :=

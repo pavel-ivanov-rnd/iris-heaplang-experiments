@@ -62,7 +62,7 @@ Section proof.
     end.
 
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
-    (∃ ls : list val, b ↦ (val_of_list ls) ∗ own γb ((1/2)%Qp, to_agree (of_list ls)))%I.
+    (∃ ls : list val, b ↦ (val_of_list ls) ∗ own γb ((1/2)%Qp, to_agree (list_to_set ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
 
     (∃ (lk : val) (b : loc) (γ : gname),
