@@ -52,7 +52,7 @@ Section proof.
     { iAlways. iIntros (Y) "[Hb1 HP]".
       iInv NI as (X) "[>Hb2 HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
-      iMod (bag_contents_update b ({[v]} ∪ Y) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
+      iMod (bag_contents_update b ({[v]} ⊎ Y) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
       iFrame. iApply "Hcl".
       iNext. iExists _; iFrame.
       rewrite big_sepMS_singleton. iFrame. }
@@ -70,7 +70,7 @@ Section proof.
       iInv NI as (X) "[>Hb2 HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iMod (bag_contents_update b Y with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
-      rewrite big_sepMS_union bi.later_sep big_sepMS_singleton.
+      rewrite big_sepMS_disj_union bi.later_sep big_sepMS_singleton.
       iDestruct "HPs" as "[HP HPs]".
       iMod ("Hcl" with "[-HP Hb1]") as "_".
       { iNext. iExists _; iFrame. }
