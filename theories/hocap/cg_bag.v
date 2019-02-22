@@ -52,7 +52,7 @@ Section proof.
   Fixpoint bag_of_val (ls : val) : gmultiset val :=
     match ls with
     | NONEV => ∅
-    | SOMEV (v1, t) => {[v1]} ∪ bag_of_val t
+    | SOMEV (v1, t) => {[v1]} ⊎ bag_of_val t
     | _ => ∅
     end.
   Fixpoint val_of_list (ls : list val) : val :=
@@ -62,7 +62,7 @@ Section proof.
     end.
 
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
-    (∃ ls : list val, b ↦ (val_of_list ls) ∗ own γb ((1/2)%Qp, to_agree (list_to_set ls)))%I.
+    (∃ ls : list val, b ↦ (val_of_list ls) ∗ own γb ((1/2)%Qp, to_agree (list_to_set_disj ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
 
     (∃ (lk : val) (b : loc) (γ : gname),
@@ -116,7 +116,7 @@ Section proof.
   Local Opaque acquire release. (* so that wp_pure doesn't stumble *)
   Lemma pushBag_spec (P Q : iProp Σ) γ (x v : val)  :
     □ (∀ (X : gmultiset val), bag_contents γ X ∗ P
-                     ={⊤∖↑N}=∗ ▷ (bag_contents γ ({[v]} ∪ X) ∗ Q)) -∗
+                     ={⊤∖↑N}=∗ ▷ (bag_contents γ ({[v]} ⊎ X) ∗ Q)) -∗
     {{{ is_bag γ x ∗ P }}}
       pushBag x (of_val v)
     {{{ RET #(); Q }}}.
@@ -141,7 +141,7 @@ Section proof.
 
   Lemma popBag_spec (P : iProp Σ) (Q : val → iProp Σ) γ x :
     □ (∀ (X : gmultiset val) (y : val),
-               bag_contents γ ({[y]} ∪ X) ∗ P
+               bag_contents γ ({[y]} ⊎ X) ∗ P
                ={⊤∖↑N}=∗ ▷ (bag_contents γ X ∗ Q (SOMEV y))) -∗
     □ (bag_contents γ ∅ ∗ P ={⊤∖↑N}=∗ ▷ (bag_contents γ ∅ ∗ Q NONEV)) -∗
     {{{ is_bag γ x ∗ P }}}

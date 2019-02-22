@@ -87,11 +87,11 @@ Section proof.
       iDestruct (mapsto_agree l' q q' (PairV x tl) (PairV y tl')
                 with "Hro Hro'") as %?. simplify_eq/=.
       iDestruct ("IH" with "Hls Hls'") as %->. done.
-                                                                             Qed.
+  Qed.
 
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
     (∃ (hd : val) (ls : list val),
-        b ↦ hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (list_to_set ls)))%I.
+        b ↦ hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (list_to_set_disj ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
     (∃ (b : loc), ⌜x = #b⌝ ∗ inv N (bag_inv γb b))%I.
   Definition bag_contents (γb : gname) (X : gmultiset val) : iProp Σ :=
@@ -142,7 +142,7 @@ Section proof.
 
   Lemma pushBag_spec (P Q : iProp Σ) γ (x v : val)  :
     □ (∀ (X : gmultiset val), bag_contents γ X ∗ P
-                     ={⊤∖↑N}=∗ ▷ (bag_contents γ ({[v]} ∪ X) ∗ Q)) -∗
+                     ={⊤∖↑N}=∗ ▷ (bag_contents γ ({[v]} ⊎ X) ∗ Q)) -∗
     {{{ is_bag γ x ∗ P }}}
       pushBag x (of_val v)
     {{{ RET #(); Q }}}.
@@ -179,7 +179,7 @@ Section proof.
 
   Lemma popBag_spec (P : iProp Σ) (Q : val → iProp Σ) γ x :
     □ (∀ (X : gmultiset val) (y : val),
-               bag_contents γ ({[y]} ∪ X) ∗ P
+               bag_contents γ ({[y]} ⊎ X) ∗ P
                ={⊤∖↑N}=∗ ▷ (bag_contents γ X ∗ Q (SOMEV y))) -∗
     □ (bag_contents γ ∅ ∗ P ={⊤∖↑N}=∗ ▷ (bag_contents γ ∅ ∗ Q NONEV)) -∗
     {{{ is_bag γ x ∗ P }}}
