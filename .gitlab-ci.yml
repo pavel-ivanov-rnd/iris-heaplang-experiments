@@ -30,7 +30,6 @@ build-coq.8.8.2:
   <<: *template
   variables:
     OPAM_PINS: "coq version 8.8.2"
-    TIMING_PROJECT: "examples"
     TIMING_CONF: "coq-8.8.2"
   tags:
   - fp-timing
