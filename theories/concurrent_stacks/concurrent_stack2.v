@@ -394,6 +394,6 @@ Section stack_works.
   Qed.
 End stack_works.
 
-Program Definition spec {Σ} `{heapG Σ, channelG Σ} : concurrent_bag Σ :=
-  {| is_bag := is_stack; new_bag := new_stack; bag_push := push; bag_pop := pop |} .
+Program Definition spec {Σ} N `{heapG Σ, channelG Σ} : concurrent_bag Σ :=
+  {| is_bag := is_stack N; new_bag := new_stack; bag_push := push; bag_pop := pop |} .
 Solve Obligations of spec with eauto using pop_spec, push_spec, new_stack_spec.

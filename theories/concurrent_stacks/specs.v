@@ -4,27 +4,27 @@ From iris.heap_lang Require Export proofmode notation.
 
 (** General (HoCAP-style) spec for a concurrent bag ("per-elemt spec") *)
 Record concurrent_bag {Σ} `{!heapG Σ} := ConcurrentBag {
-  is_bag (N : namespace) (P : val → iProp Σ) (s : val) : iProp Σ;
-  bag_pers (N : namespace) (P : val → iProp Σ) (s : val) : is_bag N P s -∗ □ is_bag N P s;
+  is_bag (P : val → iProp Σ) (s : val) : iProp Σ;
+  bag_pers (P : val → iProp Σ) (s : val) : Persistent (is_bag P s);
   new_bag : val;
   bag_push : val;
   bag_pop : val;
-  mk_bag_spec (N : namespace) (P : val → iProp Σ) :
+  mk_bag_spec (P : val → iProp Σ) :
     {{{ True }}}
       new_bag #()
-    {{{ s, RET s; is_bag N P s }}};
-  bag_push_spec (N : namespace) (P : val → iProp Σ) s v :
-    {{{ is_bag N P s ∗ P v }}} bag_push s v {{{ RET #(); True }}};
-  bag_pop_spec (N : namespace) (P : val → iProp Σ) s :
-    {{{ is_bag N P s }}} bag_pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}
+    {{{ s, RET s; is_bag P s }}};
+  bag_push_spec (P : val → iProp Σ) s v :
+    {{{ is_bag P s ∗ P v }}} bag_push s v {{{ RET #(); True }}};
+  bag_pop_spec (P : val → iProp Σ) s :
+    {{{ is_bag P s }}} bag_pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}
 }.
 Arguments concurrent_bag _ {_}.
 
-(** General (HoCAP-style) spec for a concurrent stack *)
+(** General (CAP-style) spec for a concurrent stack *)
 
 Record concurrent_stack {Σ} `{!heapG Σ} := ConcurrentStack {
   is_stack (N : namespace) (P : list val → iProp Σ) (s : val) : iProp Σ;
-  stack_pers (N : namespace) (P : list val → iProp Σ) (s : val) : is_stack N P s -∗ □ is_stack N P s;
+  stack_pers (N : namespace) (P : list val → iProp Σ) (s : val) : Persistent (is_stack N P s);
   new_stack : val;
   stack_push : val;
   stack_pop : val;
@@ -36,7 +36,7 @@ Record concurrent_stack {Σ} `{!heapG Σ} := ConcurrentStack {
     {{{ RET #(); Ψ #() }}};
   stack_pop_spec (N : namespace) (P : list val → iProp Σ) Ψ s :
     {{{ is_stack N P s ∗
-        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
+        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∧
         (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
       stack_pop s
     {{{ v, RET v; Ψ v }}};

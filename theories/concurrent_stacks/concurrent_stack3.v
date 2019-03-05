@@ -133,12 +133,12 @@ Section stack_works.
 
   Theorem pop_spec P s Ψ :
     {{{ is_stack_pred P s ∗
-        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
+        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∧
         (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
       pop s
     {{{ v, RET v; Ψ v }}}.
   Proof.
-    iIntros (Φ) "(Hstack & Hupdcons & Hupdnil) HΦ".
+    iIntros (Φ) "(Hstack & Hupd) HΦ".
     iDestruct "Hstack" as (l) "[-> #Hinv]".
     iLöb as "IH".
     wp_lam. wp_bind (Load _).
@@ -147,6 +147,7 @@ Section stack_works.
     iDestruct (is_list_disj with "Hlist") as "[Hlist H]".
     iDestruct "H" as "[-> | HSome]".
     - iDestruct (is_list_empty with "Hlist") as %->.
+      iDestruct "Hupd" as "[_ Hupdnil]".
       iMod ("Hupdnil" with "HP") as "[HP HΨ]".
       iMod ("Hclose" with "[Hlist Hl HP]") as "_".
       { iNext; iExists _, _; iFrame. }
@@ -170,6 +171,7 @@ Section stack_works.
       * wp_cas_suc.
         iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
         simplify_eq.
+        iDestruct "Hupd" as "[Hupdcons _]".
         iMod ("Hupdcons" with "HP") as "[HP HΨ]".
         iDestruct "Hlist" as (l'' t') "(% & Hl'' & Hlist)"; simplify_eq.
         iDestruct "Hl''" as (q') "Hl''".
@@ -184,7 +186,7 @@ Section stack_works.
         { iNext; iExists _, _; iFrame. }
         iModIntro.
         wp_if.
-        iApply ("IH" with "Hupdcons Hupdnil HΦ").
+        iApply ("IH" with "Hupd HΦ").
   Qed.
 End stack_works.
 

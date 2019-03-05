@@ -138,13 +138,13 @@ Section proofs.
       iDestruct (own_valid_2 with "H Hγ") as %[].
   Qed.
 
-  Lemma take_works γ P Q o Ψ :
+  Lemma take_works γ P Q Q' o Ψ :
     let do_pop : iProp Σ :=
         (∀ v xs, P (v :: xs) ={inner_mask}=∗ P xs ∗ Ψ (SOMEV v))%I in
-    {{{ is_offer γ P Q o ∗ access_inv P ∗ do_pop }}}
+    {{{ is_offer γ P Q o ∗ access_inv P ∗ (do_pop ∧ Q') }}}
       take_offer o
     {{{ v', RET v';
-        (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ Ψ v') ∨ (⌜v' = InjLV #()⌝ ∗ do_pop) }}}.
+        (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ Ψ v') ∨ (⌜v' = InjLV #()⌝ ∗ (do_pop ∧ Q')) }}}.
   Proof.
     simpl; iIntros (Φ) "[H [Hopener Hupd]] HΦ"; iDestruct "H" as (v l) "[-> #Hinv]".
     wp_lam. wp_proj. wp_bind (CAS _ _ _).
@@ -197,12 +197,12 @@ Section proofs.
     iApply "HΦ"; iExists _; auto.
   Qed.
 
-  Lemma get_works P Ψ mailbox :
+  Lemma get_works Q P Ψ mailbox :
     let do_pop : iProp Σ :=
         (∀ v xs, P (v :: xs) ={inner_mask}=∗ P xs ∗ Ψ (SOMEV v))%I in
-    {{{ is_mailbox P mailbox ∗ access_inv P ∗ do_pop }}}
+    {{{ is_mailbox P mailbox ∗ access_inv P ∗ (do_pop ∧ Q) }}}
       get mailbox
-    {{{ ov, RET ov; (∃ v, ⌜ov = SOMEV v⌝ ∗ Ψ ov) ∨ (⌜ov = NONEV⌝ ∗ do_pop) }}}.
+    {{{ ov, RET ov; (∃ v, ⌜ov = SOMEV v⌝ ∗ Ψ ov) ∨ (⌜ov = NONEV⌝ ∗ (do_pop ∧ Q)) }}}.
   Proof.
     simpl; iIntros (Φ) "[Hmail [Hopener Hpush]] HΦ". iDestruct "Hmail" as (l) "[-> #Hmail]".
     wp_lam. wp_bind (Load _).
@@ -213,7 +213,7 @@ Section proofs.
       iModIntro.
       wp_pures.
       iApply "HΦ"; iRight; by iFrame.
-    - iDestruct "Hsome" as (v' γ Q) "[Hl #Hoffer]".
+    - iDestruct "Hsome" as (v' γ Q') "[Hl #Hoffer]".
       wp_load.
       iMod ("Hclose" with "[Hl Hoffer]") as "_".
       { iNext; iRight; iExists _, _, _; by iFrame. }
@@ -368,19 +368,19 @@ Section proofs.
 
   Theorem pop_works P s Ψ :
     {{{ is_stack_pred P s ∗
-        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∗
+        (∀ v xs, P (v :: xs) ={⊤ ∖ ↑ N}=∗ P xs ∗ Ψ (SOMEV v)) ∧
         (P [] ={⊤ ∖ ↑ N}=∗ P [] ∗ Ψ NONEV) }}}
       pop s
     {{{ v, RET v; Ψ v }}}.
   Proof.
-    iIntros (Φ) "(Hstack & Hupdcons & Hupdnil) HΦ".
+    iIntros (Φ) "(Hstack & Hupd) HΦ".
     iDestruct "Hstack" as (mailbox l) "(-> & #Hmailbox & #Hinv)".
-    iDestruct (inner_mask_promote with "Hupdnil") as "Hupdnil".
-    iAssert (∀ (v : val) (xs : list val), P (v :: xs) ={inner_mask}=∗ P xs ∗ Ψ (InjRV v))%I with "[Hupdcons]" as "Hupdcons".
-    { iIntros (v xs). by iApply inner_mask_promote. }
+    iDestruct (bi.and_mono_r with "Hupd") as "Hupd"; first apply inner_mask_promote.
+    iDestruct (bi.and_mono_l _ _ (∀ (v : val) (xs : list val), _)%I with "Hupd") as "Hupd".
+    { iIntros "Hupdcons". iIntros (v xs). iSpecialize ("Hupdcons" $! v xs). iApply (inner_mask_promote with "Hupdcons"). }
     iLöb as "IH".
     wp_lam. wp_proj. wp_let. wp_proj. wp_let.
-    wp_apply (get_works _ (λ v, Ψ v) with "[Hupdcons]").
+    wp_apply (get_works _ _ (λ v, Ψ v) with "[Hupd]").
     { iSplitR; first done.
       iFrame.
       iInv Nstack as (v xs) "(Hl & Hlist & HP)" "Hclose".
@@ -390,7 +390,7 @@ Section proofs.
       iMod ("Hclose" with "[HP Hl Hlist]") as "_".
       { iNext; iExists _, _; iFrame. }
       auto. }
-    iIntros (ov) "[Hsome | [-> Hupdcons]]".
+    iIntros (ov) "[Hsome | [-> Hupd]]".
     - iDestruct "Hsome" as (v) "[-> HΨ]".
       wp_pures.
       iApply ("HΦ" with "HΨ").
@@ -401,7 +401,7 @@ Section proofs.
       iDestruct "H" as "[-> | HSome]".
       * iDestruct (is_list_empty with "Hlist") as %->.
         iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
-        iMod ("Hupdnil" with "HP") as "[HP HΨ]".
+        iMod ("Hupd" with "HP") as "[HP HΨ]".
         iMod "Hupd'" as "_".
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
         { iNext; iExists _, _; iFrame. }
@@ -426,6 +426,7 @@ Section proofs.
           iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
           simplify_eq.
           iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
+          iDestruct "Hupd" as "[Hupdcons _]".
           iMod ("Hupdcons" with "HP") as "[HP HΨ]".
           iMod "Hupd'" as "_".
           iDestruct "Hlist" as (l'' t') "(% & Hl'' & Hlist)"; simplify_eq.
@@ -441,7 +442,7 @@ Section proofs.
           { iNext; iExists _, _; iFrame. }
           iModIntro.
           wp_pures.
-          iApply ("IH" with "HΦ Hupdnil Hupdcons").
+          iApply ("IH" with "HΦ Hupd").
   Qed.
 End proofs.
 
