@@ -3,6 +3,8 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl.
 From iris_examples.concurrent_stacks Require Import specs.
 
+(** Stack 4: Helping, CAP spec. *)
+
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
 Definition revoke_offer : val :=

@@ -5,6 +5,8 @@ From iris.program_logic Require Export weakestpre.
 From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
+(** Stack 2: Helping, bag spec. *)
+
 Definition mk_offer : val :=
   λ: "v", ("v", ref #0).
 Definition revoke_offer : val :=

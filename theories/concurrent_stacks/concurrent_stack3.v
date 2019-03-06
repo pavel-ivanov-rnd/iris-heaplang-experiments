@@ -3,6 +3,8 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
+(** Stack 3: No helping, CAP spec. *)
+
 Definition mk_stack : val := λ: "_", ref NONEV.
 Definition push : val :=
   rec: "push" "s" "v" :=

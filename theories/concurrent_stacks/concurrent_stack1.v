@@ -4,6 +4,8 @@ From iris.heap_lang Require Import notation proofmode.
 From iris_examples.concurrent_stacks Require Import specs.
 Set Default Proof Using "Type".
 
+(** Stack 1: No helping, bag spec. *)
+
 Definition new_stack : val := λ: "_", ref NONEV.
 Definition push : val :=
   rec: "push" "s" "v" :=
