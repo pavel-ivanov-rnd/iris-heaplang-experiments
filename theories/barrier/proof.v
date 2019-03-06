@@ -165,8 +165,8 @@ Proof.
   iIntros (?). iDestruct 1 as (γ P Q i) "(#Hsts & Hγ & #HQ & HQR)".
   iMod (sts_openS (barrier_inv l P) _ _ γ with "[Hγ]")
     as ([p I]) "(% & [Hl Hr] & Hclose)"; eauto.
-  iMod (saved_prop_alloc_strong I) as (i1) "[% #Hi1]".
-  iMod (saved_prop_alloc_strong (I ∪ {[i1]}))
+  iMod (saved_prop_alloc_cofinite I) as (i1) "[% #Hi1]".
+  iMod (saved_prop_alloc_cofinite (I ∪ {[i1]}))
     as (i2) "[Hi2' #Hi2]"; iDestruct "Hi2'" as %Hi2.
   rewrite ->not_elem_of_union, elem_of_singleton in Hi2; destruct Hi2.
   iMod ("Hclose" $! (State p ({[i1; i2]} ∪ I ∖ {[i]}))
