@@ -365,10 +365,10 @@ Section atomic_snapshot.
     wp_load. eauto.
   Qed.
 
-  Definition val_to_bool (v : option val) : bool :=
+  Definition val_list_to_bool (v : list val) : bool :=
     match v with
-    | Some (LitV (LitBool b)) => b
-    | _                       => false
+    | LitV (LitBool b) :: _ => b
+    | _                     => false
     end.
 
   Lemma readPair_spec γ p :
@@ -413,7 +413,7 @@ Section atomic_snapshot.
     iMod "AU" as (xv yv) "[Hpair Hclose]".
     rewrite /pair_content.
     iDestruct (excl_sync with "Hp⚫ Hpair") as %[= -> ->].
-    destruct (val_to_bool proph_val) eqn:Hproph.
+    destruct (val_list_to_bool proph_val) eqn:Hproph.
     - (* prophecy value is predicting that timestamp has not changed, so we commit *)
       (* committing AU *)
       iMod ("Hclose" with "Hpair") as "HΦ".
@@ -443,7 +443,7 @@ Section atomic_snapshot.
       }
       wp_load. wp_let. wp_proj. wp_let. wp_proj. wp_op.
       case_bool_decide; wp_let; wp_apply (wp_resolve_proph with "Hpr");
-        iIntros (->); wp_seq; wp_if.
+        iIntros (vs') "[Eq _]"; iDestruct "Eq" as %->; wp_seq; wp_if.
       + inversion H; subst; clear H. wp_pures.
         assert (v_x2 = v_y) as ->. {
           assert (v_x2 <= v_y) as vneq. {
@@ -479,7 +479,7 @@ Section atomic_snapshot.
       }
       wp_load. repeat (wp_let; wp_proj). wp_op. wp_let.
       wp_apply (wp_resolve_proph with "Hpr").
-      iIntros (Heq). subst.
+      iIntros (vs') "[Heq _]"; iDestruct "Heq" as %->.
       case_bool_decide.
       + inversion H; subst; clear H. inversion Hproph.
       + wp_seq. wp_if. iApply "IH"; rewrite /is_pair; eauto.
