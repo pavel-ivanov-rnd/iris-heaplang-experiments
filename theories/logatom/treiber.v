@@ -9,7 +9,7 @@ Definition new_stack: val := λ: <>, ref (ref NONE).
 Definition push: val :=
   rec: "push" "s" "x" :=
       let: "hd" := !"s" in
-      let: "s'" := ref SOME ("x", "hd") in
+      let: "s'" := ref (SOME ("x", "hd")) in
       if: CAS "s" "hd" "s'"
         then #()
         else "push" "s" "x".

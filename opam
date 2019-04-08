@@ -9,6 +9,6 @@ build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/iris_examples"]
 depends: [
-  "coq-iris" { (= "dev.2019-03-26.0.0495f119") | (= "dev") }
+  "coq-iris" { (= "dev.2019-04-07.4.4760ad33") | (= "dev") }
   "coq-autosubst" { = "dev.coq86" }
 ]
