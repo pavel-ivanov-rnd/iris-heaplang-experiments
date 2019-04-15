@@ -65,9 +65,6 @@ Section ltyped_symbol_adt.
   Definition symbol_inv (γ : gname) (l : loc) : iProp Σ :=
     (∃ n : nat, l ↦ #n ∗ counter γ n)%I.
 
-  Definition symbol_ctx (γ : gname) (l : loc) : iProp Σ :=
-    inv symbol_adtN (symbol_inv γ l).
-
   Definition lty_symbol (γ : gname) : lty Σ := Lty (λ w,
     ∃ n : nat, ⌜w = #n⌝ ∧ symbol γ n)%I.
 
