@@ -98,8 +98,7 @@ Notation "'ref' A" := (lty_ref A) : lty_scope.
 (* The semantic typing judgment *)
 Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
     (vs : gmap string val) : iProp Σ :=
-  (⌜ ∀ x, is_Some (Γ !! x) ↔ is_Some (vs !! x) ⌝ ∧
-  [∗ map] i ↦ Av ∈ map_zip Γ vs, lty_car Av.1 Av.2)%I.
+  ([∗ map] i ↦ A;v ∈ Γ; vs, lty_car A v)%I.
 Definition ltyped  `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (□ ∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
@@ -139,19 +138,15 @@ Section types_properties.
     Γ !! x = Some A →
     env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∧ A v.
   Proof.
-    iIntros (HΓx) "[Hlookup HΓ]". iDestruct "Hlookup" as %Hlookup.
-    destruct (proj1 (Hlookup x)) as [v Hx]; eauto.
-    iExists v. iSplit; first done. iApply (big_sepM_lookup _ _ x (A,v) with "HΓ").
-    by rewrite map_lookup_zip_with HΓx /= Hx.
+    iIntros (HΓx) "HΓ".
+    iDestruct (big_sepM2_lookup_1 with "HΓ") as (v ?) "H"; eauto.
   Qed.
   Lemma env_ltyped_insert Γ vs x A v :
     A v -∗ env_ltyped Γ vs -∗
     env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
   Proof.
     destruct x as [|x]=> /=; first by auto.
-    iIntros "#HA [Hlookup #HΓ]". iDestruct "Hlookup" as %Hlookup. iSplit.
-    - iPureIntro=> y. rewrite !lookup_insert_is_Some'. naive_solver.
-    - rewrite -map_insert_zip_with. by iApply big_sepM_insert_2.
+    iIntros "#HA #HΓ". by iApply (big_sepM2_insert_2 with "[] HΓ").
   Qed.
 
   (* Unboxed types *)
