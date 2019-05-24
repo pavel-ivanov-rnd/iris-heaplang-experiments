@@ -29,7 +29,7 @@ Section monotone_counter.
      algebra we shall be using. The Iris library contains all the ingredients
      needed to compose this particular resource algebra from simpler components,
      however to illustrate how to define our own we will define it from scratch.
-     
+
      In the subsequent section we show how to obtain an equivalent resource
      algebra from the building blocks provided by the Iris Coq library. 
   *)
@@ -423,7 +423,7 @@ Section monotone_counter'.
   Proof.
     (* Use a simplified definition of validity for when the underlying CMRA is discrete, i.e., an RA.
        The general definition also involves the use of step-indices, which is not needed in our case. *)
-    rewrite auth_valid_discrete_2.
+    rewrite auth_both_valid.
     split.
     - intros [? _]; by apply mnat_included.
     - intros ?%mnat_included; done.
@@ -460,7 +460,7 @@ Section monotone_counter'.
     iIntros (Φ) "_ HCont".
     rewrite /newCounter -wp_fupd.
     wp_lam.
-    iMod (own_alloc (● (0%nat : mnatUR) ⋅ ◯ 0%nat)) as (γ) "[HAuth HFrac]".
+    iMod (own_alloc (● (0%nat : mnatUR) ⋅ ◯ (0%nat : mnatUR))) as (γ) "[HAuth HFrac]".
     - apply mcounterRA_valid_auth_frag'; auto.
     - wp_alloc ℓ as "Hpt".
       iMod (inv_alloc N _ (counter_inv' ℓ γ) with "[Hpt HAuth]") as "HInv".
@@ -505,7 +505,7 @@ Section monotone_counter'.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
     + wp_cas_suc.
-      iMod (own_update γ ((● m ⋅ ◯ n)) (● (S m : mnatUR) ⋅ (◯ S n)) with "[HOwnFrag HOwnAuth]") as "[HOwnAuth HOwnFrag]".
+      iMod (own_update γ ((● m ⋅ ◯ n)) (● (S m : mnatUR) ⋅ (◯ (S n : mnatUR))) with "[HOwnFrag HOwnAuth]") as "[HOwnAuth HOwnFrag]".
       { apply mcounterRA_update'. }
       { rewrite own_op; iFrame. }
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
@@ -606,7 +606,7 @@ Section ccounter.
     {{{ γ ℓ, RET #ℓ; is_ccounter γ ℓ 1 0%nat }}}.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
-    iMod (own_alloc (●! O%nat ⋅ ◯! 0%nat)) as (γ) "[Hγ Hγ']"; first done.
+    iMod (own_alloc (●! O%nat ⋅ ◯! 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid.
     iMod (inv_alloc N _ (ccounter_inv γ ℓ) with "[Hpt Hγ]").
     { iNext. iExists 0%nat. by iFrame. }
     iModIntro. iApply "HΦ". rewrite /is_ccounter; eauto.

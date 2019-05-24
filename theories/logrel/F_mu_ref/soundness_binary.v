@@ -1,5 +1,5 @@
 From iris_examples.logrel.F_mu_ref Require Export context_refinement.
-From iris.algebra Require Import auth frac agree.
+From iris.algebra Require Import excl auth frac agree.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref Require Import soundness.
@@ -16,10 +16,10 @@ Proof.
   eapply (wp_adequacy Σ); first by apply _.
   iIntros (Hinv ?).
   iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
-  { apply (auth_auth_valid _ (to_gen_heap_valid _ _ ∅)). }
+  { by apply auth_auth_valid, to_gen_heap_valid. }
   iMod (own_alloc (● (Excl' e', ∅)
     ⋅ ◯ ((Excl' e', ∅) : cfgUR))) as (γc) "[Hcfg1 Hcfg2]".
-  { apply auth_valid_discrete_2. split=>//. }
+  { apply auth_both_valid. split=>//. }
   set (Hcfg := CFGSG _ _ γc).
   iMod (inv_alloc specN _ (spec_ctx ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
   { iNext. iExists e', ∅. iSplit; eauto.
@@ -38,7 +38,7 @@ Proof.
     iDestruct "Hinv" as (e'' σ) "[Hown %]".
     rewrite /tpool_mapsto /=.
     iDestruct (own_valid_2 with "Hown Hj") as %Hvalid.
-    move: Hvalid=> /auth_valid_discrete_2
+    move: Hvalid=> /auth_both_valid
       [/prod_included [Hv2 _] _]. apply Excl_included, leibniz_equiv in Hv2. subst.
     iMod ("Hclose" with "[-]") as "_".
     + iExists (#v2), σ. auto.

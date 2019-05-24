@@ -156,7 +156,7 @@ Lemma auth_agree γ xs ys :
   own γ (● (Excl' xs)) -∗ own γ (◯ (Excl' ys)) -∗ ⌜xs = ys⌝.
 Proof.
   iIntros "Hγ● Hγ◯". by iDestruct (own_valid_2 with "Hγ● Hγ◯")
-    as %[<-%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+    as %[<-%Excl_included%leibniz_equiv _]%auth_both_valid.
 Qed.
 
 (** The view of the authority can be updated together with the local view. *)
@@ -223,7 +223,8 @@ Proof.
      our camera named [γ], containing the empty list. This step (and the next)
      requires the fancy update modality that was introduced earlier. *)
   iMod (own_alloc (● (Some (Excl [])) ⋅ ◯ (Some (Excl []))))
-    as (γ) "[Hγ● Hγ◯]"; (* Validity is trivial. *) first done.
+    as (γ) "[Hγ● Hγ◯]";
+    (* Validity is trivial. *) first by apply auth_both_valid.
   (* We can then allocate the invariant (with mask [N]).  Note that we can use
      [eauto 10 with iFrame] to prove [▷ stack_inv ℓ γ]. *) 
   iMod (inv_alloc N _ (stack_inv ℓ γ) with "[Hl Hγ●]")
