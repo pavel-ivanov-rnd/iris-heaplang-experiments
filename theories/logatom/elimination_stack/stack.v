@@ -175,7 +175,7 @@ Section stack.
     wp_apply alloc_spec; first done. iIntros (head) "Hhead". wp_let.
     wp_apply alloc_spec; first done. iIntros (offer) "Hoffer". wp_let.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
-    { apply auth_valid_discrete_2. split; done. }
+    { apply auth_both_valid. split; done. }
     iMod (inv_alloc stackN _ (stack_inv γs head offer) with "[-HΦ Hs◯]").
     { iNext. iExists None, None, _. iFrame. done. }
     wp_pures. iApply "HΦ". iFrame "Hs◯". iModIntro. iExists _, _. auto.
@@ -209,7 +209,7 @@ Section stack.
     - (* The CAS succeeded. Update everything accordingly. *)
       iMod "AU" as (l') "[Hl' [_ Hclose]]".
       iDestruct (own_valid_2 with "Hs● Hl'") as
-        %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+        %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
       iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
       { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
       iMod ("Hclose" with "Hl'") as "HΦ". iModIntro.
@@ -283,7 +283,7 @@ Section stack.
       iDestruct "Hlist" as ">%". subst stack_rep.
       iMod "AU" as (l') "[Hl' [_ Hclose]]".
       iDestruct (own_valid_2 with "Hs● Hl'") as
-        %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+        %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
       iMod ("Hclose" with "Hl'") as "HΦ".
       iSplitR "HΦ"; first by eauto 10 with iFrame.
       iIntros "!>". wp_pures. by iApply "HΦ".
@@ -305,7 +305,7 @@ Section stack.
         and we are done. *)
         iMod "AU" as (l') "[Hl' [_ Hclose]]".
         iDestruct (own_valid_2 with "Hs● Hl'") as
-          %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+          %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
         destruct l as [|v' l]; simpl.
         { (* Contradiction. *) iDestruct "Hlist" as ">%". done. }
         iDestruct "Hlist" as (tail' q' rep') "[>Heq [>Htail' Hlist]]".
@@ -345,13 +345,13 @@ Section stack.
         iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & Hoff)".
         iMod "AUoff" as (l') "[Hl' [_ Hclose]]".
         iDestruct (own_valid_2 with "Hs● Hl'") as
-          %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+          %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
         iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
         { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
         iMod ("Hclose" with "Hl'") as "HQoff".
         iMod "AU" as (l') "[Hl' [_ Hclose]]".
         iDestruct (own_valid_2 with "Hs● Hl'") as
-          %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+          %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
         iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
         { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
         iMod ("Hclose" with "Hl'") as "HΦ".

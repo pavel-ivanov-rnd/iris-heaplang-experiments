@@ -165,7 +165,7 @@ Section logatom_hocap.
     iIntros (Φ) "_ HΦ". iApply wp_fupd. iApply logatom.new_stack_spec; first done.
     iIntros "!>" (γs s) "[Hstack Hcont]".
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γw) "[Hs● Hs◯]".
-    { apply auth_valid_discrete_2. split; done. }
+    { apply auth_both_valid. split; done. }
     iApply ("HΦ" $! (γs, γw)). rewrite /hocap_is_stack. iFrame.
     iApply inv_alloc. eauto with iFrame.
   Qed.
@@ -212,11 +212,11 @@ Section logatom_hocap.
     iIntros (???) "Hf1 Hf2". iDestruct (own_valid_2 with "Hf1 Hf2") as %[].
   Qed.
   Next Obligation.
-    iIntros (???) "Ha1 Ha2". iDestruct (own_valid_2 with "Ha1 Ha2") as %[].
+    iIntros (???) "Ha1 Ha2". by iDestruct (own_valid_2 with "Ha1 Ha2") as %[].
   Qed.
   Next Obligation.
     iIntros (???) "Hf Ha". iDestruct (own_valid_2 with "Ha Hf") as
-      %[->%Excl_included%leibniz_equiv _]%auth_valid_discrete_2. done.
+      %[->%Excl_included%leibniz_equiv _]%auth_both_valid. done.
   Qed.
   Next Obligation.
     iIntros (???) "Hf Ha". iMod (own_update_2 with "Ha Hf") as "[? ?]".

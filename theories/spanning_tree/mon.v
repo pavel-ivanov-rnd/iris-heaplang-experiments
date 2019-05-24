@@ -48,7 +48,7 @@ Section marking_definitions.
   own graph_marking_name (● (m ⋅ ({[l]} : gset loc))) ∗ is_marked l.
   Proof.
     iIntros "H". rewrite -own_op (comm _ m).
-    iMod (@own_update with "H") as "Y"; eauto.
+    iMod (own_update with "H") as "Y"; eauto.
     apply auth_update_alloc.
     setoid_replace ({[l]} : gset loc) with (({[l]} : gset loc) ⋅ ∅) at 2
       by (by rewrite right_id).
@@ -189,10 +189,10 @@ Section graph_ctx_alloc.
              ∗ own_graph 1%Qp ∅.
   Proof.
     iIntros "H1".
-    iMod (own_alloc (● (∅ : markingUR))) as (mn) "H2"; first done.
+    iMod (own_alloc (● (∅ : markingUR))) as (mn) "H2"; first by apply auth_auth_valid.
     iMod (own_alloc (● (Some (1%Qp, ∅ : Gmon) : graphUR)
                       ⋅ ◯ (Some (1%Qp, ∅ : Gmon) : graphUR))) as (gn) "H3".
-    { done. }
+    { by apply auth_both_valid. }
     iDestruct "H3" as "[H31 H32]".
     set (Ig := GraphG _ _ mn _ gn).
     iExists Ig.
@@ -279,7 +279,8 @@ Section graph.
   Lemma auth_own_graph_valid q G : own graph_name (● Some (q, G))  ⊢ ✓ G.
   Proof.
     iIntros "H". unfold own_graph.
-    by iDestruct (own_valid with "H") as %[_ [_ ?]].
+    iDestruct (own_valid with "H") as %VAL.
+    move : VAL => /auth_auth_valid [_ ?] //.
   Qed.
 
   Lemma whole_frac (G G' : Gmon):
@@ -287,10 +288,8 @@ Section graph.
   Proof.
     iIntros "[H1 H2]". rewrite /own_graph.
     iCombine "H1" "H2" as "H".
-    iDestruct (own_valid with "H") as %[H1 H2]; cbn in *.
+    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid.
     iPureIntro.
-    specialize (H1 O).
-    apply cmra_discrete_included_iff in H1.
     apply option_included in H1; destruct H1 as [H1|H1]; [inversion H1|].
     destruct H1 as (u1 & u2 & Hu1 & Hu2 & H3);
       inversion Hu1; inversion Hu2; subst.
@@ -345,10 +344,8 @@ Section graph.
       ⊢ ⌜G = {[x := Excl w]} ⋅ (delete x G)⌝.
   Proof.
     rewrite /own_graph -?own_op. iIntros "H".
-    iDestruct (@own_valid with "H") as %[H1 H2]; simpl in *.
+    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid.
     iPureIntro.
-    specialize (H1 O).
-    apply cmra_discrete_included_iff in H1.
     apply option_included in H1; destruct H1 as [H1|H1]; [inversion H1|].
     destruct H1 as (u1 & u2 & Hu1 & Hu2 & H1);
       inversion Hu1; inversion Hu2; subst.
@@ -399,7 +396,8 @@ Section graph.
   Proof.
     iIntros "H". unfold is_marked. rewrite -own_op.
     iDestruct (own_valid with "H") as %Hvl.
-    iPureIntro. destruct Hvl as [Hvl _]. destruct (Hvl O) as [z Hvl'].
+    move : Hvl => /auth_both_valid [[z Hvl'] _].
+    iPureIntro.
     rewrite Hvl' /= !gset_op_union !elem_of_union elem_of_singleton; tauto.
   Qed.
 

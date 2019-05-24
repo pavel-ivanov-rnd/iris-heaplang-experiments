@@ -1,5 +1,5 @@
 From iris.program_logic Require Import lifting.
-From iris.algebra Require Import auth frac agree gmap list.
+From iris.algebra Require Import excl auth frac agree gmap list.
 From iris_examples.logrel.F_mu_ref Require Export rules.
 From iris.proofmode Require Import tactics.
 Import uPred.
@@ -65,7 +65,7 @@ Section cfg.
     iInv specN as ">Hspec" "Hclose".
     iDestruct "Hspec" as (e'' σ) "[Hown %]".
     iDestruct (@own_valid_2 with "Hown Hj")
-      as %[[?%Excl_included%leibniz_equiv _]%prod_included Hvalid]%auth_valid_discrete_2; subst.
+      as %[[?%Excl_included%leibniz_equiv _]%prod_included Hvalid]%auth_both_valid; subst.
     iMod (own_update_2 with "Hown Hj") as "[Hown Hj]".
     { by eapply auth_update, prod_local_update_1, option_local_update,
         (exclusive_local_update _ (Excl (fill K e'))). }
@@ -93,7 +93,7 @@ Section cfg.
     iInv specN as ">Hinv'" "Hclose". iDestruct "Hinv'" as (e2 σ) "[Hown %]".
     destruct (exist_fresh (dom (gset positive) σ)) as [l Hl%not_elem_of_dom].
     iDestruct (own_valid_2 _ with "Hown Hj")
-      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_valid_discrete_2.
+      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_both_valid.
     subst.
     iMod (own_update_2 with "Hown Hj") as "[Hown Hj]".
     { by eapply auth_update, prod_local_update_1, option_local_update,
@@ -117,10 +117,10 @@ Section cfg.
     rewrite /spec_ctx /tpool_mapsto /heapS_mapsto.
     iInv specN as ">Hinv'" "Hclose". iDestruct "Hinv'" as (e2 σ) "[Hown %]".
     iDestruct (own_valid_2 _ with "Hown Hj")
-      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_valid_discrete_2.
+      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_both_valid.
     subst.
     iDestruct (own_valid_2 with "Hown Hl")
-      as %[[_ ?%gen_heap_singleton_included]%prod_included _]%auth_valid_discrete_2.
+      as %[[_ ?%gen_heap_singleton_included]%prod_included _]%auth_both_valid.
     iMod (own_update_2 with "Hown Hj") as "[Hown Hj]".
     { by eapply auth_update, prod_local_update_1, option_local_update,
         (exclusive_local_update _ (Excl (fill K (of_val v)))). }
@@ -139,10 +139,10 @@ Section cfg.
     rewrite /spec_ctx /tpool_mapsto /heapS_mapsto.
     iInv specN as ">Hinv'" "Hclose". iDestruct "Hinv'" as (e2 σ) "[Hown %]".
     iDestruct (own_valid_2 _ with "Hown Hj")
-      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_valid_discrete_2.
+      as %[[?%Excl_included%leibniz_equiv _]%prod_included ?]%auth_both_valid.
     subst.
     iDestruct (own_valid_2 _ with "Hown Hl")
-      as %[[_ Hl%gen_heap_singleton_included]%prod_included _]%auth_valid_discrete_2.
+      as %[[_ Hl%gen_heap_singleton_included]%prod_included _]%auth_both_valid.
     iMod (own_update_2 with "Hown Hj") as "[Hown Hj]".
     { by eapply auth_update, prod_local_update_1, option_local_update,
         (exclusive_local_update _ (Excl (fill K Unit))). }

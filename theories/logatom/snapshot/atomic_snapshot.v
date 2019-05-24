@@ -160,11 +160,11 @@ Section atomic_snapshot.
     wp_alloc ly as "Hly".
     set (Excl' (v1, v2)) as p.
     iMod (own_alloc (● p ⋅ ◯ p)) as (γ1) "[Hp⚫ Hp◯]". {
-      rewrite /p. apply auth_valid_discrete_2. split; done.
+      rewrite /p. apply auth_both_valid. split; done.
     }
     set (new_timestamp 0 v1) as t.
     iMod (own_alloc (● gmap_to_UR t ⋅ ◯ gmap_to_UR t)) as (γ2) "[Ht⚫ Ht◯]". {
-      rewrite /t /new_timestamp. apply auth_valid_discrete_2.
+      rewrite /t /new_timestamp. apply auth_both_valid.
       split; first done. rewrite /gmap_to_UR map_fmap_singleton. apply singleton_valid. done.
     }
     wp_pures. iApply ("Hp" $! (γ1, γ2)).
@@ -192,7 +192,7 @@ Section atomic_snapshot.
   Proof.
     iIntros "Hγ● Hγ◯".
     iDestruct (own_valid_2 with "Hγ● Hγ◯") as
-        %[H%Excl_included%leibniz_equiv _]%auth_valid_discrete_2.
+        %[H%Excl_included%leibniz_equiv _]%auth_both_valid.
     done.
   Qed.
 
@@ -223,7 +223,7 @@ Section atomic_snapshot.
   Proof.
     iIntros "[Hγ⚫ Hγ◯]".
     iDestruct (own_valid_2 with "Hγ⚫ Hγ◯") as
-        %[H Hv]%auth_valid_discrete_2. iPureIntro. intros t x HT2.
+        %[H Hv]%auth_both_valid. iPureIntro. intros t x HT2.
     pose proof (iffLR (lookup_included (gmap_to_UR T2) (gmap_to_UR T1)) H t) as Ht.
     rewrite !lookup_fmap HT2 /= in Ht.
     destruct (is_Some_included _ _ Ht) as [? [t2 [Ht2 ->]]%fmap_Some_1]; first by eauto.

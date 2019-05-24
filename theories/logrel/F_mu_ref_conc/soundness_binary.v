@@ -15,10 +15,10 @@ Proof.
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ _); iIntros (Hinv ?).
   iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
-  { apply (auth_auth_valid _ (to_gen_heap_valid _ _ ∅)). }
+  { by apply auth_auth_valid, to_gen_heap_valid. }
   iMod (own_alloc (● (to_tpool [e'], ∅)
     ⋅ ◯ ((to_tpool [e'] : tpoolUR, ∅) : cfgUR))) as (γc) "[Hcfg1 Hcfg2]".
-  { apply auth_valid_discrete_2. split=>//. split=>//. apply to_tpool_valid. }
+  { apply auth_both_valid. split=>//. split=>//. apply to_tpool_valid. }
   set (Hcfg := CFGSG _ _ γc).
   iMod (inv_alloc specN _ (spec_inv ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
   { iNext. iExists [e'], ∅. rewrite /to_gen_heap fin_maps.map_fmap_empty. auto. }
@@ -36,7 +36,7 @@ Proof.
   iInv specN as (tp σ) ">[Hown Hsteps]" "Hclose"; iDestruct "Hsteps" as %Hsteps'.
   rewrite /tpool_mapsto /=.
   iDestruct (own_valid_2 with "Hown Hj") as %Hvalid.
-  move: Hvalid=> /auth_valid_discrete_2
+  move: Hvalid=> /auth_both_valid
     [/prod_included [/tpool_singleton_included Hv2 _] _].
   destruct tp as [|? tp']; simplify_eq/=.
   iMod ("Hclose" with "[-]") as "_"; [iExists (_ :: tp'), σ; auto|].

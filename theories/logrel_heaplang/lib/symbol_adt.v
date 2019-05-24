@@ -31,13 +31,16 @@ Section symbol_ghosts.
   Proof. apply _. Qed.
 
   Lemma counter_exclusive γ n1 n2 : counter γ n1 -∗ counter γ n2 -∗ False.
-  Proof. apply bi.wand_intro_r. by rewrite -own_op own_valid auth_validI. Qed.
+  Proof.
+    apply bi.wand_intro_r. rewrite -own_op own_valid /=. by iDestruct 1 as %[].
+  Qed.
   Global Instance symbol_persistent γ n : Persistent (symbol γ n).
   Proof. apply _. Qed.
 
   Lemma counter_alloc n : (|==> ∃ γ, counter γ n)%I.
   Proof.
-    iMod (own_alloc (● (n:mnat) ⋅ ◯ (n:mnat))) as (γ) "[Hγ Hγf]"; first done.
+    iMod (own_alloc (● (n:mnat) ⋅ ◯ (n:mnat))) as (γ) "[Hγ Hγf]";
+      first by apply auth_both_valid.
     iExists γ. by iFrame.
   Qed.
 
@@ -50,7 +53,7 @@ Section symbol_ghosts.
   Lemma symbol_obs γ s n : counter γ n -∗ symbol γ s -∗ ⌜(s < n)%nat⌝.
   Proof.
     iIntros "Hc Hs".
-    iDestruct (own_valid_2 with "Hc Hs") as %[?%mnat_included _]%auth_valid_discrete_2.
+    iDestruct (own_valid_2 with "Hc Hs") as %[?%mnat_included _]%auth_both_valid.
     iPureIntro. omega.
   Qed.
 End symbol_ghosts.

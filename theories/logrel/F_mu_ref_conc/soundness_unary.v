@@ -16,7 +16,7 @@ Proof.
   intros Hlog ??. cut (adequate NotStuck e σ (λ _ _, True)); first (intros [_ ?]; eauto).
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
   iMod (own_alloc (● to_gen_heap σ)) as (γ) "Hh".
-  { apply (auth_auth_valid _ (to_gen_heap_valid _ _ σ)). }
+  { by apply auth_auth_valid, to_gen_heap_valid. }
   iModIntro. iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   set (HeapΣ := (HeapIG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
   iApply (wp_wand with "[]").

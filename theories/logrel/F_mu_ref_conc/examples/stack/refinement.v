@@ -47,7 +47,7 @@ Section Stack_refinement.
     simpl. iApply wp_pure_step_later; trivial. iNext. simpl.
     iAsimpl.
     (* establishing the invariant *)
-    iMod (own_alloc (● (∅ : stackUR))) as (γ) "Hemp"; first done.
+    iMod (own_alloc (● (∅ : stackUR))) as (γ) "Hemp"; first by apply auth_auth_valid.
     set (istkG := StackG _ _ γ).
     change γ with (@stack_name _ istkG).
     change H1 with (@stack_inG _ istkG).
