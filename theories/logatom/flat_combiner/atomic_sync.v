@@ -11,7 +11,7 @@ Class syncG Σ := sync_tokG :> inG Σ syncR.
 Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
 Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
-Proof. by intros ?%subG_inG. Qed.
+Proof. solve_inG. Qed.
 
 Section atomic_sync.
   Context `{EqDecision A, !heapG Σ, !lockG Σ}.

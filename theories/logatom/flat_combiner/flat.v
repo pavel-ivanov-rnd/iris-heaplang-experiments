@@ -58,7 +58,7 @@ Definition flatΣ : gFunctors :=
      savedPredΣ val ].
 
 Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
-Proof. intros [?%subG_inG [? _]%subG_inv]%subG_inv. split; apply _. Qed.
+Proof. solve_inG. Qed.
 
 Section proof.
   Context `{!heapG Σ, !lockG Σ, !flatG Σ} (N: namespace).
