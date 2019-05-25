@@ -88,7 +88,7 @@ Section logrel.
     env_Persistent Δ → Persistent (ctx_lookup x Δ v).
   Proof. intros HΔ; revert x; induction HΔ=>-[|?] /=; apply _. Qed.
   Global Instance interp_persistent τ Δ v :
-    env_Persistent Δ → Persistent (⟦ τ ⟧ Δ v) := _.
+    env_Persistent Δ → Persistent (⟦ τ ⟧ Δ v).
   Proof.
     revert v Δ; induction τ=> v Δ HΔ; simpl; try apply _.
     rewrite /Persistent fixpoint_interp_rec1_eq /interp_rec1 /= intuitionistically_into_persistently.

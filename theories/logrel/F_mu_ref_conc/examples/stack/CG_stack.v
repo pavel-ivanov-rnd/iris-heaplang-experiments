@@ -79,7 +79,7 @@ Section CG_Stack.
   Lemma CG_push_subst (st : expr) f : (CG_push st).[f] = CG_push st.[f].
   Proof. unfold CG_push; asimpl; trivial. Qed.
 
-  Global Hint Rewrite CG_push_subst : autosubst.
+  Hint Rewrite CG_push_subst : autosubst.
 
   Lemma steps_CG_push E ρ j K st v w :
     nclose specN ⊆ E →
@@ -451,13 +451,13 @@ Section CG_Stack.
 
 End CG_Stack.
 
-Global Hint Rewrite CG_push_subst : autosubst.
-Global Hint Rewrite CG_locked_push_subst : autosubst.
-Global Hint Rewrite CG_locked_pop_subst : autosubst.
-Global Hint Rewrite CG_pop_subst : autosubst.
-Global Hint Rewrite CG_locked_pop_subst : autosubst.
-Global Hint Rewrite CG_snap_subst : autosubst.
-Global Hint Rewrite CG_iter_subst : autosubst.
-Global Hint Rewrite CG_snap_iter_subst : autosubst.
-Global Hint Rewrite CG_stack_body_subst : autosubst.
-Global Hint Rewrite CG_stack_closed : autosubst.
+Hint Rewrite CG_push_subst : autosubst.
+Hint Rewrite CG_locked_push_subst : autosubst.
+Hint Rewrite CG_locked_pop_subst : autosubst.
+Hint Rewrite CG_pop_subst : autosubst.
+Hint Rewrite CG_locked_pop_subst : autosubst.
+Hint Rewrite CG_snap_subst : autosubst.
+Hint Rewrite CG_iter_subst : autosubst.
+Hint Rewrite CG_snap_iter_subst : autosubst.
+Hint Rewrite CG_stack_body_subst : autosubst.
+Hint Rewrite CG_stack_closed : autosubst.

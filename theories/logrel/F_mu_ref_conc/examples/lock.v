@@ -159,7 +159,7 @@ Section proof.
   Global Opaque with_lock.
 End proof.
 
-Global Hint Rewrite newlock_closed : autosubst.
-Global Hint Rewrite acquire_closed : autosubst.
-Global Hint Rewrite release_closed : autosubst.
-Global Hint Rewrite with_lock_subst : autosubst.
+Hint Rewrite newlock_closed : autosubst.
+Hint Rewrite acquire_closed : autosubst.
+Hint Rewrite release_closed : autosubst.
+Hint Rewrite with_lock_subst : autosubst.
