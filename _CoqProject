@@ -9,7 +9,6 @@
 theories/barrier/proof.v
 theories/barrier/specification.v
 theories/barrier/barrier.v
-theories/barrier/protocol.v
 theories/barrier/example_client.v
 theories/barrier/example_joining_existentials.v
 
