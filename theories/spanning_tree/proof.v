@@ -51,7 +51,7 @@ Section wp_span.
         [by iFrame|].
       iDestruct (own_graph_valid with "Hl1") as %Hvl.
       iExists (Gmon_graph G').
-      assert (dom (gset positive) g = dom (gset positive) (Gmon_graph G')).
+      assert (dom (gset loc) g = dom (gset loc) (Gmon_graph G')).
       { erewrite front_t_t_dom; eauto.
         - by rewrite Gmon_graph_dom.
         - eapply front_mono; rewrite Gmon_graph_dom; eauto. }

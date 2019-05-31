@@ -751,7 +751,7 @@ Proof.
     by rewrite get_left_singleton get_right_singleton /get_left /get_right Hu.
 Qed.
 Lemma mark_strict_subgraph (g : graph loc) (G : Gmon) x v :
-  ✓ ((x [↦] v) ⋅ G) → x ∈ dom (gset positive) g →
+  ✓ ((x [↦] v) ⋅ G) → x ∈ dom (gset loc) g →
   of_graph g G !! x = Some (false, v) → strict_subgraph g (Gmon_graph G) →
   strict_subgraph g (Gmon_graph ((x [↦] v) ⋅ G)).
 Proof.
@@ -760,7 +760,7 @@ Proof.
   inversion 1; auto using strict_sub_children_refl.
 Qed.
 Lemma update_strict_subgraph (g : graph loc) (G : Gmon) x v w :
-  ✓ ((x [↦] v) ⋅ G) → x ∈ dom (gset positive) g →
+  ✓ ((x [↦] v) ⋅ G) → x ∈ dom (gset loc) g →
   strict_subgraph g (Gmon_graph ((x [↦] w) ⋅ G)) →
   strict_sub_children w v →
   strict_subgraph g (Gmon_graph ((x [↦] v) ⋅ G)).
