@@ -20,7 +20,7 @@ Section Stack_refinement.
            (TArrow (TArrow (TVar 0) TUnit) TUnit)).
   Proof.
     (* executing the preambles *)
-    iIntros (Δ [|??] ρ ?) "#[Hspec HΓ]"; iIntros (j K) "Hj"; last first.
+    iIntros (Δ [|??] ?) "#[Hspec HΓ]"; iIntros (j K) "Hj"; last first.
     { iDestruct (interp_env_length with "HΓ") as %[=]. }
     iClear "HΓ". cbn -[FG_stack CG_stack].
     rewrite ?empty_env_subst /CG_stack /FG_stack.
@@ -29,11 +29,11 @@ Section Stack_refinement.
     clear j K. iAlways. iIntros (τi) "%". iIntros (j K) "Hj /=".
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iApply wp_pure_step_later; auto. iNext.
-    iMod (steps_newlock _ _ j (LetInCtx _ :: K) with "[$Hj]")
+    iMod (steps_newlock _ j (LetInCtx _ :: K) with "[$Hj]")
       as (l) "[Hj Hl]"; eauto.
-    iMod (do_step_pure _ _ j K with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ j K with "[$Hj]") as "Hj"; eauto.
     simpl. iAsimpl.
-    iMod (step_alloc  _ _ j (LetInCtx _ :: K) with "[$Hj]")
+    iMod (step_alloc  _ j (LetInCtx _ :: K) with "[$Hj]")
       as (stk') "[Hj Hstk']"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
@@ -110,7 +110,7 @@ Section Stack_refinement.
         * (* CAS succeeds *)
           (* In this case, the specification pushes *)
           iMod "Hstk'". iMod "Hl".
-          iMod (steps_CG_locked_push _ _ j K with "[Hj Hl Hstk']")
+          iMod (steps_CG_locked_push _ j K with "[Hj Hl Hstk']")
             as "[Hj [Hstk' Hl]]"; first solve_ndisj.
           { rewrite CG_locked_push_of_val. by iFrame "Hspec Hstk' Hj". }
           iApply (wp_cas_suc with "Hstk"); auto.
@@ -250,7 +250,7 @@ Section Stack_refinement.
       iApply (wp_bind (fill [FoldCtx; AppRCtx _])); iApply wp_wand_l;
         iSplitR; [iIntros (w) "Hw"; iExact "Hw"|].
       iInv stackN as (istk3 w h) "[Hoe [>Hstk' [>Hstk [#HLK >Hl]]]]" "Hclose".
-      iMod (steps_CG_snap _ _ _ (AppRCtx _ :: K)
+      iMod (steps_CG_snap _ _ (AppRCtx _ :: K)
             with "[Hstk' Hj Hl]") as "[Hj [Hstk' Hl]]"; first solve_ndisj.
       { rewrite ?fill_app. simpl. by iFrame "Hspec Hstk' Hl Hj". }
       iApply (wp_load with "[$Hstk]"). iNext. iIntros "Hstk".
@@ -308,7 +308,7 @@ Section Stack_refinement.
         iAsimpl.
         replace (CG_iter (of_val f2)) with (of_val (CG_iterV (of_val f2)))
           by (by rewrite CG_iter_of_val).
-        iMod (step_snd _ _ _ (AppRCtx _ :: K) with "[$Hspec Hj]") as "Hj";
+        iMod (step_snd _ _ (AppRCtx _ :: K) with "[$Hspec Hj]") as "Hj";
           [| | |simpl; by iFrame "Hj"|]; rewrite ?to_of_val; auto.
         iApply wp_pure_step_later; trivial.
         iNext. simpl.

@@ -60,21 +60,21 @@ Section CG_Counter.
 
   Hint Rewrite CG_increment_subst : autosubst.
 
-  Lemma steps_CG_increment E ρ j K x n:
+  Lemma steps_CG_increment E j K x n:
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ x ↦ₛ (#nv n) ∗ j ⤇ fill K (App (CG_increment (Loc x)) Unit)
+    spec_ctx ∗ x ↦ₛ (#nv n) ∗ j ⤇ fill K (App (CG_increment (Loc x)) Unit)
       ⊢ |={E}=> j ⤇ fill K (Unit) ∗ x ↦ₛ (#nv (S n)).
   Proof.
     iIntros (HNE) "[#Hspec [Hx Hj]]". unfold CG_increment.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
-    iMod (step_load _ _ j ((BinOpRCtx _ (#nv _) :: StoreRCtx (LocV _) :: K))
+    iMod (step_load _ j ((BinOpRCtx _ (#nv _) :: StoreRCtx (LocV _) :: K))
                     _ _ _ with "[Hj Hx]") as "[Hj Hx]"; eauto.
     { iFrame "Hspec Hj"; trivial. }
     simpl.
-    iMod (do_step_pure _ _ _ ((StoreRCtx (LocV _)) :: K)  with "[$Hj]") as "Hj";
+    iMod (do_step_pure _ _ ((StoreRCtx (LocV _)) :: K)  with "[$Hj]") as "Hj";
       eauto.
     simpl.
-    iMod (step_store _ _ j K with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
+    iMod (step_store _ j K with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
     iModIntro; iFrame.
   Qed.
 
@@ -108,15 +108,15 @@ Section CG_Counter.
 
   Hint Rewrite CG_locked_increment_subst : autosubst.
 
-  Lemma steps_CG_locked_increment E ρ j K x n l :
+  Lemma steps_CG_locked_increment E j K x n l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ x ↦ₛ (#nv n) ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ x ↦ₛ (#nv n) ∗ l ↦ₛ (#♭v false)
       ∗ j ⤇ fill K (App (CG_locked_increment (Loc x) (Loc l)) Unit)
     ={E}=∗ j ⤇ fill K Unit ∗ x ↦ₛ (#nv S n) ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]".
     iMod (steps_with_lock
-            _ _ j K _ _ _ _ UnitV UnitV with "[$Hj Hx $Hl]") as "Hj"; eauto.
+            _ j K _ _ _ _ UnitV UnitV with "[$Hj Hx $Hl]") as "Hj"; eauto.
     - iIntros (K') "[#Hspec Hxj]".
       iApply steps_CG_increment; by try iFrame.
     - by iFrame.
@@ -151,16 +151,16 @@ Section CG_Counter.
 
   Hint Rewrite counter_read_subst : autosubst.
 
-  Lemma steps_counter_read E ρ j K x n :
+  Lemma steps_counter_read E j K x n :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ x ↦ₛ (#nv n)
+    spec_ctx ∗ x ↦ₛ (#nv n)
                ∗ j ⤇ fill K (App (counter_read (Loc x)) Unit)
     ={E}=∗ j ⤇ fill K (#n n) ∗ x ↦ₛ (#nv n).
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold counter_read.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (step_load _ _ j K with "[$Hj Hx]") as "[Hj Hx]"; eauto.
+    iMod (step_load _ j K with "[$Hj Hx]") as "[Hj Hx]"; eauto.
     by iFrame.
   Qed.
 
@@ -247,17 +247,17 @@ Section CG_Counter.
   Lemma FG_CG_counter_refinement :
     [] ⊨ FG_counter ≤log≤ CG_counter : TProd (TArrow TUnit TUnit) (TArrow TUnit TNat).
   Proof.
-    iIntros (Δ [|??] ρ ?) "#(Hspec & HΓ)"; iIntros (j K) "Hj"; last first.
+    iIntros (Δ [|??] ?) "#(Hspec & HΓ)"; iIntros (j K) "Hj"; last first.
     { iDestruct (interp_env_length with "HΓ") as %[=]. }
     iClear "HΓ". cbn -[FG_counter CG_counter].
     rewrite ?empty_env_subst /CG_counter /FG_counter.
     iApply fupd_wp.
-    iMod (steps_newlock _ _ j (LetInCtx _ :: K) with "[$Hj]")
+    iMod (steps_newlock _ j (LetInCtx _ :: K) with "[$Hj]")
       as (l) "[Hj Hl]"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (step_alloc _ _ j (LetInCtx _ :: K) with "[$Hj]")
+    iMod (step_alloc _ j (LetInCtx _ :: K) with "[$Hj]")
       as (cnt') "[Hj Hcnt']"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
@@ -308,7 +308,7 @@ Section CG_Counter.
       + (* CAS succeeds *)
         (* In this case, we perform increment in the coarse-grained one *)
         iMod (steps_CG_locked_increment
-                _ _ _ _ _ _ _ _ with "[Hj Hl Hcnt']") as "[Hj [Hcnt' Hl]]".
+                _ _ _ _ _ _ _ with "[Hj Hl Hcnt']") as "[Hj [Hcnt' Hl]]".
         { iFrame "Hspec Hcnt' Hl Hj"; trivial. }
         iApply (wp_cas_suc with "[Hcnt]"); auto.
         iModIntro. iNext. iIntros "Hcnt".

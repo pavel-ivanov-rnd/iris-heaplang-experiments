@@ -68,7 +68,7 @@ Section fact_equiv.
   Lemma fact_fact_acc_refinement :
     [] ⊨ fact ≤log≤ fact_acc : (TArrow TNat TNat).
   Proof.
-    iIntros (? vs ρ _) "[#HE HΔ]".
+    iIntros (? vs _) "[#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
@@ -87,7 +87,7 @@ Section fact_equiv.
     - iApply wp_pure_step_later; auto.
       iNext; simpl; asimpl.
       rewrite fact_acc_body_unfold.
-      iMod (do_step_pure _ _ _ (AppLCtx _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (AppLCtx _ :: _) with "[$Hj]") as "Hj"; auto.
       rewrite -fact_acc_body_unfold.
       simpl; asimpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
@@ -95,7 +95,7 @@ Section fact_equiv.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
       iApply wp_value. simpl.
-      iMod (do_step_pure _ _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
       simpl.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
@@ -106,7 +106,7 @@ Section fact_equiv.
     - iApply wp_pure_step_later; auto.
       iNext; simpl; asimpl.
       rewrite fact_acc_body_unfold.
-      iMod (do_step_pure _ _ _ (AppLCtx _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (AppLCtx _ :: _) with "[$Hj]") as "Hj"; auto.
       rewrite -fact_acc_body_unfold.
       simpl; asimpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
@@ -114,7 +114,7 @@ Section fact_equiv.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
       iApply wp_value. simpl.
-      iMod (do_step_pure _ _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
       simpl.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
@@ -124,11 +124,11 @@ Section fact_equiv.
       iApply (wp_bind (fill [AppRCtx (RecV _)])).
       iApply wp_pure_step_later; auto.
       iNext; simpl; iApply wp_value; simpl.
-      iMod (do_step_pure _ _ _ (LetInCtx _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (LetInCtx _ :: _) with "[$Hj]") as "Hj"; auto.
       simpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
       asimpl.
-      iMod (do_step_pure _ _ _ (LetInCtx _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (LetInCtx _ :: _) with "[$Hj]") as "Hj"; auto.
       simpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
       asimpl.
@@ -146,7 +146,7 @@ Section fact_equiv.
   Lemma fact_acc_fact_refinement :
     [] ⊨ fact_acc ≤log≤ fact : (TArrow TNat TNat).
   Proof.
-    iIntros (? vs ρ _) "[#HE HΔ]".
+    iIntros (? vs _) "[#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
@@ -173,7 +173,7 @@ Section fact_equiv.
       iNext; simpl; asimpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
       simpl; asimpl.
-      iMod (do_step_pure _ _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
       iApply (wp_bind (fill [IfCtx _ _])).
       iApply wp_pure_step_later; auto.
       iNext; simpl.
@@ -198,12 +198,12 @@ Section fact_equiv.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
       iApply wp_value. simpl.
-      iMod (do_step_pure _ _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
+      iMod (do_step_pure _ _ (IfCtx _ _ :: _) with "[$Hj]") as "Hj"; auto.
       simpl.
       iApply wp_pure_step_later; auto.
       iNext; simpl.
       iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
-      iMod (do_step_pure _ _ _ (AppRCtx (RecV _):: BinOpRCtx _ (#nv _) :: _)
+      iMod (do_step_pure _ _ (AppRCtx (RecV _):: BinOpRCtx _ (#nv _) :: _)
               with "[$Hj]") as "Hj"; eauto.
       simpl.
       iApply (wp_bind (fill [LetInCtx _])).

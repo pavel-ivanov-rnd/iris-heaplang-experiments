@@ -81,18 +81,18 @@ Section CG_Stack.
 
   Hint Rewrite CG_push_subst : autosubst.
 
-  Lemma steps_CG_push E ρ j K st v w :
+  Lemma steps_CG_push E j K st v w :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ v ∗ j ⤇ fill K (App (CG_push (Loc st)) (of_val w))
+    spec_ctx ∗ st ↦ₛ v ∗ j ⤇ fill K (App (CG_push (Loc st)) (of_val w))
     ⊢ |={E}=> j ⤇ fill K Unit ∗ st ↦ₛ FoldV (InjRV (PairV w v)).
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold CG_push.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (step_load _ _ j (PairRCtx _ :: InjRCtx :: FoldCtx :: StoreRCtx (LocV _) :: K)
+    iMod (step_load _ j (PairRCtx _ :: InjRCtx :: FoldCtx :: StoreRCtx (LocV _) :: K)
             with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
     simpl.
-    iMod (step_store _ _ j K with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
+    iMod (step_store _ j K with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
     { rewrite /= !to_of_val //. }
     iModIntro. by iFrame.
   Qed.
@@ -124,14 +124,14 @@ Section CG_Stack.
 
   Hint Rewrite CG_locked_push_subst : autosubst.
 
-  Lemma steps_CG_locked_push E ρ j K st w v l :
+  Lemma steps_CG_locked_push E j K st w v l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false)
       ∗ j ⤇ fill K (App (CG_locked_push (Loc st) (Loc l)) (of_val w))
     ⊢ |={E}=> j ⤇ fill K Unit ∗ st ↦ₛ FoldV (InjRV (PairV w v)) ∗ l ↦ₛ (#♭v false).
   Proof.
     intros HNE. iIntros "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_push.
-    iMod (steps_with_lock _ _ _ _ _ _ (st ↦ₛ v)%I _ UnitV with "[$Hj $Hx $Hl]")
+    iMod (steps_with_lock _ _ _ _ _ (st ↦ₛ v)%I _ UnitV with "[$Hj $Hx $Hl]")
       as "Hj"; auto.
     iIntros (K') "[#Hspec Hxj]".
     iApply steps_CG_push; first done. by iFrame.
@@ -164,46 +164,46 @@ Section CG_Stack.
 
   Hint Rewrite CG_pop_subst : autosubst.
 
-  Lemma steps_CG_pop_suc E ρ j K st v w :
+  Lemma steps_CG_pop_suc E j K st v w :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ FoldV (InjRV (PairV w v)) ∗
+    spec_ctx ∗ st ↦ₛ FoldV (InjRV (PairV w v)) ∗
                j ⤇ fill K (App (CG_pop (Loc st)) Unit)
       ⊢ |={E}=> j ⤇ fill K (InjR (of_val w)) ∗ st ↦ₛ v.
   Proof.
     intros HNE. iIntros "[#Hspec [Hx Hj]]". unfold CG_pop.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (step_load _ _ _ (UnfoldCtx :: CaseCtx _ _ :: K)  with "[$Hj $Hx]")
+    iMod (step_load _ _ (UnfoldCtx :: CaseCtx _ _ :: K)  with "[$Hj $Hx]")
       as "[Hj Hx]"; eauto.
     simpl.
-    iMod (do_step_pure  _ _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (do_step_pure _ _ _ (StoreRCtx (LocV _) :: SeqCtx _ :: K)
+    iMod (do_step_pure _ _ (StoreRCtx (LocV _) :: SeqCtx _ :: K)
             with "[$Hj]") as "Hj"; eauto.
     simpl.
-    iMod (step_store _ _ j (SeqCtx _ :: K) with "[$Hj $Hx]") as "[Hj Hx]";
+    iMod (step_store _ j (SeqCtx _ :: K) with "[$Hj $Hx]") as "[Hj Hx]";
       eauto using to_of_val.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
-    iMod (do_step_pure _ _ _ (InjRCtx :: K) with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ _ (InjRCtx :: K) with "[$Hj]") as "Hj"; eauto.
     simpl.
     by iFrame "Hj Hx".
   Qed.
 
-  Lemma steps_CG_pop_fail E ρ j K st :
+  Lemma steps_CG_pop_fail E j K st :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ FoldV (InjLV UnitV) ∗
+    spec_ctx ∗ st ↦ₛ FoldV (InjLV UnitV) ∗
                j ⤇ fill K (App (CG_pop (Loc st)) Unit)
       ⊢ |={E}=> j ⤇ fill K (InjL Unit) ∗ st ↦ₛ FoldV (InjLV UnitV).
   Proof.
     iIntros (HNE) "[#Hspec [Hx Hj]]". unfold CG_pop.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (step_load _ _ j (UnfoldCtx :: CaseCtx _ _ :: K)
+    iMod (step_load _ j (UnfoldCtx :: CaseCtx _ _ :: K)
                     _ _ _ with "[$Hj $Hx]") as "[Hj Hx]"; eauto.
-    iMod (do_step_pure _ _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     by iFrame "Hj Hx"; trivial.
@@ -237,28 +237,28 @@ Section CG_Stack.
 
   Hint Rewrite CG_locked_pop_subst : autosubst.
 
-  Lemma steps_CG_locked_pop_suc E ρ j K st v w l :
+  Lemma steps_CG_locked_pop_suc E j K st v w l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ FoldV (InjRV (PairV w v)) ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ st ↦ₛ FoldV (InjRV (PairV w v)) ∗ l ↦ₛ (#♭v false)
                ∗ j ⤇ fill K (App (CG_locked_pop (Loc st) (Loc l)) Unit)
       ⊢ |={E}=> j ⤇ fill K (InjR (of_val w)) ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_pop.
-    iMod (steps_with_lock _ _ _ _ _ _ (st ↦ₛ FoldV (InjRV (PairV w v)))%I
+    iMod (steps_with_lock _ _ _ _ _ (st ↦ₛ FoldV (InjRV (PairV w v)))%I
                           _ (InjRV w) UnitV
             with "[$Hj $Hx $Hl]") as "Hj"; eauto.
     iIntros (K') "[#Hspec Hxj]".
     iApply steps_CG_pop_suc; eauto.
   Qed.
 
-  Lemma steps_CG_locked_pop_fail E ρ j K st l :
+  Lemma steps_CG_locked_pop_fail E j K st l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ FoldV (InjLV UnitV) ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ st ↦ₛ FoldV (InjLV UnitV) ∗ l ↦ₛ (#♭v false)
                ∗ j ⤇ fill K (App (CG_locked_pop (Loc st) (Loc l)) Unit)
       ⊢ |={E}=> j ⤇ fill K (InjL Unit) ∗ st ↦ₛ FoldV (InjLV UnitV) ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_locked_pop.
-    iMod (steps_with_lock _ _ _ _ _ _ (st ↦ₛ FoldV (InjLV UnitV))%I _
+    iMod (steps_with_lock _ _ _ _ _ (st ↦ₛ FoldV (InjLV UnitV))%I _
                           (InjLV UnitV) UnitV
           with "[$Hj $Hx $Hl]") as "Hj"; eauto.
     iIntros (K') "[#Hspec Hxj] /=".
@@ -293,14 +293,14 @@ Section CG_Stack.
 
   Hint Rewrite CG_snap_subst : autosubst.
 
-  Lemma steps_CG_snap E ρ j K st v l :
+  Lemma steps_CG_snap E j K st v l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false)
                ∗ j ⤇ fill K (App (CG_snap (Loc st) (Loc l)) Unit)
       ⊢ |={E}=> j ⤇ (fill K (of_val v)) ∗ st ↦ₛ v ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hx [Hl Hj]]]". unfold CG_snap.
-    iMod (steps_with_lock _ _ _ _ _ _ (st ↦ₛ v)%I _ v UnitV
+    iMod (steps_with_lock _ _ _ _ _ (st ↦ₛ v)%I _ v UnitV
           with "[$Hj $Hx $Hl]") as "Hj"; eauto.
     iIntros (K') "[#Hspec [Hx Hj]]".
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
@@ -353,9 +353,9 @@ Section CG_Stack.
 
   Hint Rewrite CG_iter_subst : autosubst.
 
-  Lemma steps_CG_iter E ρ j K f v w :
+  Lemma steps_CG_iter E j K f v w :
     nclose specN ⊆ E →
-    spec_ctx ρ
+    spec_ctx
              ∗ j ⤇ fill K (App (CG_iter (of_val f))
                                (Fold (InjR (Pair (of_val w) (of_val v)))))
       ⊢ |={E}=>
@@ -366,22 +366,22 @@ Section CG_Stack.
     iIntros (HNE) "[#Hspec Hj]". unfold CG_iter.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (do_step_pure _ _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (do_step_pure _ _ _ (AppRCtx f :: SeqCtx _ :: K) with "[$Hj]")
+    iMod (do_step_pure _ _ (AppRCtx f :: SeqCtx _ :: K) with "[$Hj]")
       as "Hj"; eauto.
   Qed.
 
-  Lemma steps_CG_iter_end E ρ j K f :
+  Lemma steps_CG_iter_end E j K f :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ j ⤇ fill K (App (CG_iter (of_val f)) (Fold (InjL Unit)))
+    spec_ctx ∗ j ⤇ fill K (App (CG_iter (of_val f)) (Fold (InjL Unit)))
       ⊢ |={E}=> j ⤇ fill K Unit.
   Proof.
     iIntros (HNE) "[#Hspec Hj]". unfold CG_iter.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
-    iMod (do_step_pure _ _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
+    iMod (do_step_pure _ _ (CaseCtx _ _ :: K) with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
   Qed.

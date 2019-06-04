@@ -84,29 +84,29 @@ Section proof.
   Context `{cfgSG Σ}.
   Context `{heapIG Σ}.
 
-  Lemma steps_newlock E ρ j K :
+  Lemma steps_newlock E j K :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ j ⤇ fill K newlock
+    spec_ctx ∗ j ⤇ fill K newlock
       ⊢ |={E}=> ∃ l, j ⤇ fill K (Loc l) ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec Hj]".
-    by iMod (step_alloc _ _ j K with "[Hj]") as "Hj"; eauto.
+    by iMod (step_alloc _ j K with "[Hj]") as "Hj"; eauto.
   Qed.
 
   Typeclasses Opaque newlock.
   Global Opaque newlock.
 
-  Lemma steps_acquire E ρ j K l :
+  Lemma steps_acquire E j K l :
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ l ↦ₛ (#♭v false) ∗ j ⤇ fill K (App acquire (Loc l))
+    spec_ctx ∗ l ↦ₛ (#♭v false) ∗ j ⤇ fill K (App acquire (Loc l))
       ⊢ |={E}=> j ⤇ fill K Unit ∗ l ↦ₛ (#♭v true).
   Proof.
     iIntros (HNE) "[#Hspec [Hl Hj]]". unfold acquire.
-    iMod (step_rec _ _ j K with "[Hj]") as "Hj"; eauto. done.
-    iMod (step_cas_suc _ _ j ((IfCtx _ _) :: K)
+    iMod (step_rec _ j K with "[Hj]") as "Hj"; eauto. done.
+    iMod (step_cas_suc _ j ((IfCtx _ _) :: K)
                        _ _ _ _ _ _ _ _ _ with "[Hj Hl]") as "[Hj Hl]"; trivial.
     { simpl. iFrame "Hspec Hj Hl"; eauto. }
-    iMod (step_if_true _ _ j K _ _ _ with "[Hj]") as "Hj"; trivial.
+    iMod (step_if_true _ j K _ _ _ with "[Hj]") as "Hj"; trivial.
     { by iFrame. }
     by iIntros "!> {$Hj $Hl}".
     Unshelve. all:trivial.
@@ -115,9 +115,9 @@ Section proof.
   Typeclasses Opaque acquire.
   Global Opaque acquire.
 
-  Lemma steps_release E ρ j K l b:
+  Lemma steps_release E j K l b:
     nclose specN ⊆ E →
-    spec_ctx ρ ∗ l ↦ₛ (#♭v b) ∗ j ⤇ fill K (App release (Loc l))
+    spec_ctx ∗ l ↦ₛ (#♭v b) ∗ j ⤇ fill K (App release (Loc l))
       ⊢ |={E}=> j ⤇ fill K Unit ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE) "[#Hspec [Hl Hj]]". unfold release.
@@ -129,26 +129,26 @@ Section proof.
   Typeclasses Opaque release.
   Global Opaque release.
 
-  Lemma steps_with_lock E ρ j K e l P Q v w:
+  Lemma steps_with_lock E j K e l P Q v w:
     nclose specN ⊆ E →
     (* (∀ f, e.[f] = e) (* e is a closed term *) → *)
-    (∀ K', spec_ctx ρ ∗ P ∗ j ⤇ fill K' (App e (of_val w))
+    (∀ K', spec_ctx ∗ P ∗ j ⤇ fill K' (App e (of_val w))
             ⊢ |={E}=> j ⤇ fill K' (of_val v) ∗ Q) →
-    spec_ctx ρ ∗ P ∗ l ↦ₛ (#♭v false)
+    spec_ctx ∗ P ∗ l ↦ₛ (#♭v false)
                 ∗ j ⤇ fill K (App (with_lock e (Loc l)) (of_val w))
       ⊢ |={E}=> j ⤇ fill K (of_val v) ∗ Q ∗ l ↦ₛ (#♭v false).
   Proof.
     iIntros (HNE He) "[#Hspec [HP [Hl Hj]]]".
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (steps_acquire _ _ j (SeqCtx _ :: K) with "[$Hj Hl]") as "[Hj Hl]";
+    iMod (steps_acquire _ j (SeqCtx _ :: K) with "[$Hj Hl]") as "[Hj Hl]";
       auto. simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iMod (He (LetInCtx _ :: K) with "[$Hj HP]") as "[Hj HQ]"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iAsimpl.
-    iMod (steps_release _ _ j (SeqCtx _ :: K) _ _ with "[$Hj $Hl]")
+    iMod (steps_release _ j (SeqCtx _ :: K) _ _ with "[$Hj $Hl]")
       as "[Hj Hl]"; eauto.
     simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.

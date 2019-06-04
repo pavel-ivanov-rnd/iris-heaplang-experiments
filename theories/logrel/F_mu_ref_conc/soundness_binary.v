@@ -26,8 +26,10 @@ Proof.
   iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
-  iPoseProof ((Hlog _ _ [] [] ([e'], ∅)) with "[$Hcfg]") as "Hrel".
-  { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }
+  iPoseProof ((Hlog _ _ [] []) with "[]") as "Hrel".
+  { iSplit.
+    - by iExists ([e'], ∅).
+    - by iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }
   simpl.
   replace e with e.[env_subst[]] at 2 by by asimpl.
   iApply ("Hrel" $! 0 []).

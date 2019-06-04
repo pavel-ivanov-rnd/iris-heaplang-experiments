@@ -8,9 +8,9 @@ Section bin_log_def.
   Context `{heapIG Σ, cfgSG Σ}.
   Notation D := (prodC valC valC -n> iProp Σ).
 
-  Definition bin_log_related (Γ : list type) (e e' : expr) (τ : type) := ∀ Δ vvs ρ,
+  Definition bin_log_related (Γ : list type) (e e' : expr) (τ : type) := ∀ Δ vvs,
     env_Persistent Δ →
-    spec_ctx ρ ∧
+    spec_ctx ∧
     ⟦ Γ ⟧* Δ vvs ⊢ ⟦ τ ⟧ₑ Δ (e.[env_subst (vvs.*1)], e'.[env_subst (vvs.*2)]).
 End bin_log_def.
 
@@ -32,13 +32,13 @@ Section fundamental.
     iIntros (v); iDestruct 1 as (w) Hv; simpl.
 
   (* Put all quantifiers at the outer level *)
-  Lemma bin_log_related_alt {Γ e e' τ} : Γ ⊨ e ≤log≤ e' : τ → ∀ Δ vvs ρ j K,
+  Lemma bin_log_related_alt {Γ e e' τ} : Γ ⊨ e ≤log≤ e' : τ → ∀ Δ vvs j K,
     env_Persistent Δ →
-    spec_ctx ρ ∗ ⟦ Γ ⟧* Δ vvs ∗ j ⤇ fill K (e'.[env_subst (vvs.*2)])
+    spec_ctx ∗ ⟦ Γ ⟧* Δ vvs ∗ j ⤇ fill K (e'.[env_subst (vvs.*2)])
     ⊢ WP e.[env_subst (vvs.*1)] {{ v, ∃ v',
         j ⤇ fill K (of_val v') ∗ interp τ Δ (v, v') }}.
   Proof.
-    iIntros (Hlog Δ vvs ρ j K ?) "(#Hs & HΓ & Hj)".
+    iIntros (Hlog Δ vvs j K ?) "(#Hs & HΓ & Hj)".
     iApply (Hlog with "[HΓ]"); iFrame; eauto.
   Qed.
 
@@ -47,7 +47,7 @@ Section fundamental.
   Lemma bin_log_related_var Γ x τ :
     Γ !! x = Some τ → Γ ⊨ Var x ≤log≤ Var x : τ.
   Proof.
-    iIntros (? Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (? Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iDestruct (interp_env_Some_l with "HΓ") as ([v v']) "[Heq ?]"; first done.
     iDestruct "Heq" as %Heq.
     erewrite !env_subst_lookup; rewrite ?list_lookup_fmap ?Heq; eauto.
@@ -56,19 +56,19 @@ Section fundamental.
 
   Lemma bin_log_related_unit Γ : Γ ⊨ Unit ≤log≤ Unit : TUnit.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists UnitV; eauto.
   Qed.
 
   Lemma bin_log_related_nat Γ n : Γ ⊨ #n n ≤log≤ #n n : TNat.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists (#nv _); eauto.
   Qed.
 
   Lemma bin_log_related_bool Γ b : Γ ⊨ #♭ b ≤log≤ #♭ b : TBool.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists (#♭v _); eauto.
   Qed.
 
@@ -77,11 +77,11 @@ Section fundamental.
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ2) :
     Γ ⊨ Pair e1 e2 ≤log≤ Pair e1' e2' : TProd τ1 τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (PairLCtx e2.[env_subst _]) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((PairLCtx e2'.[env_subst _]) :: K)).
+      ('`IHHtyped1 _ _ j ((PairLCtx e2'.[env_subst _]) :: K)).
     smart_wp_bind (PairRCtx v) w w' "[Hw #Hiw]"
-      ('`IHHtyped2 _ _ _ j ((PairRCtx v') :: K)).
+      ('`IHHtyped2 _ _ j ((PairRCtx v') :: K)).
     iApply wp_value. iExists (PairV v' w'); iFrame "Hw".
     iExists (v, v'), (w, w'); simpl; repeat iSplit; trivial.
   Qed.
@@ -90,8 +90,8 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : TProd τ1 τ2) :
     Γ ⊨ Fst e ≤log≤ Fst e' : τ1.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
-    smart_wp_bind (FstCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ j (FstCtx :: K)); cbn.
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    smart_wp_bind (FstCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ j (FstCtx :: K)); cbn.
     iDestruct "Hiv" as ([w1 w1'] [w2 w2']) "#[% [Hw1 Hw2]]"; simplify_eq.
     iApply wp_pure_step_later; eauto. iNext.
     iMod (step_fst with "[Hs Hv]") as "Hw"; eauto.
@@ -102,8 +102,8 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : TProd τ1 τ2) :
     Γ ⊨ Snd e ≤log≤ Snd e' : τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
-    smart_wp_bind (SndCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ j (SndCtx :: K)); cbn.
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    smart_wp_bind (SndCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ j (SndCtx :: K)); cbn.
     iDestruct "Hiv" as ([w1 w1'] [w2 w2']) "#[% [Hw1 Hw2]]"; simplify_eq.
     iApply wp_pure_step_later; eauto. iNext.
     iMod (step_snd with "[Hs Hv]") as "Hw"; eauto.
@@ -114,9 +114,9 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : τ1) :
     Γ ⊨ InjL e ≤log≤ InjL e' : (TSum τ1 τ2).
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (InjLCtx) v v' "[Hv #Hiv]"
-      ('`IHHtyped _ _ _ j (InjLCtx :: K)); cbn.
+      ('`IHHtyped _ _ j (InjLCtx :: K)); cbn.
     iApply wp_value. iExists (InjLV v'); iFrame "Hv".
     iLeft; iExists (_,_); eauto 10.
   Qed.
@@ -125,9 +125,9 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : τ2) :
     Γ ⊨ InjR e ≤log≤ InjR e' : TSum τ1 τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (InjRCtx) v v' "[Hv #Hiv]"
-      ('`IHHtyped _ _ _ j (InjRCtx :: K)); cbn.
+      ('`IHHtyped _ _ j (InjRCtx :: K)); cbn.
     iApply wp_value. iExists (InjRV v'); iFrame "Hv".
     iRight; iExists (_,_); eauto 10.
   Qed.
@@ -142,10 +142,10 @@ Section fundamental.
       (IHHtyped3 : τ2 :: Γ ⊨ e2 ≤log≤ e2' : τ3) :
     Γ ⊨ Case e0 e1 e2 ≤log≤ Case e0' e1' e2' : τ3.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iDestruct (interp_env_length with "HΓ") as %?.
     smart_wp_bind (CaseCtx _ _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((CaseCtx _ _) :: K)); cbn.
+      ('`IHHtyped1 _ _ j ((CaseCtx _ _) :: K)); cbn.
     iDestruct "Hiv" as "[Hiv|Hiv]";
     iDestruct "Hiv" as ([w w']) "[% Hw]"; simplify_eq.
     - iApply fupd_wp.
@@ -168,14 +168,14 @@ Section fundamental.
       (IHHtyped3 : Γ ⊨ e2 ≤log≤ e2' : τ) :
     Γ ⊨ If e0 e1 e2 ≤log≤ If e0' e1' e2' : τ.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (IfCtx _ _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((IfCtx _ _) :: K)); cbn.
+      ('`IHHtyped1 _ _ j ((IfCtx _ _) :: K)); cbn.
     iDestruct "Hiv" as ([]) "[% %]"; simplify_eq/=; iApply fupd_wp.
-    - iMod (step_if_true _ _ j K with "[-]") as "Hz"; eauto.
+    - iMod (step_if_true _ j K with "[-]") as "Hz"; eauto.
       iApply wp_pure_step_later; auto. iModIntro. iNext.
       iApply '`IHHtyped2; eauto.
-    - iMod (step_if_false _ _ j K with "[-]") as "Hz"; eauto.
+    - iMod (step_if_false _ j K with "[-]") as "Hz"; eauto.
       iApply wp_pure_step_later; auto.
       iModIntro. iNext. iApply '`IHHtyped3; eauto.
   Qed.
@@ -185,15 +185,15 @@ Section fundamental.
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : TNat) :
     Γ ⊨ BinOp op e1 e2 ≤log≤ BinOp op e1' e2' : binop_res_type op.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (BinOpLCtx _ _) v v' "[Hv #Hiv]"
-                  ('`IHHtyped1 _ _ _ j ((BinOpLCtx _ _) :: K)); cbn.
+                  ('`IHHtyped1 _ _ j ((BinOpLCtx _ _) :: K)); cbn.
     smart_wp_bind (BinOpRCtx _ _) w w' "[Hw #Hiw]"
-                  ('`IHHtyped2 _ _ _ j ((BinOpRCtx _ _) :: K)); cbn.
+                  ('`IHHtyped2 _ _ j ((BinOpRCtx _ _) :: K)); cbn.
     iDestruct "Hiv" as (n) "[% %]"; simplify_eq/=.
     iDestruct "Hiw" as (n') "[% %]"; simplify_eq/=.
     iApply fupd_wp.
-    iMod (step_nat_binop _ _ j K with "[-]") as "Hz"; eauto.
+    iMod (step_nat_binop _ j K with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto. iModIntro. iNext.
     iApply wp_value. iExists _; iSplitL; eauto.
     destruct op; simpl; try destruct eq_nat_dec; try destruct le_dec;
@@ -206,13 +206,13 @@ Section fundamental.
       (IHHtyped : TArrow τ1 τ2 :: τ1 :: Γ ⊨ e ≤log≤ e' : τ2) :
     Γ ⊨ Rec e ≤log≤ Rec e' : TArrow τ1 τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists (RecV _). iIntros "{$Hj} !#".
     iLöb as "IH". iIntros ([v v']) "#Hiv". iIntros (j' K') "Hj".
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
     iApply fupd_wp.
-    iMod (step_rec _ _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
+    iMod (step_rec _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
     asimpl. change (Rec ?e) with (of_val (RecV e)).
     iApply ('`IHHtyped _ ((_,_) :: (v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
@@ -225,13 +225,13 @@ Section fundamental.
       (IHHtyped : τ1 :: Γ ⊨ e ≤log≤ e' : τ2) :
     Γ ⊨ Lam e ≤log≤ Lam e' : TArrow τ1 τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists (LamV _). iIntros "{$Hj} !#".
     iIntros ([v v']) "#Hiv". iIntros (j' K') "Hj".
     iDestruct (interp_env_length with "HΓ") as %?.
     iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
     iApply fupd_wp.
-    iMod (step_lam _ _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
+    iMod (step_lam _ j' K' _ (of_val v') v' with "[-]") as "Hz"; eauto.
     asimpl. iFrame "#". change (Lam ?e) with (of_val (LamV e)).
     iApply ('`IHHtyped _  ((v,v') :: vvs)); repeat iSplit; eauto.
     iModIntro.
@@ -245,11 +245,11 @@ Section fundamental.
       (IHHtyped2 : τ1 :: Γ ⊨ e2 ≤log≤ e2' : τ2) :
     Γ ⊨ LetIn e1 e2 ≤log≤ LetIn e1' e2': τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iDestruct (interp_env_length with "HΓ") as %?.
     smart_wp_bind (LetInCtx _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((LetInCtx _) :: K)); cbn.
-    iMod (step_letin _ _ j K with "[-]") as "Hz"; eauto.
+      ('`IHHtyped1 _ _ j ((LetInCtx _) :: K)); cbn.
+    iMod (step_letin _ j K with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto. iModIntro.
     asimpl.
     iApply ('`IHHtyped2 _ ((v, v') :: vvs)); repeat iSplit; eauto.
@@ -261,11 +261,11 @@ Section fundamental.
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ2) :
     Γ ⊨ Seq e1 e2 ≤log≤ Seq e1' e2': τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iDestruct (interp_env_length with "HΓ") as %?.
     smart_wp_bind (SeqCtx _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((SeqCtx _) :: K)); cbn.
-    iMod (step_seq _ _ j K with "[-]") as "Hz"; eauto.
+      ('`IHHtyped1 _ _ j ((SeqCtx _) :: K)); cbn.
+    iMod (step_seq _ j K with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto. iModIntro.
     asimpl.
     iApply '`IHHtyped2; repeat iSplit; eauto.
@@ -276,11 +276,11 @@ Section fundamental.
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ1) :
     Γ ⊨ App e1 e2 ≤log≤ App e1' e2' :  τ2.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (AppLCtx (e2.[env_subst (vvs.*1)])) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j (((AppLCtx (e2'.[env_subst (vvs.*2)]))) :: K)); cbn.
+      ('`IHHtyped1 _ _ j (((AppLCtx (e2'.[env_subst (vvs.*2)]))) :: K)); cbn.
     smart_wp_bind (AppRCtx v) w w' "[Hw #Hiw]"
-                  ('`IHHtyped2 _ _ _ j ((AppRCtx v') :: K)); cbn.
+                  ('`IHHtyped2 _ _ j ((AppRCtx v') :: K)); cbn.
     iApply ("Hiv" $! (w, w') with "Hiw"); simpl; eauto.
   Qed.
 
@@ -288,12 +288,12 @@ Section fundamental.
       (IHHtyped : (subst (ren (+1)) <$> Γ) ⊨ e ≤log≤ e' : τ) :
     Γ ⊨ TLam e ≤log≤ TLam e' : TForall τ.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply wp_value. iExists (TLamV _).
     iIntros "{$Hj} /= !#"; iIntros (τi ? j' K') "Hv /=".
     iApply wp_pure_step_later; auto. iNext.
     iApply fupd_wp.
-    iMod (step_tlam _ _ j' K' (e'.[env_subst (vvs.*2)]) with "[-]") as "Hz"; eauto.
+    iMod (step_tlam _ j' K' (e'.[env_subst (vvs.*2)]) with "[-]") as "Hz"; eauto.
     iApply '`IHHtyped; repeat iSplit; eauto. iModIntro. rewrite interp_env_ren; auto.
   Qed.
 
@@ -301,9 +301,9 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : TForall τ) :
     Γ ⊨ TApp e ≤log≤ TApp e' : τ.[τ'/].
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (TAppCtx) v v' "[Hj #Hv]"
-      ('`IHHtyped _ _ _ j (TAppCtx :: K)); cbn.
+      ('`IHHtyped _ _ j (TAppCtx :: K)); cbn.
     iApply wp_wand_r; iSplitL.
     { iSpecialize ("Hv" $! (interp τ' Δ) with "[#]"); [iPureIntro; apply _|].
       iApply "Hv"; eauto. }
@@ -315,9 +315,9 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : τ.[(TRec τ)/]) :
     Γ ⊨ Fold e ≤log≤ Fold e' : TRec τ.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply (wp_bind (fill [FoldCtx])); iApply wp_wand_l; iSplitR;
-        [|iApply ('`IHHtyped _ _ _ j (FoldCtx :: K));
+        [|iApply ('`IHHtyped _ _ j (FoldCtx :: K));
           simpl; repeat iSplitR; trivial].
     iIntros (v); iDestruct 1 as (w) "[Hv #Hiv]".
     iApply wp_value. iExists (FoldV w); iFrame "Hv".
@@ -329,16 +329,16 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : TRec τ) :
     Γ ⊨ Unfold e ≤log≤ Unfold e' : τ.[(TRec τ)/].
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply (wp_bind (fill [UnfoldCtx])); iApply wp_wand_l; iSplitR;
-        [|iApply ('`IHHtyped _ _ _ j (UnfoldCtx :: K));
+        [|iApply ('`IHHtyped _ _ j (UnfoldCtx :: K));
           simpl; repeat iSplitR; trivial].
     iIntros (v). iDestruct 1 as (v') "[Hw #Hiw]".
     rewrite /= fixpoint_interp_rec1_eq /=.
     change (fixpoint _) with (interp (TRec τ) Δ).
     iDestruct "Hiw" as ([w w']) "#[% Hiz]"; simplify_eq/=.
     iApply fupd_wp.
-    iMod (step_Fold _ _ j K (of_val w') w' with "[-]") as "Hz"; eauto.
+    iMod (step_Fold _ j K (of_val w') w' with "[-]") as "Hz"; eauto.
     iApply wp_pure_step_later; auto.
     iModIntro. iApply wp_value. iNext; iExists _; iFrame "Hz".
       by rewrite -interp_subst.
@@ -348,22 +348,22 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : TUnit) :
     Γ ⊨ Fork e ≤log≤ Fork e' : TUnit.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     iApply fupd_wp.
-    iMod (step_fork _ _ j K with "[-]") as (j') "[Hj Hj']"; eauto.
+    iMod (step_fork _ j K with "[-]") as (j') "[Hj Hj']"; eauto.
     iApply wp_fork; iModIntro. rewrite -bi.later_sep. iNext; iSplitL "Hj".
     - iExists UnitV; eauto.
-    - iApply wp_wand_l; iSplitR; [|iApply ('`IHHtyped _ _ _ _ [])]; eauto.
+    - iApply wp_wand_l; iSplitR; [|iApply ('`IHHtyped _ _ _ [])]; eauto.
   Qed.
 
   Lemma bin_log_related_alloc Γ e e' τ
       (IHHtyped : Γ ⊨ e ≤log≤ e' : τ) :
     Γ ⊨ Alloc e ≤log≤ Alloc e' : Tref τ.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
-    smart_wp_bind (AllocCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ j (AllocCtx :: K)).
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    smart_wp_bind (AllocCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ j (AllocCtx :: K)).
     iApply fupd_wp.
-    iMod (step_alloc _ _ j K (of_val v') v' with "[-]") as (l') "[Hj Hl]"; eauto.
+    iMod (step_alloc _ j K (of_val v') v' with "[-]") as (l') "[Hj Hl]"; eauto.
     iApply wp_atomic; eauto.
     iApply wp_alloc; eauto. do 2 iModIntro. iNext.
     iIntros (l) "Hl'".
@@ -377,8 +377,8 @@ Section fundamental.
       (IHHtyped : Γ ⊨ e ≤log≤ e' : (Tref τ)) :
     Γ ⊨ Load e ≤log≤ Load e' : τ.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
-    smart_wp_bind (LoadCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ _ j (LoadCtx :: K)).
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    smart_wp_bind (LoadCtx) v v' "[Hv #Hiv]" ('`IHHtyped _ _ j (LoadCtx :: K)).
     iDestruct "Hiv" as ([l l']) "[% Hinv]"; simplify_eq/=.
     iApply wp_atomic; eauto.
     iInv (logN .@ (l,l')) as ([w w']) "[Hw1 [>Hw2 #Hw]]" "Hclose"; simpl.
@@ -398,11 +398,11 @@ Section fundamental.
       (IHHtyped2 : Γ ⊨ e2 ≤log≤ e2' : τ) :
     Γ ⊨ Store e1 e2 ≤log≤ Store e1' e2' : TUnit.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (StoreLCtx _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((StoreLCtx _) :: K)).
+      ('`IHHtyped1 _ _ j ((StoreLCtx _) :: K)).
     smart_wp_bind (StoreRCtx _) w w' "[Hw #Hiw]"
-      ('`IHHtyped2 _ _ _ j ((StoreRCtx _) :: K)).
+      ('`IHHtyped2 _ _ j ((StoreRCtx _) :: K)).
     iDestruct "Hiv" as ([l l']) "[% Hinv]"; simplify_eq/=.
     iApply wp_atomic; eauto.
     iInv (logN .@ (l,l')) as ([v v']) "[Hv1 [>Hv2 #Hv]]" "Hclose".
@@ -423,13 +423,13 @@ Section fundamental.
       (IHHtyped3 : Γ ⊨ e3 ≤log≤ e3' : τ) :
     Γ ⊨ CAS e1 e2 e3 ≤log≤ CAS e1' e2' e3' : TBool.
   Proof.
-    iIntros (Δ vvs ρ ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
+    iIntros (Δ vvs ?) "#(Hs & HΓ)"; iIntros (j K) "Hj /=".
     smart_wp_bind (CasLCtx _ _) v v' "[Hv #Hiv]"
-      ('`IHHtyped1 _ _ _ j ((CasLCtx _ _) :: K)).
+      ('`IHHtyped1 _ _ j ((CasLCtx _ _) :: K)).
     smart_wp_bind (CasMCtx _ _) w w' "[Hw #Hiw]"
-      ('`IHHtyped2 _ _ _  j ((CasMCtx _ _) :: K)).
+      ('`IHHtyped2 _ _ j ((CasMCtx _ _) :: K)).
     smart_wp_bind (CasRCtx _ _) u u' "[Hu #Hiu]"
-      ('`IHHtyped3 _ _ _  j ((CasRCtx _ _) :: K)).
+      ('`IHHtyped3 _ _ j ((CasRCtx _ _) :: K)).
     iDestruct "Hiv" as ([l l']) "[% Hinv]"; simplify_eq/=.
     iApply wp_atomic; eauto.
     iMod (interp_ref_open' _ _ l l' with "[]") as
