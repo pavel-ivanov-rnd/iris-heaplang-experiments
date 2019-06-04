@@ -365,10 +365,10 @@ Section atomic_snapshot.
     wp_load. eauto.
   Qed.
 
-  Definition val_list_to_bool (v : list val) : bool :=
+  Definition prophecy_to_bool (v : list (val * val)) : bool :=
     match v with
-    | LitV (LitBool b) :: _ => b
-    | _                     => false
+    | (_, LitV (LitBool b)) :: _ => b
+    | _                          => false
     end.
 
   Lemma readPair_spec γ p :
@@ -413,7 +413,7 @@ Section atomic_snapshot.
     iMod "AU" as (xv yv) "[Hpair Hclose]".
     rewrite /pair_content.
     iDestruct (excl_sync with "Hp⚫ Hpair") as %[= -> ->].
-    destruct (val_list_to_bool proph_val) eqn:Hproph.
+    destruct (prophecy_to_bool proph_val) eqn:Hproph.
     - (* prophecy value is predicting that timestamp has not changed, so we commit *)
       (* committing AU *)
       iMod ("Hclose" with "Hpair") as "HΦ".
