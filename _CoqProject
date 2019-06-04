@@ -91,6 +91,7 @@ theories/hocap/lib/oneshot.v
 theories/hocap/concurrent_runners.v
 theories/hocap/parfib.v
 
+theories/logatom/cinc.v
 theories/logatom/treiber.v
 theories/logatom/treiber2.v
 theories/logatom/elimination_stack/hocap_spec.v
