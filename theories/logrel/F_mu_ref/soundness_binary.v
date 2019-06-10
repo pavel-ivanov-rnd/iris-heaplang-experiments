@@ -15,8 +15,7 @@ Proof.
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ); first by apply _.
   iIntros (Hinv ?).
-  iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
-  { by apply auth_auth_valid, to_gen_heap_valid. }
+  iMod (gen_heap_init (∅: state)) as (Hheap) "Hh".
   iMod (own_alloc (● (Excl' e', ∅)
     ⋅ ◯ ((Excl' e', ∅) : cfgUR))) as (γc) "[Hcfg1 Hcfg2]".
   { apply auth_both_valid. split=>//. }
@@ -25,8 +24,8 @@ Proof.
   { iNext. iExists e', ∅. iSplit; eauto.
     rewrite /to_gen_heap fin_maps.map_fmap_empty.
     iFrame. }
-  set (HeapΣ := HeapG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ)).
-  iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
+  set (HeapΣ := HeapG Σ Hinv Hheap).
+  iExists (λ σ _, gen_heap_ctx σ); iFrame.
   iApply wp_fupd. iApply (wp_wand with "[-]").
   - iPoseProof (Hlog _ _ with "[$Hcfg]") as "Hrel".
     { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }

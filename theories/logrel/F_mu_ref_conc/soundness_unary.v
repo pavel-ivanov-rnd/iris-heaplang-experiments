@@ -15,10 +15,9 @@ Theorem soundness Σ `{heapPreIG Σ} e τ e' thp σ σ' :
 Proof.
   intros Hlog ??. cut (adequate NotStuck e σ (λ _ _, True)); first (intros [_ ?]; eauto).
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
-  iMod (own_alloc (● to_gen_heap σ)) as (γ) "Hh".
-  { by apply auth_auth_valid, to_gen_heap_valid. }
-  iModIntro. iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
-  set (HeapΣ := (HeapIG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
+  iMod (gen_heap_init σ) as (Hheap) "Hh".
+  iModIntro. iExists (λ σ _, gen_heap_ctx σ); iFrame.
+  set (HeapΣ := (HeapIG Σ Hinv Hheap)).
   iApply (wp_wand with "[]").
   - replace e with e.[env_subst[]] by by asimpl.
     iApply (Hlog HeapΣ [] []). iApply (@interp_env_nil _ HeapΣ).

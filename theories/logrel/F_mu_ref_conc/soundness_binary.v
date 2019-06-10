@@ -14,16 +14,15 @@ Proof.
   cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc erased_step ([e'], ∅) (of_val v :: thp', h))).
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ _); iIntros (Hinv ?).
-  iMod (own_alloc (● to_gen_heap ∅)) as (γ) "Hh".
-  { by apply auth_auth_valid, to_gen_heap_valid. }
+  iMod (gen_heap_init (∅: state)) as (Hheap) "Hh".
   iMod (own_alloc (● (to_tpool [e'], ∅)
     ⋅ ◯ ((to_tpool [e'] : tpoolUR, ∅) : cfgUR))) as (γc) "[Hcfg1 Hcfg2]".
   { apply auth_both_valid. split=>//. split=>//. apply to_tpool_valid. }
   set (Hcfg := CFGSG _ _ γc).
   iMod (inv_alloc specN _ (spec_inv ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
   { iNext. iExists [e'], ∅. rewrite /to_gen_heap fin_maps.map_fmap_empty. auto. }
-  set (HeapΣ := (HeapIG Σ Hinv (GenHeapG _ _ Σ _ _ _ γ))).
-  iExists (λ σ _, own γ (● to_gen_heap σ)); iFrame.
+  set (HeapΣ := (HeapIG Σ Hinv Hheap)).
+  iExists (λ σ _, gen_heap_ctx σ); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
   iPoseProof ((Hlog _ _ [] []) with "[]") as "Hrel".
