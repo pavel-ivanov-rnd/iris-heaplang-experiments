@@ -170,11 +170,6 @@ Section conditional_counter.
     destruct l0; try by right. simpl in H. inversion H. by left.
   Qed.
 
-  (** Removing a #false does not change the result. *)
-  Lemma val_to_loc_pop_false vs (l : loc) :
-    val_to_some_loc ((#false, #l)::vs) = val_to_some_loc vs.
-  Proof. reflexivity. Qed.
-
   Inductive abstract_state : Set :=
   | injl : Z → abstract_state
   | injr : Z → proph_id → abstract_state.
@@ -504,46 +499,18 @@ Section conditional_counter.
         iMod (own_alloc (Excl ())) as (γ_t) "Token"; first done.
         iMod (own_alloc (Cinl $ Excl ())) as (γ_s) "Hs"; first done.
         iDestruct "Hc" as "[Hc Hc']".
-        (* FIXME: This is three times almost the same thing to allocate the
-           invariant etc, it should be possible to deduplicate that. *)
-        destruct (val_to_some_loc l_ghost) eqn:H.
-        * destruct (val_to_some_loc_some l_ghost l H) as [v1 [v2 [vs' [-> HCases]]]].
-          destruct HCases as [[-> ->] | Hl].
-          ++ iMod (inv_alloc stateN _ (state_inv AU_later _ _ _ _ _ _ _ _ _)
+        set (winner := default ly (val_to_some_loc l_ghost)).
+        iMod (inv_alloc stateN _ (state_inv AU_later _ _ _ _ _ winner _ _ _)
                with "[AU Hs Hp' Hc' Hn●]") as "#Hinv".
-             { iNext. iExists _. iFrame "Hp'". iLeft. iFrame. iLeft.
-               iFrame. simpl. done. }
-             iModIntro. iDestruct "Hly" as "[Hly1 Hly2]". iSplitR "Hl' Token". {
-               (* close invariant *)
-               iNext. iExists _, _, _, (injr n p'). iFrame.
-               iExists _, _, _, _, _. iSplit; done.
-             }
-             wp_if. wp_apply complete_spec; [iExists _, _, _, _; eauto | done | done | done | ..].
-             iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
-          ++ iMod (inv_alloc stateN _ (state_inv AU_later _ _ _ _ _ _ _ _ _)
-               with "[AU Hs Hp' Hc' Hn●]") as "#Hinv".
-             { iNext. iExists _. iSplitL "Hp'"; first done. iLeft. iFrame.
-               iLeft. iFrame. by rewrite H. }
-             iModIntro. iDestruct "Hly" as "[Hly1 Hly2]". iSplitR "Hl' Token". {
-               (* close invariant *)
-               iNext. iExists _, _, _, (injr n p'). iFrame.
-               iExists _, _, _, _, _. iSplit; done.
-             }
-             wp_if.
-             wp_apply complete_spec; [iExists _, _, _, _; eauto | done | done | done | ..].
-             iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
-        * iMod (inv_alloc stateN _ (state_inv AU_later _ _ _ _ _ _ _ _ _)
-            with "[AU Hs Hp' Hc' Hn●]") as "#Hinv".
-          { iNext. iExists _. iSplitL "Hp'"; first done. iLeft. iFrame.
-            iLeft. iFrame. by rewrite H. }
-          iModIntro. iDestruct "Hly" as "[Hly1 Hly2]". iSplitR "Hl' Token". {
-            (* close invariant *)
-            iNext. iExists _, _, _, (injr n p'). iFrame.
-            iExists _, _, ly, _, _. iSplit; done.
-          }
-          wp_if.
-          wp_apply complete_spec; [iExists _, _, _, _; eauto | done | done | done | ..].
-          iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
+        { iNext. iExists _. iFrame "Hp'". iLeft. iFrame. iLeft.
+          iFrame. destruct (val_to_some_loc l_ghost); simpl; done. }
+        iModIntro. iDestruct "Hly" as "[Hly1 Hly2]". iSplitR "Hl' Token". {
+          (* close invariant *)
+          iNext. iExists _, _, _, (injr n p'). iFrame.
+          iExists _, _, _, _, _. iSplit; done.
+        }
+        wp_if. wp_apply complete_spec; [iExists _, _, _, _; eauto | done | done | done | ..].
+        iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
       + (* CAS fails: closing invariant and invoking IH *)
         wp_cas_fail.
         iModIntro. iSplitR "AU".
