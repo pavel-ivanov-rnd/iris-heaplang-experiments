@@ -13,11 +13,11 @@ heap. *)
 (** The CMRA & functor we need. *)
 (* Not bundling heapG, as it may be shared with other users. *)
 Class stackG Σ := StackG {
-  stack_tokG :> inG Σ (exclR unitC);
-  stack_stateG :> inG Σ (authR (optionUR $ exclR (listC valC)));
+  stack_tokG :> inG Σ (exclR unitO);
+  stack_stateG :> inG Σ (authR (optionUR $ exclR (listO valO)));
  }.
 Definition stackΣ : gFunctors :=
-  #[GFunctor (exclR unitC); GFunctor (authR (optionUR $ exclR (listC valC)))].
+  #[GFunctor (exclR unitO); GFunctor (authR (optionUR $ exclR (listO valO)))].
 
 Instance subG_stackΣ {Σ} : subG stackΣ Σ → stackG Σ.
 Proof. solve_inG. Qed.

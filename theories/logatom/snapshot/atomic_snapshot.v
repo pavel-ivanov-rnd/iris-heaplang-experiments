@@ -70,14 +70,14 @@ Definition read_with_proph : val :=
 
 (** The CMRA & functor we need. *)
 
-Definition timestampUR := gmapUR Z $ agreeR valC.
+Definition timestampUR := gmapUR Z $ agreeR valO.
 
 Class atomic_snapshotG Σ := AtomicSnapshotG {
-                                atomic_snapshot_stateG :> inG Σ $ authR $ optionUR $ exclR $ valC;
+                                atomic_snapshot_stateG :> inG Σ $ authR $ optionUR $ exclR $ valO;
                                 atomic_snapshot_timestampG :> inG Σ $ authR $ timestampUR
 }.
 Definition atomic_snapshotΣ : gFunctors :=
-  #[GFunctor (authR $ optionUR $ exclR $ valC); GFunctor (authR timestampUR)].
+  #[GFunctor (authR $ optionUR $ exclR $ valO); GFunctor (authR timestampUR)].
 
 Instance subG_atomic_snapshotΣ {Σ} : subG atomic_snapshotΣ Σ → atomic_snapshotG Σ.
 Proof. solve_inG. Qed.

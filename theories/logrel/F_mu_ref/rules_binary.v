@@ -7,7 +7,7 @@ Import uPred.
 Definition specN := nroot .@ "spec".
 
 (** The CMRA for the heap of the specification. *)
-Definition cfgUR := prodUR (optionUR (exclR exprC)) (gen_heapUR loc val).
+Definition cfgUR := prodUR (optionUR (exclR exprO)) (gen_heapUR loc val).
 
 (** The CMRA for the thread pool. *)
 Class cfgSG Σ := CFGSG { cfg_inG :> inG Σ (authR cfgUR); cfg_name : gname }.

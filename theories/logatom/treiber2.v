@@ -58,10 +58,10 @@ Definition pop_stack : val :=
 (** * Definition of the required camera *************************************)
 
 Class stackG Σ := StackG {
-  stack_tokG :> inG Σ (authR (optionUR (exclR (listC valC)))) }.
+  stack_tokG :> inG Σ (authR (optionUR (exclR (listO valO)))) }.
 
 Definition stackΣ : gFunctors :=
-  #[GFunctor (authR (optionUR (exclR (listC valC))))].
+  #[GFunctor (authR (optionUR (exclR (listO valO))))].
 
 Instance subG_stackΣ {Σ} : subG stackΣ Σ → stackG Σ.
 Proof. solve_inG. Qed.

@@ -5,7 +5,7 @@ Import uPred.
 From iris.algebra Require deprecated.
 Import deprecated.dec_agree.
 
-Definition stackUR : ucmraT := gmapUR loc (agreeR valC).
+Definition stackUR : ucmraT := gmapUR loc (agreeR valO).
 
 Class stackG Σ :=
   StackG { stack_inG :> inG Σ (authR stackUR); stack_name : gname }.
@@ -17,7 +17,7 @@ Notation "l ↦ˢᵗᵏ v" := (stack_mapsto l v) (at level 20) : bi_scope.
 
 Section Rules.
   Context `{stackG Σ}.
-  Notation D := (prodC valC valC -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iProp Σ).
 
   Global Instance stack_mapsto_persistent l v : Persistent (l ↦ˢᵗᵏ v).
   Proof. apply _. Qed.

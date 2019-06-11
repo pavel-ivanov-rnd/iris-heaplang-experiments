@@ -90,10 +90,10 @@ Definition cinc : val :=
 
 (** ** Proof setup *)
 
-Definition flagUR     := authR $ optionUR $ exclR boolC.
-Definition numUR      := authR $ optionUR $ exclR ZC.
-Definition tokenUR    := exclR unitC.
-Definition one_shotUR := csumR (exclR unitC) (agreeR unitC).
+Definition flagUR     := authR $ optionUR $ exclR boolO.
+Definition numUR      := authR $ optionUR $ exclR ZO.
+Definition tokenUR    := exclR unitO.
+Definition one_shotUR := csumR (exclR unitO) (agreeR unitO).
 
 Class cincG Σ := ConditionalIncrementG {
                      cinc_flagG     :> inG Σ flagUR;

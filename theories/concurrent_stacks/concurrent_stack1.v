@@ -36,8 +36,8 @@ Section stacks.
     iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
   Qed.
 
-  Definition is_list_pre (P : val → iProp Σ) (F : val -c> iProp Σ) :
-     val -c> iProp Σ := λ v,
+  Definition is_list_pre (P : val → iProp Σ) (F : val -d> iProp Σ) :
+     val -d> iProp Σ := λ v,
     (v ≡ NONEV ∨ ∃ (l : loc) (h t : val), ⌜v ≡ SOMEV #l⌝ ∗ l ↦{-} (h, t)%V ∗ P h ∗ ▷ F t)%I.
 
   Local Instance is_list_contr (P : val → iProp Σ) : Contractive (is_list_pre P).

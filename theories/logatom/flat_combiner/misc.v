@@ -20,7 +20,7 @@ Section lemmas.
 End lemmas.
 
 Section excl.
-  Context `{!inG Σ (exclR unitC)}.
+  Context `{!inG Σ (exclR unitO)}.
   Lemma excl_falso γ Q':
     own γ (Excl ()) ∗ own γ (Excl ()) ⊢ Q'.
   Proof.

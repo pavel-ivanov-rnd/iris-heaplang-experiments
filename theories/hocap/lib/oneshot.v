@@ -6,7 +6,7 @@ Set Default Proof Using "Type".
 
 (** We are going to need the oneshot RA to verify the
     Task.Join() method *)
-Definition oneshotR := csumR fracR (agreeR valC).
+Definition oneshotR := csumR fracR (agreeR valO).
 Class oneshotG Σ := { oneshot_inG :> inG Σ oneshotR }.
 Definition oneshotΣ : gFunctors := #[GFunctor oneshotR].
 Instance subG_oneshotΣ {Σ} : subG oneshotΣ Σ → oneshotG Σ.

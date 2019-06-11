@@ -214,9 +214,9 @@ Module F_mu_ref.
            fill_item_val, fill_item_no_val_inj, head_ctx_step_val.
   Qed.
 
-  Canonical Structure stateC := leibnizC state.
-  Canonical Structure valC := leibnizC val.
-  Canonical Structure exprC := leibnizC expr.
+  Canonical Structure stateO := leibnizO state.
+  Canonical Structure valO := leibnizO val.
+  Canonical Structure exprO := leibnizO expr.
 End F_mu_ref.
 
 Canonical Structure F_mu_ref_ectxi_lang := EctxiLanguage F_mu_ref.lang_mixin.

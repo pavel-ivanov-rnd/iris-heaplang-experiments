@@ -6,7 +6,7 @@ From iris_examples.logrel.F_mu_ref Require Import rules_binary.
 
 Section bin_log_def.
   Context `{heapG Σ,cfgSG Σ}.
-  Notation D := (prodC valC valC -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iProp Σ).
 
   Definition bin_log_related (Γ : list type) (e e' : expr) (τ : type) :=
     ∀ Δ vvs (ρ : cfg F_mu_ref_lang), env_Persistent Δ →
@@ -19,9 +19,9 @@ Notation "Γ ⊨ e '≤log≤' e' : τ" :=
 
 Section fundamental.
   Context `{heapG Σ,cfgSG Σ}.
-  Notation D := (prodC valC valC -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iProp Σ).
   Implicit Types e : expr.
-  Implicit Types Δ : listC D.
+  Implicit Types Δ : listO D.
   Hint Resolve to_of_val.
 
   Local Tactic Notation "smart_wp_bind" uconstr(ctx) ident(v) ident(w)

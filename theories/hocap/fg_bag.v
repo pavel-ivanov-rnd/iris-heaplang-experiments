@@ -34,9 +34,9 @@ Definition popBag : val := rec: "pop" "b" :=
     else "pop" "b"
   end.
 
-Canonical Structure valmultisetC := leibnizC (gmultiset valC).
+Canonical Structure valmultisetO := leibnizO (gmultiset valO).
 Class bagG Σ := BagG
-{ bag_bagG :> inG Σ (prodR fracR (agreeR valmultisetC));
+{ bag_bagG :> inG Σ (prodR fracR (agreeR valmultisetO));
 }.
 
 (** Generic specification for the bag, using view shifts. *)

@@ -20,11 +20,11 @@ Section lty_ofe.
   Instance lty_equiv : Equiv (lty Σ) := λ A B, ∀ w, A w ≡ B w.
   Instance lty_dist : Dist (lty Σ) := λ n A B, ∀ w, A w ≡{n}≡ B w.
   Lemma lty_ofe_mixin : OfeMixin (lty Σ).
-  Proof. by apply (iso_ofe_mixin (lty_car : _ → val -c> _)). Qed.
+  Proof. by apply (iso_ofe_mixin (lty_car : _ → val -d> _)). Qed.
   Canonical Structure ltyC := OfeT (lty Σ) lty_ofe_mixin.
   Global Instance lty_cofe : Cofe ltyC.
   Proof.
-    apply (iso_cofe_subtype' (λ A : val -c> iProp Σ, ∀ w, Persistent (A w))
+    apply (iso_cofe_subtype' (λ A : val -d> iProp Σ, ∀ w, Persistent (A w))
       (@Lty _) lty_car)=> //.
     - apply _.
     - apply limit_preserving_forall=> w.

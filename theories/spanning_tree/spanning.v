@@ -244,7 +244,7 @@ Section Helpers.
     - intros x; rewrite elem_of_union; intuition.
     - intros x y; rewrite elem_of_union; intuition eauto.
   Qed.
-  Lemma front_singleton (g : graph loc) (t : gset loc) l (w : chlC) u1 u2 :
+  Lemma front_singleton (g : graph loc) (t : gset loc) l (w : chlO) u1 u2 :
     g !! l = Some (u1, u2) →
     match u1 with |Some l1 => l1 ∈ t | None => True end →
     match u2 with |Some l2 => l2 ∈ t | None => True end →
@@ -259,8 +259,8 @@ Section Helpers.
   Lemma empty_graph_divide q :
     own_graph q ∅ ⊢ own_graph (q / 2) ∅ ∗ own_graph (q / 2) ∅.
   Proof.
-    setoid_replace (∅ : gmapR loc (exclR chlC)) with
-    (∅ ⋅ ∅ : gmapR loc (exclR chlC)) at 1 by (by rewrite ucmra_unit_left_id).
+    setoid_replace (∅ : gmapR loc (exclR chlO)) with
+    (∅ ⋅ ∅ : gmapR loc (exclR chlO)) at 1 by (by rewrite ucmra_unit_left_id).
     by rewrite graph_divide.
   Qed.
 

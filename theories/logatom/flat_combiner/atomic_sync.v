@@ -6,7 +6,7 @@ From iris_examples.logatom.flat_combiner Require Import sync misc.
 
 (** The simple syncer spec in [sync.v] implies a logically atomic spec. *)
 
-Definition syncR := prodR fracR (agreeR valC). (* track the local knowledge of ghost state *)
+Definition syncR := prodR fracR (agreeR valO). (* track the local knowledge of ghost state *)
 Class syncG Σ := sync_tokG :> inG Σ syncR.
 Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
@@ -15,8 +15,8 @@ Proof. solve_inG. Qed.
 
 Section atomic_sync.
   Context `{EqDecision A, !heapG Σ, !lockG Σ}.
-  Canonical AC := leibnizC A.
-  Context `{!inG Σ (prodR fracR (agreeR AC))}.
+  Canonical AO := leibnizO A.
+  Context `{!inG Σ (prodR fracR (agreeR AO))}.
 
   (* TODO: Rename and make opaque; the fact that this is a half should not be visible
            to the user. *)
@@ -56,7 +56,7 @@ Section atomic_sync.
     iSplitL "Hg2"; first done. iIntros "!#".
     iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
     iIntros (f') "#Hsynced {Hsyncer}".
-    iAlways. iIntros (α β x) "#Hseq". change (ofe_car AC) with A.
+    iAlways. iIntros (α β x) "#Hseq". change (ofe_car AO) with A.
     iIntros (Φ') "?".
     (* TODO: Why can't I iApply "Hsynced"? *)
     iSpecialize ("Hsynced" $! _ Φ' x).

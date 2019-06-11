@@ -35,8 +35,8 @@ Definition FG_counter : expr :=
 Section CG_Counter.
   Context `{heapIG Σ, cfgSG Σ}.
 
-  Notation D := (prodC valC valC -n> iProp Σ).
-  Implicit Types Δ : listC D.
+  Notation D := (prodO valO valO -n> iProp Σ).
+  Implicit Types Δ : listO D.
 
   (* Coarse-grained increment *)
   Lemma CG_increment_type x Γ :

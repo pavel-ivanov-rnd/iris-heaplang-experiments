@@ -9,7 +9,7 @@ From iris.bi.lib Require Import fractional.
 
 From iris.heap_lang.lib Require Import par.
 
-Definition cntCmra : cmraT := (prodR fracR (agreeR (leibnizC Z))).
+Definition cntCmra : cmraT := (prodR fracR (agreeR (leibnizO Z))).
 
 Class cntG Σ := CntG { CntG_inG :> inG Σ cntCmra }.
 Definition cntΣ : gFunctors := #[GFunctor cntCmra ].

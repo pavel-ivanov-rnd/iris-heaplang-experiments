@@ -10,8 +10,8 @@ Definition stackN : namespace := nroot .@ "stack".
 
 Section Stack_refinement.
   Context `{heapIG Σ, cfgSG Σ, inG Σ (authR stackUR)}.
-  Notation D := (prodC valC valC -n> iProp Σ).
-  Implicit Types Δ : listC D.
+  Notation D := (prodO valO valO -n> iProp Σ).
+  Implicit Types Δ : listO D.
 
   Lemma FG_CG_counter_refinement :
     [] ⊨ FG_stack ≤log≤ CG_stack : TForall (TProd (TProd

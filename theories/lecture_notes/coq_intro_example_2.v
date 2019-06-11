@@ -59,12 +59,12 @@ Section monotone_counter.
    *)
 
   (* 
-     To tell Coq we wish to use such a discrete CMRA we use the constructor leibnizC.
+     To tell Coq we wish to use such a discrete CMRA we use the constructor leibnizO.
      This takes a Coq type and makes it an instance of an OFE (a step-indexed generalization of sets).
      This is not the place do describe Canonical Structures.
      A very good introduction is available at https://hal.inria.fr/hal-00816703v1/document 
   *)
-  Canonical Structure mcounterRAC := leibnizC mcounterRAT.
+  Canonical Structure mcounterRAC := leibnizO mcounterRAT.
 
   (* To make the type mcounterRAT into an RA we need an operation. This is
      defined in the standard way, except we use the typeclass Op so we can reuse

@@ -10,53 +10,53 @@ Definition logN : namespace := nroot .@ "logN".
 (** interp : is a unary logical relation. *)
 Section logrel.
   Context `{heapIG Σ}.
-  Notation D := (valC -n> iProp Σ).
+  Notation D := (valO -n> iProp Σ).
   Implicit Types τi : D.
-  Implicit Types Δ : listC D.
-  Implicit Types interp : listC D → D.
+  Implicit Types Δ : listO D.
+  Implicit Types interp : listO D → D.
 
-  Program Definition env_lookup (x : var) : listC D -n> D := λne Δ,
+  Program Definition env_lookup (x : var) : listO D -n> D := λne Δ,
     from_option id (cconst True)%I (Δ !! x).
   Solve Obligations with solve_proper.
 
-  Definition interp_unit : listC D -n> D := λne Δ w, ⌜w = UnitV⌝%I.
-  Definition interp_nat : listC D -n> D := λne Δ w, ⌜∃ n, w = #nv n⌝%I.
-  Definition interp_bool : listC D -n> D := λne Δ w, ⌜∃ n, w = #♭v n⌝%I.
+  Definition interp_unit : listO D -n> D := λne Δ w, ⌜w = UnitV⌝%I.
+  Definition interp_nat : listO D -n> D := λne Δ w, ⌜∃ n, w = #nv n⌝%I.
+  Definition interp_bool : listO D -n> D := λne Δ w, ⌜∃ n, w = #♭v n⌝%I.
 
   Program Definition interp_prod
-      (interp1 interp2 : listC D -n> D) : listC D -n> D := λne Δ w,
+      (interp1 interp2 : listO D -n> D) : listO D -n> D := λne Δ w,
     (∃ w1 w2, ⌜w = PairV w1 w2⌝ ∧ interp1 Δ w1 ∧ interp2 Δ w2)%I.
   Solve Obligations with repeat intros ?; simpl; solve_proper.
 
   Program Definition interp_sum
-      (interp1 interp2 : listC D -n> D) : listC D -n> D := λne Δ w,
+      (interp1 interp2 : listO D -n> D) : listO D -n> D := λne Δ w,
     ((∃ w1, ⌜w = InjLV w1⌝ ∧ interp1 Δ w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∧ interp2 Δ w2))%I.
   Solve Obligations with repeat intros ?; simpl; solve_proper.
 
   Program Definition interp_arrow
-      (interp1 interp2 : listC D -n> D) : listC D -n> D := λne Δ w,
+      (interp1 interp2 : listO D -n> D) : listO D -n> D := λne Δ w,
     (□ ∀ v, interp1 Δ v → WP App (of_val w) (of_val v) {{ interp2 Δ }})%I.
   Solve Obligations with repeat intros ?; simpl; solve_proper.
 
   Program Definition interp_forall
-      (interp : listC D -n> D) : listC D -n> D := λne Δ w,
+      (interp : listO D -n> D) : listO D -n> D := λne Δ w,
     (□ ∀ τi : D,
       ⌜∀ v, Persistent (τi v)⌝ → WP TApp (of_val w) {{ interp (τi :: Δ) }})%I.
   Solve Obligations with repeat intros ?; simpl; solve_proper.
 
   Definition interp_rec1
-      (interp : listC D -n> D) (Δ : listC D) (τi : D) : D := λne w,
+      (interp : listO D -n> D) (Δ : listO D) (τi : D) : D := λne w,
     (□ (∃ v, ⌜w = FoldV v⌝ ∧ ▷ interp (τi :: Δ) v))%I.
 
   Global Instance interp_rec1_contractive
-    (interp : listC D -n> D) (Δ : listC D) : Contractive (interp_rec1 interp Δ).
+    (interp : listO D -n> D) (Δ : listO D) : Contractive (interp_rec1 interp Δ).
   Proof. by solve_contractive. Qed.
 
-  Lemma fixpoint_interp_rec1_eq (interp : listC D -n> D) Δ x :
+  Lemma fixpoint_interp_rec1_eq (interp : listO D -n> D) Δ x :
     fixpoint (interp_rec1 interp Δ) x ≡ interp_rec1 interp Δ (fixpoint (interp_rec1 interp Δ)) x.
   Proof. exact: (fixpoint_unfold (interp_rec1 interp Δ) x). Qed.
 
-  Program Definition interp_rec (interp : listC D -n> D) : listC D -n> D := λne Δ,
+  Program Definition interp_rec (interp : listO D -n> D) : listO D -n> D := λne Δ,
     fixpoint (interp_rec1 interp Δ).
   Next Obligation.
     intros interp n Δ1 Δ2 HΔ; apply fixpoint_ne => τi w. solve_proper.
@@ -67,11 +67,11 @@ Section logrel.
   Solve Obligations with solve_proper.
 
   Program Definition interp_ref
-      (interp : listC D -n> D) : listC D -n> D := λne Δ w,
+      (interp : listO D -n> D) : listO D -n> D := λne Δ w,
     (∃ l, ⌜w = LocV l⌝ ∧ inv (logN .@ l) (interp_ref_inv l (interp Δ)))%I.
   Solve Obligations with solve_proper.
 
-  Fixpoint interp (τ : type) : listC D -n> D :=
+  Fixpoint interp (τ : type) : listO D -n> D :=
     match τ return _ with
     | TUnit => interp_unit
     | TNat => interp_nat
@@ -87,11 +87,11 @@ Section logrel.
   Notation "⟦ τ ⟧" := (interp τ).
 
   Definition interp_env (Γ : list type)
-      (Δ : listC D) (vs : list val) : iProp Σ :=
+      (Δ : listO D) (vs : list val) : iProp Σ :=
     (⌜length Γ = length vs⌝ ∗ [∗] zip_with (λ τ, ⟦ τ ⟧ Δ) Γ vs)%I.
   Notation "⟦ Γ ⟧*" := (interp_env Γ).
 
-  Definition interp_expr (τ : type) (Δ : listC D) (e : expr) : iProp Σ :=
+  Definition interp_expr (τ : type) (Δ : listO D) (e : expr) : iProp Σ :=
     WP e {{ ⟦ τ ⟧ Δ }}%I.
 
   Class env_Persistent Δ :=
@@ -133,7 +133,7 @@ Section logrel.
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
       (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
-      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
+      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
       rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
     - intros w; simpl; properness; auto. apply (IHτ (_ :: _)).
     - intros w; simpl; properness; auto. by apply IHτ.
@@ -152,11 +152,11 @@ Section logrel.
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
       (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
-      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
+      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
       rewrite !lookup_app_r; [|lia ..].
       case EQ: (x - length Δ1) => [|n]; simpl.
       { symmetry. asimpl. apply (interp_weaken [] Δ1 Δ2 τ'). }
-      change (bi_ofeC (uPredI (iResUR Σ))) with (uPredC (iResUR Σ)).
+      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
       rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
     - intros w; simpl; properness; auto. apply (IHτ (_ :: _)).
     - intros w; simpl; properness; auto. by apply IHτ.

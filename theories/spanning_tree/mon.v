@@ -11,11 +11,11 @@ From stdpp Require Import gmap mapset.
 From iris_examples.spanning_tree Require Import graph.
 
 (* children cofe *)
-Canonical Structure chlC := leibnizC (option loc * option loc).
+Canonical Structure chlO := leibnizO (option loc * option loc).
 (* The graph monoid. *)
 Definition graphN : namespace := nroot .@ "SPT_graph".
 Definition graphUR : ucmraT :=
-  optionUR (prodR fracR (gmapR loc (exclR chlC))).
+  optionUR (prodR fracR (gmapR loc (exclR chlO))).
 (* The monoid for talking about which nodes are marked.
 These markings are duplicatable. *)
 Definition markingUR : ucmraT := gsetUR loc.
@@ -67,9 +67,9 @@ Section marking_definitions.
 End marking_definitions.
 
 (* The monoid representing graphs *)
-Definition Gmon := gmapR loc (exclR chlC).
+Definition Gmon := gmapR loc (exclR chlO).
 
-Definition excl_chlC_chl (ch : exclR chlC) : option (option loc * option loc) :=
+Definition excl_chlC_chl (ch : exclR chlO) : option (option loc * option loc) :=
   match ch with
   | Excl w => Some w
   | Excl_Bot => None
@@ -533,7 +533,7 @@ Lemma graph_op_path' (G G' : Gmon) x z p :
   ✓ (G ⋅ G') → x ∈ dom (gset _) G' → valid_path (Gmon_graph G) z x p → False.
 Proof. rewrite comm; apply graph_op_path. Qed.
 
-Lemma in_dom_singleton (x : loc) (w : chlC) :
+Lemma in_dom_singleton (x : loc) (w : chlO) :
   x ∈ dom (gset loc) (x [↦] w : gmap loc _).
 Proof. by rewrite dom_singleton elem_of_singleton. Qed.
 

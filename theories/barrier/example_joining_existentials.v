@@ -6,16 +6,16 @@ From iris.proofmode Require Import tactics.
 From iris_examples.barrier Require Import proof specification.
 Set Default Proof Using "Type".
 
-Definition one_shotR (Σ : gFunctors) (F : cFunctor) :=
-  csumR (exclR unitC) (agreeR $ laterC $ F (iPreProp Σ) _).
+Definition one_shotR (Σ : gFunctors) (F : oFunctor) :=
+  csumR (exclR unitO) (agreeR $ laterO $ F (iPreProp Σ) _).
 Definition Pending {Σ F} : one_shotR Σ F := Cinl (Excl ()).
-Definition Shot {Σ} {F : cFunctor} (x : F (iProp Σ) _) : one_shotR Σ F :=
-  Cinr $ to_agree $ Next $ cFunctor_map F (iProp_fold, iProp_unfold) x.
+Definition Shot {Σ} {F : oFunctor} (x : F (iProp Σ) _) : one_shotR Σ F :=
+  Cinr $ to_agree $ Next $ oFunctor_map F (iProp_fold, iProp_unfold) x.
 
-Class oneShotG (Σ : gFunctors) (F : cFunctor) :=
+Class oneShotG (Σ : gFunctors) (F : oFunctor) :=
   one_shot_inG :> inG Σ (one_shotR Σ F).
-Definition oneShotΣ (F : cFunctor) : gFunctors :=
-  #[ GFunctor (csumRF (exclRF unitC) (agreeRF (▶ F))) ].
+Definition oneShotΣ (F : oFunctor) : gFunctors :=
+  #[ GFunctor (csumRF (exclRF unitO) (agreeRF (▶ F))) ].
 Instance subG_oneShotΣ {Σ F} : subG (oneShotΣ F) Σ → oneShotG Σ F.
 Proof. solve_inG. Qed.
 
@@ -59,12 +59,12 @@ Proof.
   iAssert (▷ (x ≡ x'))%I as "Hxx".
   { iCombine "Hγ" "Hγ'" as "Hγ2". iClear "Hγ Hγ'".
     rewrite own_valid csum_validI /= agree_validI agree_equivI bi.later_equivI /=.
-    rewrite -{2}[x]cFunctor_id -{2}[x']cFunctor_id.
-    assert (HF : cFunctor_map F (cid, cid) ≡ cFunctor_map F (iProp_fold (Σ:=Σ) ◎ iProp_unfold, iProp_fold (Σ:=Σ) ◎ iProp_unfold)).
+    rewrite -{2}[x]oFunctor_id -{2}[x']oFunctor_id.
+    assert (HF : oFunctor_map F (cid, cid) ≡ oFunctor_map F (iProp_fold (Σ:=Σ) ◎ iProp_unfold, iProp_fold (Σ:=Σ) ◎ iProp_unfold)).
     { apply ne_proper; first by apply _.
       by split; intro; simpl; symmetry; apply iProp_fold_unfold. }
     rewrite (HF x). rewrite (HF x').
-    rewrite !cFunctor_compose. iNext. by iRewrite "Hγ2". }
+    rewrite !oFunctor_compose. iNext. by iRewrite "Hγ2". }
   iNext. iRewrite -"Hxx" in "Hx'".
   iExists x; iFrame "Hγ". iApply (Ψ_join with "Hx Hx'").
 Qed.

@@ -138,10 +138,10 @@ auth invariant. *)
 
 (** The CMRA & functor we need. *)
 Class hocapG Σ := HocapG {
-  hocap_stateG :> inG Σ (authR (optionUR $ exclR (listC valC)));
+  hocap_stateG :> inG Σ (authR (optionUR $ exclR (listO valO)));
 }.
 Definition hocapΣ : gFunctors :=
-  #[GFunctor (exclR unitC); GFunctor (authR (optionUR $ exclR (listC valC)))].
+  #[GFunctor (exclR unitO); GFunctor (authR (optionUR $ exclR (listO valO)))].
 
 Instance subG_hocapΣ {Σ} : subG hocapΣ Σ → hocapG Σ.
 Proof. solve_inG. Qed.

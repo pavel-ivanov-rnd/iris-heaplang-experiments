@@ -18,7 +18,7 @@ Lemma barrier_spec (N : namespace) :
     (∀ l P Q, recv l (P ∗ Q) ={↑N}=> recv l P ∗ recv l Q) ∧
     (∀ l P Q, (P -∗ Q) -∗ recv l P -∗ recv l Q).
 Proof.
-  exists (λ l, CofeMor (recv N l)), (λ l, CofeMor (send N l)).
+  exists (λ l, OfeMor (recv N l)), (λ l, OfeMor (send N l)).
   split_and?; simpl.
   - iIntros (P) "!# _". iApply (newbarrier_spec _ P with "[]"); [done..|].
     iNext. eauto.

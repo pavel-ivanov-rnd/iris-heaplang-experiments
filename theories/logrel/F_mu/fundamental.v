@@ -11,7 +11,7 @@ Notation "Γ ⊨ e : τ" := (log_typed Γ e τ) (at level 74, e, τ at next leve
 Section fundamental.
   Context `{irisG F_mu_lang Σ}.
 
-  Notation D := (valC -n> iProp Σ).
+  Notation D := (valO -n> iProp Σ).
 
   Local Tactic Notation "smart_wp_bind" uconstr(ctx) ident(v) constr(Hv) uconstr(Hp) :=
     iApply (wp_bind (fill[ctx]));

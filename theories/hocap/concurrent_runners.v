@@ -14,7 +14,7 @@ Set Default Proof Using "Type".
     SET_RES v = the result of the task has been computed and it is v
     FIN v = the task has been completed with the result v *)
 (* We use this RA to verify the Task.run() method *)
-Definition saR := csumR fracR (csumR (prodR fracR (agreeR valC)) (agreeR valC)).
+Definition saR := csumR fracR (csumR (prodR fracR (agreeR valO)) (agreeR valO)).
 Class saG Σ := { sa_inG :> inG Σ saR }.
 Definition INIT `{saG Σ} γ (q: Qp) := own γ (Cinl q%Qp).
 Definition SET_RES `{saG Σ} γ (q: Qp) (v: val) := own γ (Cinr (Cinl (q%Qp, to_agree v))).
@@ -189,7 +189,7 @@ Section contents.
   Ltac solve_proper ::= solve_proper_core ltac:(fun _ => simpl; auto_equiv).
 
   Program Definition pre_runner (γ : name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
-    (valC -n> iProp Σ) -n> (valC -n> iProp Σ) := λne R r,
+    (valO -n> iProp Σ) -n> (valO -n> iProp Σ) := λne R r,
     (∃ (body bag : val), ⌜r = (body, bag)%V⌝
      ∗ bagS b (N.@"bag") (λ x y, ∃ γ γ', isTask (body,x) γ γ' y P Q) γ bag
      ∗ ▷ ∀ r a: val, □ (R r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
@@ -200,7 +200,7 @@ Section contents.
   Proof. unfold pre_runner. solve_contractive. Qed.
 
   Definition runner (γ: name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
-    valC -n> iProp Σ :=
+    valO -n> iProp Σ :=
     (fixpoint (pre_runner γ P Q))%I.
 
   Lemma runner_unfold γ r P Q :

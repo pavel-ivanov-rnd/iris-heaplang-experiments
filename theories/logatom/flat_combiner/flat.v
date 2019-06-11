@@ -46,7 +46,7 @@ Definition mk_flat : val :=
       let: "r" := loop "p" "s" "lk" in
       "r".
 
-Definition reqR := prodR fracR (agreeR valC). (* request x should be kept same *)
+Definition reqR := prodR fracR (agreeR valO). (* request x should be kept same *)
 Definition toks : Type := gname * gname * gname * gname * gname. (* a bunch of tokens to do state transition *)
 Class flatG Σ := FlatG {
   req_G :> inG Σ reqR;

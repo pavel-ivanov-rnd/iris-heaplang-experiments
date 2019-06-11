@@ -46,7 +46,7 @@ Notation iProp := (iProp Σ).
   
 (* First we define the is_list representation predicate via a guarded fixed
    point of the functional is_list_pre. Note the use of the later modality. The
-   arrows -c> express that the arrow is an arrow in the category of COFE's,
+   arrows -d> express that the arrow is an arrow in the category of COFE's,
    i.e., it is a non-expansive function. To fully understand the meaning of this
    it is necessary to understand the model of Iris.
 
@@ -55,7 +55,7 @@ Notation iProp := (iProp Σ).
    but in more complex examples the domain of the predicate we are defining will
    not be a discrete type, and the condition will be meaningful and necessary.
 *)
-  Definition is_list_pre (Φ : val -c> list val -c> iProp): val -c> list val -c> iProp := λ hd xs,
+  Definition is_list_pre (Φ : val -d> list val -d> iProp): val -d> list val -d> iProp := λ hd xs,
     match xs with
       [] => ⌜hd = NONEV⌝
     | (x::xs) => (∃ (ℓ : loc) (hd' : val), ⌜hd = SOMEV #ℓ⌝ ∗ ℓ ↦ (x,hd') ∗ ▷ Φ hd' xs)
