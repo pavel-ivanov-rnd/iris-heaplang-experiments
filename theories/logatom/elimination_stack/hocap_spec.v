@@ -27,6 +27,8 @@ Record hocap_stack {Σ} `{!heapG Σ} := AtomicStack {
   pop : val;
   (* -- other data -- *)
   name : Type;
+  name_eqdec : EqDecision name;
+  name_countable : Countable name;
   (* -- predicates -- *)
   is_stack (N : namespace) (γs : name) (v : val) : iProp Σ;
   stack_content_frag (γs : name) (l : list val) : iProp Σ;
@@ -61,9 +63,9 @@ Record hocap_stack {Σ} `{!heapG Σ} := AtomicStack {
 }.
 Arguments hocap_stack _ {_}.
 
-Existing Instance is_stack_persistent.
-Existing Instance stack_content_frag_timeless.
-Existing Instance stack_content_auth_timeless.
+Existing Instances
+  is_stack_persistent stack_content_frag_timeless stack_content_auth_timeless
+  name_eqdec name_countable.
 
 (** Show that our way of writing the [pop_spec] is equivalent to what is done in
 [concurrent_stack.spec].  IOW, the conjunction-vs-match doesn't matter.  Fixing

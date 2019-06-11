@@ -11,6 +11,8 @@ Record atomic_stack {Σ} `{!heapG Σ} := AtomicStack {
   pop : val;
   (* -- other data -- *)
   name : Type;
+  name_eqdec : EqDecision name;
+  name_countable : Countable name;
   (* -- predicates -- *)
   is_stack (N : namespace) (γs : name) (v : val) : iProp Σ;
   stack_content (γs : name) (l : list val) : iProp Σ;
@@ -36,5 +38,6 @@ Record atomic_stack {Σ} `{!heapG Σ} := AtomicStack {
 }.
 Arguments atomic_stack _ {_}.
 
-Existing Instance is_stack_persistent.
-Existing Instance stack_content_timeless.
+Existing Instances
+  is_stack_persistent stack_content_timeless
+  name_countable name_eqdec.

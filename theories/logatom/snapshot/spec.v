@@ -17,6 +17,8 @@ Record atomic_snapshot {Σ} `{!heapG Σ} := AtomicSnapshot {
     readPair : val;
     (* other data *)
     name: Type;
+    name_eqdec : EqDecision name;
+    name_countable : Countable name;
     (* predicates *)
     is_pair (N : namespace) (γ : name) (p : val) : iProp Σ;
     pair_content (γ : name) (a: val * val) : iProp Σ;
@@ -48,3 +50,7 @@ Record atomic_snapshot {Σ} `{!heapG Σ} := AtomicSnapshot {
       <<< pair_content γ (v1, v2), RET (v1, v2) >>>;
 }.
 Arguments atomic_snapshot _ {_}.
+
+Existing Instances
+  is_pair_persistent pair_content_timeless
+  name_countable name_eqdec.
