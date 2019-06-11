@@ -547,21 +547,21 @@ Section ccounter.
      algebra, specialized to our use case. These are listed in the exercise in
      the relevant section of the lecture notes. *)
   (* We are using some new notation. The frac_auth library defines the notation
-     ◯!{q} n to mean ◯ (q, n) as we used in the lecture notes. Further, ●! m
-     means ● (1, m) and ◯! n means ◯ (1, n). *)
-  Lemma ccounterRA_valid (m n : natR) (q : frac): ✓ (●! m ⋅ ◯!{q} n) → (n ≤ m)%nat.
+     ◯F{q} n to mean ◯ (q, n) as we used in the lecture notes. Further, ●F m
+     means ● (1, m) and ◯F n means ◯ (1, n). *)
+  Lemma ccounterRA_valid (m n : natR) (q : frac): ✓ (●F m ⋅ ◯F{q} n) → (n ≤ m)%nat.
   Proof.
     intros ?.
     (* This property follows directly from the generic properties of the relevant RAs. *)
     by apply nat_included, (frac_auth_included_total q).
   Qed.
 
-  Lemma ccounterRA_valid_full (m n : natR): ✓ (●! m ⋅ ◯! n) → (n = m)%nat.
+  Lemma ccounterRA_valid_full (m n : natR): ✓ (●F m ⋅ ◯F n) → (n = m)%nat.
   Proof.
     by intros ?%frac_auth_agree.
   Qed.
 
-  Lemma ccounterRA_update (m n : natR) (q : frac): (●! m ⋅ ◯!{q} n) ~~> (●! (S m) ⋅ ◯!{q} (S n)).
+  Lemma ccounterRA_update (m n : natR) (q : frac): (●F m ⋅ ◯F{q} n) ~~> (●F (S m) ⋅ ◯F{q} (S n)).
   Proof.
     apply frac_auth_update, (nat_local_update _ _ (S _) (S _)).
     lia.
@@ -580,10 +580,10 @@ Section ccounter.
   Context `{!heapG Σ, !ccounterG Σ} (N : namespace).
 
   Definition ccounter_inv (γ : gname) (l : loc) : iProp Σ :=
-    (∃ n, own γ (●! n) ∗ l ↦ #n)%I.
+    (∃ n, own γ (●F n) ∗ l ↦ #n)%I.
 
   Definition is_ccounter (γ : gname) (l : loc) (q : frac) (n : natR) : iProp Σ :=
-    (own γ (◯!{q} n) ∗ inv N (ccounter_inv γ l))%I.
+    (own γ (◯F{q} n) ∗ inv N (ccounter_inv γ l))%I.
 
   (** The main proofs. *)
 
@@ -606,7 +606,7 @@ Section ccounter.
     {{{ γ ℓ, RET #ℓ; is_ccounter γ ℓ 1 0%nat }}}.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
-    iMod (own_alloc (●! O%nat ⋅ ◯! 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid.
+    iMod (own_alloc (●F O%nat ⋅ ◯F 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid.
     iMod (inv_alloc N _ (ccounter_inv γ ℓ) with "[Hpt Hγ]").
     { iNext. iExists 0%nat. by iFrame. }
     iModIntro. iApply "HΦ". rewrite /is_ccounter; eauto.

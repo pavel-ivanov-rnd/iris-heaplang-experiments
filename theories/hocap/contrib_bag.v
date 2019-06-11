@@ -16,11 +16,11 @@ Section proof.
   Context `{inG Σ (frac_authR (gmultisetUR val))}.
 
   Definition bagM_inv (γb : name Σ b) (γ : gname) : iProp Σ :=
-    inv NI (∃ X, bag_contents b γb X ∗ own γ (●! X))%I.
+    inv NI (∃ X, bag_contents b γb X ∗ own γ (●F X))%I.
   Definition bagM (γb : name Σ b) (γ : gname) (x : val) : iProp Σ :=
     (is_bag b NB γb x ∗ bagM_inv γb γ)%I.
   Definition bagPart (γ : gname) (q : Qp) (X : gmultiset val) : iProp Σ :=
-    (own γ (◯!{q} X))%I.
+    (own γ (◯F{q} X))%I.
 
   Lemma bagPart_compose (γ: gname) (q1 q2: Qp) (X Y : gmultiset val) :
     bagPart γ q1 X -∗ bagPart γ q2 Y -∗ bagPart γ (q1+q2) (X ⊎ Y).
@@ -50,8 +50,8 @@ Section proof.
     iIntros (Φ) "_ HΦ". iApply wp_fupd.
     iApply (newBag_spec b NB); eauto.
     iNext. iIntros (v γb) "[#Hbag Hcntn]".
-    iMod (own_alloc (●! ∅ ⋅ ◯! ∅)) as (γ) "[Hown Hpart]"; first by apply auth_both_valid.
-    iMod (inv_alloc NI _ (∃ X, bag_contents b γb X ∗ own γ (●! X))%I with "[Hcntn Hown]") as "#Hinv".
+    iMod (own_alloc (●F ∅ ⋅ ◯F ∅)) as (γ) "[Hown Hpart]"; first by apply auth_both_valid.
+    iMod (inv_alloc NI _ (∃ X, bag_contents b γb X ∗ own γ (●F X))%I with "[Hcntn Hown]") as "#Hinv".
     { iNext. iExists _. iFrame. }
     iApply "HΦ". iModIntro. iExists _,_. iFrame "Hinv Hbag Hpart".
   Qed.
