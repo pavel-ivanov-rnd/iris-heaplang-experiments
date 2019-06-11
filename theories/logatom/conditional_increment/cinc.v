@@ -3,6 +3,7 @@ From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
+From iris_examples.logatom.conditional_increment Require Import spec.
 Import uPred bi List Decidable.
 Set Default Proof Using "Type".
 
@@ -144,8 +145,8 @@ Section conditional_counter.
     by apply auth_update, option_local_update, exclusive_local_update.
   Qed.
 
-  Definition counter_content (γs : gname * gname) (c : bool * Z) :=
-    (own γs.1 (◯ Excl' c.1) ∗ own γs.2 (◯ Excl' c.2))%I.
+  Definition counter_content (γs : gname * gname) (b : bool) (n : Z) :=
+    (own γs.1 (◯ Excl' b) ∗ own γs.2 (◯ Excl' n))%I.
 
 
   (** Definition of the invariant *)
@@ -206,8 +207,8 @@ Section conditional_counter.
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state Q l l_ghost_winner γ_t))%I.
 
   Definition pau P Q γs :=
-    (▷ P -∗ ◇ AU << ∀ (b : bool) (n : Z), counter_content γs (b, n) >> @ ⊤∖↑N, ∅
-                 << counter_content γs (b, (if b then n + 1 else n)), COMM Q >>)%I.
+    (▷ P -∗ ◇ AU << ∀ (b : bool) (n : Z), counter_content γs b n >> @ ⊤∖↑N, ∅
+                 << counter_content γs b (if b then n + 1 else n), COMM Q >>)%I.
 
   Definition counter_inv γ_b γ_n f c :=
     (∃ (b : bool) (l : loc) (q : Qp) (s : abstract_state),
@@ -235,10 +236,16 @@ Section conditional_counter.
 
   Global Instance is_counter_persistent γs ctr : Persistent (is_counter γs ctr) := _.
 
-  Global Instance counter_content_timeless γs ctr : Timeless (counter_content γs ctr) := _.
+  Global Instance counter_content_timeless γs b n : Timeless (counter_content γs b n) := _.
 
   Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (injl 0).
 
+  Lemma counter_content_exclusive γs f1 c1 f2 c2 :
+    counter_content γs f1 c1 -∗ counter_content γs f2 c2 -∗ False.
+  Proof.
+    iIntros "[Hb1 _] [Hb2 _]". iDestruct (own_valid_2 with "Hb1 Hb2") as %?.
+    done.
+  Qed.
 
   (** A few more helper lemmas that will come up later *)
 
@@ -457,14 +464,14 @@ Section conditional_counter.
 
   (** ** Proof of [cinc] *)
 
-  Lemma cinc_spec c f γs :
-    is_counter γs (f, c) -∗
-    <<< ∀ (b : bool) (n : Z), counter_content γs (b, n) >>>
-        cinc (f, c)%V @⊤∖↑N
-    <<< counter_content γs (b, if b then n + 1 else n), RET #() >>>.
+  Lemma cinc_spec γs v :
+    is_counter γs v -∗
+    <<< ∀ (b : bool) (n : Z), counter_content γs b n >>>
+        cinc v @⊤∖↑N
+    <<< counter_content γs b (if b then n + 1 else n), RET #() >>>.
   Proof.
     iIntros "#InvC". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
-    iDestruct "Heq" as %[-> [=->->]]. iIntros (Φ) "AU". iLöb as "IH".
+    iDestruct "Heq" as %[-> ->]. iIntros (Φ) "AU". iLöb as "IH".
     wp_lam. wp_proj. wp_let. wp_proj. wp_let. wp_bind (!_)%E.
     iInv counterN as (b' l' q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
     wp_load. destruct s as [n|n p].
@@ -518,7 +525,7 @@ Section conditional_counter.
   Lemma new_counter_spec :
     {{{ True }}}
         new_counter #()
-    {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs (true, 0) }}}.
+    {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs true 0 }}}.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
     wp_apply (loc_token_alloc with "[//]"); iIntros (l_n) "[Hl_n Hltok]".
@@ -537,15 +544,14 @@ Section conditional_counter.
     iSplitR; last by iFrame. iExists γ_b, γ_n, l_f, l_c. iSplit; done.
   Qed.
 
-  Lemma set_flag_spec γs f c (new_b : bool) :
-    is_counter γs (f, c) -∗
-    <<< ∀ (b : bool) (n : Z), counter_content γs (b, n) >>>
-        set_flag (f, c)%V #new_b @⊤∖↑N
-    <<< counter_content γs (new_b, n), RET #() >>>.
+  Lemma set_flag_spec γs v (new_b : bool) :
+    is_counter γs v -∗
+    <<< ∀ (b : bool) (n : Z), counter_content γs b n >>>
+        set_flag v #new_b @⊤∖↑N
+    <<< counter_content γs new_b n, RET #() >>>.
   Proof.
-    iIntros "#InvC" (Φ) "AU". wp_lam. wp_let. wp_proj.
-    iDestruct "InvC" as (γ_b γ_n l_f l_c) "[[HEq1 HEq2] InvC]".
-    iDestruct "HEq1" as %->. iDestruct "HEq2" as %HEq. inversion HEq; subst; clear HEq.
+    iIntros "#InvC" (Φ) "AU". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
+    iDestruct "Heq" as %[-> ->]. wp_lam. wp_let. wp_proj.
     iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
     iMod "AU" as (b' n') "[[Hb◯ Hn◯] [_ Hclose]]"; simpl.
     wp_store.
@@ -556,15 +562,14 @@ Section conditional_counter.
     iNext. iExists new_b, c, q, _. iFrame. done.
   Qed.
 
-  Lemma get_spec γs f c :
-    is_counter γs (f, c) -∗
-    <<< ∀ (b : bool) (n : Z), counter_content γs (b, n) >>>
-        get (f, c)%V @⊤∖↑N
-    <<< counter_content γs (b, n), RET #n >>>.
+  Lemma get_spec γs v :
+    is_counter γs v -∗
+    <<< ∀ (b : bool) (n : Z), counter_content γs b n >>>
+        get v @⊤∖↑N
+    <<< counter_content γs b n, RET #n >>>.
   Proof.
-    iIntros "#InvC" (Φ) "AU". iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
-    iDestruct "InvC" as (γ_b γ_n l_f l_c) "[[HEq1 HEq2] InvC]".
-    iDestruct "HEq1" as %->. iDestruct "HEq2" as %HEq. inversion HEq; subst.
+    iIntros "#InvC" (Φ) "AU". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
+    iDestruct "Heq" as %[-> ->]. iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
     iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
     wp_load.
     destruct s as [n|n p].
@@ -586,3 +591,13 @@ Section conditional_counter.
   Qed.
 
 End conditional_counter.
+
+Definition atomic_cinc `{!heapG Σ, cincG Σ} :
+  spec.atomic_cinc Σ :=
+  {| spec.new_counter_spec := new_counter_spec;
+     spec.cinc_spec := cinc_spec;
+     spec.set_flag_spec := set_flag_spec;
+     spec.get_spec := get_spec;
+     spec.counter_content_exclusive := counter_content_exclusive |}.
+
+Typeclasses Opaque counter_content is_counter.

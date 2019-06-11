@@ -91,7 +91,6 @@ theories/hocap/lib/oneshot.v
 theories/hocap/concurrent_runners.v
 theories/hocap/parfib.v
 
-theories/logatom/cinc.v
 theories/logatom/treiber.v
 theories/logatom/treiber2.v
 theories/logatom/elimination_stack/hocap_spec.v
@@ -105,3 +104,5 @@ theories/logatom/flat_combiner/atomic_sync.v
 theories/logatom/flat_combiner/misc.v
 theories/logatom/snapshot/spec.v
 theories/logatom/snapshot/atomic_snapshot.v
+theories/logatom/conditional_increment/spec.v
+theories/logatom/conditional_increment/cinc.v
