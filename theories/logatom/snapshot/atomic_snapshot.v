@@ -13,26 +13,15 @@ Set Default Proof Using "Type".
 
 
 (*
-     newPair x y :=
-       (ref (ref (x, 0)), ref y)
+     newPair v :=
+       ref (ref (v, 0))
  *)
-Definition newPair : val :=
-  λ: "args",
-  let: "x" := Fst "args" in
-  let: "y" := Snd "args" in
-  (ref (ref ("x", #0)), ref "y").
+Definition new_snapshot : val :=
+  λ: "v",
+    ref (ref ("v", #0)).
 
 (*
-    writeY (xp, yp) y :=
-      yp <- y
- *)
-Definition writeY : val :=
-  λ: "args",
-  let: "p" := Fst "args" in
-  Snd "p" <- Snd "args".
-
-(*
-    writeX (xp, yp) x :=
+    write xp x :=
       let xp1 = !xp in
       let v   = (!xp1).2
       let xp2 = ref (x, v + 1)
@@ -40,62 +29,43 @@ Definition writeY : val :=
         then ()
         else writeX (xp, yp) x
  *)
-Definition writeX : val :=
-  rec: "writeX" "args" :=
-    let: "p"    := Fst "args"             in
-    let: "x"    := Snd "args"             in
-    let: "xp"   := Fst "p"                in
+Definition write : val :=
+  rec: "write" "xp" "x" :=
     let: "xp1"  := !"xp"                  in
     let: "v"    := Snd (!"xp1")           in
     let: "xp2"  := ref ("x", "v" + #1)    in
     if: CAS "xp" "xp1" "xp2"
     then #()
-    else "writeX" "args".
+    else "write" "xp" "x".
 
 (*
-    readX (xp, yp) :=
-      !!xp
+    read xp :=
+      (!!xp).1
  *)
-Definition readX : val :=
-  λ: "p",
-  let: "xp" := Fst "p" in
-  !(!"xp").
-
-Definition readY : val :=
-  λ: "p",
-  let: "yp" := Snd "p" in
-  !"yp".
+Definition read : val :=
+  λ: "xp",
+    Fst !(!"xp").
 
 (*
-    readPair l :=
-      let (x, v)  = readX l in
-      let y       = readY l in
-      let (_, v') = readX l in
+    read_with xp l :=
+      let (x, v)  = !!xp in
+      let y       = !l in
+      let (_, v') = !!xp in
       if v = v'
         then (x, y)
         else readPair l
  *)
-Definition readPair : val :=
-  rec: "readPair" "l" :=
-    let: "x"  := readX "l"  in
-    let: "y"  := readY "l"  in
-    let: "x'" := readX "l"  in
-    if: Snd "x" = Snd "x'"
-    then (Fst "x", Fst "y")
-    else  "readPair" "l".
-
-Definition readPair_proph : val :=
-  rec: "readPair" "l" :=
-    let: "xv1"    := readX "l"           in
-    let: "proph"  := NewProph            in
-    let: "y"      := readY "l"           in
-    let: "xv2"    := readX "l"           in
-    let: "v2"     := Snd "xv2"           in
-    let: "v_eq"   := Snd "xv1" = "v2"    in
+Definition read_with_proph : val :=
+  rec: "readPair" "xp" "l" :=
+    let: "proph"  := NewProph in
+    let: "x"  := ! !"xp" in
+    let: "y"  := !"l" in
+    let: "x'" := ! !"xp" in
+    let: "v_eq"   := Snd "x" = Snd "x'" in
     resolve_proph: "proph" to: "v_eq" ;;
     if: "v_eq"
-      then (Fst "xv1", "y")
-    else "readPair" "l".
+    then (Fst "x", "y")
+    else  "readPair" "xp" "l".
 
 
 (** The CMRA & functor we need. *)
@@ -120,7 +90,7 @@ Section atomic_snapshot.
 
   Definition gmap_to_UR T : timestampUR := to_agree <$> T.
 
-  Definition pair_inv γ1 γ2 l1 : iProp Σ :=
+  Definition snapshot_inv γ1 γ2 l1 : iProp Σ :=
     (∃ q (l1':loc) (T : gmap Z val) x (t : Z),
       (* we add the q to make the l1' map fractional. that way,
          we can take a fraction of the l1' map out of the invariant
@@ -131,51 +101,50 @@ Section atomic_snapshot.
          ⌜T !! t = Some x⌝ ∗
          ⌜forall (t' : Z), t' ∈ dom (gset Z) T → (t' <= t)%Z⌝)%I.
 
-  Definition is_pair (γs: gname * gname * loc) (p : val) :=
-    (∃ (l1 : loc), ⌜p = (#l1, #γs.2)%V⌝ ∗ inv N (pair_inv γs.1.1 γs.1.2 l1))%I.
+  Definition is_snapshot (γs: gname * gname) (p : val) :=
+    (∃ (l1 : loc), ⌜p = #l1%V⌝ ∗ inv N (snapshot_inv γs.1 γs.2 l1))%I.
 
-  Global Instance is_pair_persistent γs p : Persistent (is_pair γs p) := _.
+  Global Instance is_snapshot_persistent γs p : Persistent (is_snapshot γs p) := _.
 
-  Definition pair_content (γs : gname * gname * loc) (a : val * val) :=
-    (own γs.1.1 (◯ Excl' a.1) ∗ γs.2 ↦ a.2)%I.
+  Definition snapshot_content (γs : gname * gname) (a : val) :=
+    (own γs.1 (◯ Excl' a))%I.
 
-  Global Instance pair_content_timeless γs a : Timeless (pair_content γs a) := _.
+  Global Instance snapshot_content_timeless γs a : Timeless (snapshot_content γs a) := _.
 
-  Lemma pair_content_exclusive γs a1 a2 :
-    pair_content γs a1 -∗ pair_content γs a2 -∗ False.
+  Lemma snapshot_content_exclusive γs a1 a2 :
+    snapshot_content γs a1 -∗ snapshot_content γs a2 -∗ False.
   Proof.
-    iIntros "[H1 _] [H2 _]". iDestruct (own_valid_2 with "H1 H2") as %[].
+    iIntros "H1 H2". iDestruct (own_valid_2 with "H1 H2") as %[].
   Qed.
 
   Definition new_timestamp t v : gmap Z val := {[ t := v ]}.
 
-  Lemma newPair_spec (v1 v2 : val) :
+  Lemma new_snapshot_spec (v : val) :
       {{{ True }}}
-        newPair (v1, v2)%V
-      {{{ γs p, RET p; is_pair γs p ∗ pair_content γs (v1, v2) }}}.
+        new_snapshot v
+      {{{ γs p, RET p; is_snapshot γs p ∗ snapshot_content γs v }}}.
   Proof.
-    iIntros (Φ _) "Hx". rewrite /newPair. wp_lam.
+    iIntros (Φ _) "Hx". rewrite /new_snapshot. wp_lam.
     repeat (wp_proj; wp_let).
     iApply wp_fupd.
-    wp_alloc ly as "Hly".
     wp_alloc lx' as "Hlx'".
     wp_alloc lx as "Hlx".
-    set (Excl' v1) as p.
+    set (Excl' v) as p.
     iMod (own_alloc (● p ⋅ ◯ p)) as (γ1) "[Hx⚫ Hx◯]". {
       rewrite /p. apply auth_both_valid. split; done.
     }
-    set (new_timestamp 0 v1) as t.
+    set (new_timestamp 0 v) as t.
     iMod (own_alloc (● gmap_to_UR t ⋅ ◯ gmap_to_UR t)) as (γ2) "[Ht⚫ Ht◯]". {
       rewrite /t /new_timestamp. apply auth_both_valid.
       split; first done. rewrite /gmap_to_UR map_fmap_singleton. apply singleton_valid. done.
     }
-    wp_pures. iApply ("Hx" $! (γ1, γ2, ly)).
-    iMod (inv_alloc N _ (pair_inv γ1 γ2 _) with "[-Hx◯ Ht◯ Hly]") as "#Hinv". {
-      iNext. rewrite /pair_inv. iExists _, _, _, _, 0. iFrame.
+    wp_pures. iApply ("Hx" $! (γ1, γ2)).
+    iMod (inv_alloc N _ (snapshot_inv γ1 γ2 _) with "[-Hx◯ Ht◯]") as "#Hinv". {
+      iNext. rewrite /snapshot_inv. iExists _, _, _, _, 0. iFrame.
       iPureIntro. split; first done. intros ?. subst t. rewrite /new_timestamp dom_singleton.
       rewrite elem_of_singleton. lia.
     }
-    iModIntro. rewrite /is_pair /pair_content. iFrame. iExists _.
+    iModIntro. rewrite /is_snapshot /snapshot_content. iFrame. iExists _.
     iSplitL; first done. done.
   Qed.
 
@@ -234,30 +203,12 @@ Section atomic_snapshot.
     by intros ->.
   Qed.
 
-  Lemma writeY_spec γ (y2: val) p :
-      is_pair γ p -∗
-      <<< ∀ x y : val, pair_content γ (x, y) >>>
-        writeY (p, y2)%V
+  Lemma write_spec γ (x2: val) p :
+      is_snapshot γ p  -∗
+      <<< ∀ x : val, snapshot_content γ x >>>
+        write p x2
         @ ⊤∖↑N
-      <<< pair_content γ (x, y2), RET #() >>>.
-  Proof.
-    iIntros "Hx". iIntros (Φ) "AU".
-    iDestruct "Hx" as (l1 ->) "#Hinv". wp_pures.
-    wp_lam. wp_pures.
-    iApply wp_fupd.
-    iMod "AU" as (xv yv) "[[Hx Hy] [_ Hclose]]".
-    wp_store.
-    iMod ("Hclose" with "[Hx Hy]") as "HΦ".
-    { rewrite /pair_content. iFrame. }
-    eauto.
-  Qed.
-
-  Lemma writeX_spec γ (x2: val) p :
-      is_pair γ p  -∗
-      <<< ∀ x y : val, pair_content γ (x, y) >>>
-        writeX (p, x2)%V
-        @ ⊤∖↑N
-      <<< pair_content γ (x2, y), RET #() >>>.
+      <<< snapshot_content γ x2, RET #() >>>.
   Proof.
     iIntros "Hx". iIntros (Φ) "AU". iLöb as "IH".
     iDestruct "Hx" as (l1 ->) "#Hinv". wp_pures. wp_lam. wp_pures.
@@ -268,7 +219,7 @@ Section atomic_snapshot.
       iDestruct "Hl1'" as "[Hl1'frac1 Hl1'frac2]".
       iModIntro. iSplitR "AU Hl1'frac2".
       (* close invariant *)
-      { iNext. rewrite /pair_inv. eauto 10 with iFrame. }
+      { iNext. rewrite /snapshot_inv. eauto 10 with iFrame. }
     wp_let. wp_bind (!_)%E. clear T.
     wp_load. wp_proj. wp_let. wp_op. wp_alloc l1'new as "Hl1'new".
     wp_let.
@@ -281,20 +232,19 @@ Section atomic_snapshot.
     - wp_cas_suc.
       iDestruct (mapsto_agree with "Hl1'frac2 Hl1''") as %[= -> ->]. iClear "Hl1'frac2".
       (* open AU *)
-      iMod "AU" as (xv yv) "[[Hx Hy] [_ Hclose]]".
-        (* update pair ghost state to (x2, y') *)
+      iMod "AU" as (xv) "[Hx [_ Hclose]]".
+        (* update snapshot ghost state to (x2, y') *)
         iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
         iMod (excl_update _ x2 with "Hx⚫ Hx") as "[Hx⚫ Hx◯]".
         (* close AU *)
-        iMod ("Hclose" with "[Hx◯ Hy]") as "HΦ".
-        { rewrite /pair_content. iFrame. }
+        iMod ("Hclose" with "Hx◯") as "HΦ".
       (* update timestamp *)
       iMod (timestamp_update _ T (v'' + 1)%Z x2 with "[Ht●]") as "Ht".
       { eapply (not_elem_of_dom (D:=gset Z) T). intros Hd. specialize (Hvt _ Hd). omega. }
       { done. }
       (* close invariant *)
       iModIntro. iSplitR "HΦ".
-      + iNext. rewrite /pair_inv.
+      + iNext. rewrite /snapshot_inv.
         set (<[ v'' + 1 := x2]> T) as T'.
         iExists 1%Qp, l1'new, T', x2, (v'' + 1).
         iFrame.
@@ -309,51 +259,32 @@ Section atomic_snapshot.
           specialize (Hvt _ Hv). lia.
       + wp_if. done.
     - wp_cas_fail. iModIntro. iSplitR "AU".
-      + iNext. rewrite /pair_inv. eauto 10 with iFrame.
-      + wp_if. iApply "IH"; last eauto. rewrite /is_pair. eauto.
+      + iNext. rewrite /snapshot_inv. eauto 10 with iFrame.
+      + wp_if. iApply "IH"; last eauto. rewrite /is_snapshot. eauto.
   Qed.
 
-  Lemma readY_spec γ p :
-    is_pair γ p -∗
-    <<< ∀ v1 v2 : val, pair_content γ (v1, v2) >>>
-      readY p
+  Lemma read_spec γ p :
+    is_snapshot γ p -∗
+    <<< ∀ v : val, snapshot_content γ v >>>
+      read p
       @ ⊤∖↑N
-    <<< pair_content γ (v1, v2), RET v2 >>>.
+    <<< snapshot_content γ v, RET v >>>.
   Proof.
     iIntros "Hx". iIntros (Φ) "AU".
     iDestruct "Hx" as (l1 ->) "#Hinv".
-    repeat (wp_lam; wp_proj). wp_let.
-    iApply wp_fupd.
-    iMod "AU" as (xv yv) "[[Hx Hy] [_ Hclose]]".
-    wp_load.
-    rewrite /pair_content.
-    iMod ("Hclose" with "[$Hx $Hy]") as "HΦ".
-    iModIntro. done.
-  Qed.
-
-  Lemma readX_spec γ p :
-    is_pair γ p -∗
-    <<< ∀ v1 v2 : val, pair_content γ (v1, v2) >>>
-      readX p
-      @ ⊤∖↑N
-    <<< ∃ (t: Z), pair_content γ (v1, v2), RET (v1, #t) >>>.
-  Proof.
-    iIntros "Hx". iIntros (Φ) "AU".
-    iDestruct "Hx" as (l1 ->) "#Hinv".
-    repeat (wp_lam; wp_proj). wp_let. wp_bind (! #l1)%E.
+    wp_lam. wp_bind (! #l1)%E.
     (* open invariant for 1st read *)
     iInv N as (q l1' T x v') ">[Hl1 [Hl1' [Hx⚫ Htime]]]".
       wp_load.
       iDestruct "Hl1'" as "[Hl1' Hl1'frac]".
-      iMod "AU" as (xv yv) "[[Hx Hy] [_ Hclose]]".
+      iMod "AU" as (xv) "[Hx [_ Hclose]]".
       iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
-      iMod ("Hclose" with "[Hx Hy]") as "HΦ".
-      { rewrite /pair_content. iFrame. }
+      iMod ("Hclose" with "Hx") as "HΦ".
       (* close invariant *)
       iModIntro. iSplitR "HΦ Hl1'". {
-        iNext. unfold pair_inv. eauto 7 with iFrame.
+        iNext. unfold snapshot_inv. eauto 7 with iFrame.
       }
-    iApply wp_fupd. wp_load. eauto.
+    iApply wp_fupd. wp_load. wp_pures. eauto.
   Qed.
 
   Definition prophecy_to_bool (v : list (val * val)) : bool :=
@@ -362,18 +293,20 @@ Section atomic_snapshot.
     | _                          => false
     end.
 
-  Lemma readPair_spec γ p :
-    is_pair γ p -∗
-    <<< ∀ v1 v2 : val, pair_content γ (v1, v2) >>>
-       readPair_proph p
+  Lemma read_with_spec γ p (l : loc) :
+    is_snapshot γ p -∗
+    <<< ∀ v1 v2 : val, snapshot_content γ v1 ∗ l ↦ v2 >>>
+       read_with_proph p #l
        @ ⊤∖↑N
-    <<< pair_content γ (v1, v2), RET (v1, v2) >>>.
+    <<< snapshot_content γ v1 ∗ l ↦ v2, RET (v1, v2) >>>.
   Proof.
-    iIntros "Hx". iIntros (Φ) "AU". iLöb as "IH".
+    iIntros "Hx". iIntros (Φ) "AU". iLöb as "IH". wp_lam. wp_pures.
+    (* ************ new prophecy ********** *)
+    wp_apply wp_new_proph; first done.
+    iIntros (proph_val proph) "Hpr".
     wp_pures.
     (* ************ 1st readX ********** *)
-    iDestruct "Hx" as (l1 ->) "#Hinv". repeat (wp_lam; wp_pures).
-    wp_bind (! #l1)%E.
+    iDestruct "Hx" as (l1 ->) "#Hinv". wp_bind (! #l1)%E.
     (* open invariant for 1st read *)
     iInv N as (q_x1 l1' T_x x1 v_x1) ">[Hl1 [Hl1' [Hx⚫ [Ht_x Htime_x]]]]".
       iDestruct "Htime_x" as %[Hlookup_x Hdom_x].
@@ -381,19 +314,14 @@ Section atomic_snapshot.
       iDestruct "Hl1'" as "[Hl1' Hl1'frac]".
       iMod "AU" as (xv yv) "[[Hx Hy] [Hclose _]]".
       iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
-      iMod ("Hclose" with "[Hx Hy]") as "AU".
-      { rewrite /pair_content. iFrame. }
+      iMod ("Hclose" with "[$Hx $Hy]") as "AU".
       (* duplicate timestamp T_x1 *)
       iMod (timestamp_dupl with "Ht_x") as "[Ht_x1⚫ Ht_x1◯]".
       (* close invariant *)
-      iModIntro. iSplitR "AU Hl1' Ht_x1◯". {
-        iNext. unfold pair_inv. eauto 8 with iFrame.
+      iModIntro. iSplitR "AU Hl1' Ht_x1◯ Hpr". {
+        iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
     wp_load. wp_let.
-    (* ************ new prophecy ********** *)
-    wp_apply wp_new_proph; first done.
-    iIntros (proph_val proph) "Hpr".
-    wp_let.
     (* ************ readY ********** *)
     repeat (wp_lam; wp_pures). wp_bind (!_)%E.
     iInv N as (q_y l1'_y T_y x_y v_y) ">[Hl1 [Hl1'_y [Hx⚫ [Ht_y Htime_y]]]]".
@@ -402,7 +330,7 @@ Section atomic_snapshot.
     clear yv.
     iMod "AU" as (xv yv) "[[Hx Hy] Hclose]".
     wp_load.
-    rewrite /pair_content.
+    rewrite /snapshot_content.
     iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
     destruct (prophecy_to_bool proph_val) eqn:Hproph.
     - (* prophecy value is predicting that timestamp has not changed, so we commit *)
@@ -416,7 +344,7 @@ Section atomic_snapshot.
       iModIntro. iModIntro.
       (* closing invariant *)
       iSplitR "HΦ Hl1' Ht_x1◯ Ht_y◯ Hpr".
-      { iNext. unfold pair_inv. eauto 10 with iFrame. }
+      { iNext. unfold snapshot_inv. eauto 10 with iFrame. }
       wp_let.
       (* ************ 2nd readX ********** *)
       repeat (wp_lam; wp_pures). wp_bind (! #l1)%E.
@@ -429,10 +357,10 @@ Section atomic_snapshot.
       iDestruct (timestamp_sub with "[Ht_x2 Ht_y◯]") as "#Hs'"; first by iFrame.
       iDestruct "Hs'" as %Hs'.
       iModIntro. iSplitR "HΦ Hl1'_x2_frag Hpr". {
-        iNext. unfold pair_inv. eauto 8 with iFrame.
+        iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
-      wp_load. wp_let. wp_proj. wp_let. wp_proj. wp_op.
-      case_bool_decide; wp_let; wp_apply (wp_resolve_proph with "Hpr");
+      wp_load. wp_pures.
+      case_bool_decide; wp_apply (wp_resolve_proph with "Hpr");
         iIntros (vs') "[Eq _]"; iDestruct "Eq" as %->; wp_seq; wp_if.
       + inversion H; subst; clear H. wp_pures.
         assert (v_x2 = v_y) as ->. {
@@ -451,37 +379,38 @@ Section atomic_snapshot.
         }
         done.
       + inversion Hproph.
-    - iDestruct "Hclose" as "[Hclose _]". iMod ("Hclose" with "[$Hx $Hy]") as "AU".
+    - (* prophecy value is predicting that timestamp has not changed, so we abort *)
+      iDestruct "Hclose" as "[Hclose _]". iMod ("Hclose" with "[$Hx $Hy]") as "AU".
       iModIntro. iModIntro.
       (* closing invariant *)
       iSplitR "AU Hpr".
-      { iNext. unfold pair_inv. eauto 10 with iFrame. }
+      { iNext. unfold snapshot_inv. eauto 10 with iFrame. }
       wp_let.
       (* ************ 2nd readX ********** *)
-      repeat (wp_lam; wp_proj). wp_let. wp_bind (! #l1)%E.
+      wp_bind (! #l1)%E.
       (* open invariant *)
       iInv N as (q_x2 l1'_x2 T_x2 x2 v_x2) "[Hl1 [Hl1'_x2 [Hx⚫ [Ht_x2 Htime_x2]]]]".
       iDestruct "Hl1'_x2" as "[Hl1'_x2 Hl1'_x2_frag]".
       wp_load.
       iModIntro. iSplitR "AU Hl1'_x2_frag Hpr". {
-        iNext. unfold pair_inv. eauto 8 with iFrame.
+        iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
-      wp_load. repeat (wp_let; wp_proj). wp_op. wp_let.
+      wp_load. wp_pures.
       wp_apply (wp_resolve_proph with "Hpr").
       iIntros (vs') "[Heq _]"; iDestruct "Heq" as %->.
       case_bool_decide.
       + inversion H; subst; clear H. inversion Hproph.
-      + wp_seq. wp_if. iApply "IH"; rewrite /is_pair; eauto.
+      + wp_seq. wp_if. iApply "IH"; rewrite /is_snapshot; eauto.
   Qed.
 
 End atomic_snapshot.
 
-Definition atomic_snapshot `{!heapG Σ, atomic_snapshotG Σ} :
+Program Definition atomic_snapshot `{!heapG Σ, atomic_snapshotG Σ} :
   spec.atomic_snapshot Σ :=
-  {| spec.newPair_spec := newPair_spec;
-     spec.writeX_spec := writeX_spec;
-     spec.writeY_spec := writeY_spec;
-     spec.readPair_spec := readPair_spec;
-     spec.pair_content_exclusive := pair_content_exclusive |}.
+  {| spec.new_snapshot_spec := new_snapshot_spec;
+     spec.write_spec := write_spec;
+     spec.read_spec := read_spec;
+     spec.read_with_spec := read_with_spec;
+     spec.snapshot_content_exclusive := snapshot_content_exclusive |}.
 
-Typeclasses Opaque pair_content is_pair.
+Typeclasses Opaque snapshot_content is_snapshot.

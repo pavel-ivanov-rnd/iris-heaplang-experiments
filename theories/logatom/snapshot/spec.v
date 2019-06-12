@@ -11,46 +11,46 @@ Set Default Proof Using "Type".
     Implementing atomic pair snapshot data structure from Sergey et al. (ESOP 2015) *)
 
 Record atomic_snapshot {Σ} `{!heapG Σ} := AtomicSnapshot {
-    newPair : val;
-    writeX : val;
-    writeY : val;
-    readPair : val;
+    new_snapshot : val;
+    read : val;
+    write : val;
+    read_with : val;
     (* other data *)
     name: Type;
     name_eqdec : EqDecision name;
     name_countable : Countable name;
     (* predicates *)
-    is_pair (N : namespace) (γ : name) (p : val) : iProp Σ;
-    pair_content (γ : name) (a: val * val) : iProp Σ;
+    is_snapshot (N : namespace) (γ : name) (p : val) : iProp Σ;
+    snapshot_content (γ : name) (a: val) : iProp Σ;
     (* predicate properties *)
-    is_pair_persistent N γ p : Persistent (is_pair N γ p);
-    pair_content_timeless γ a : Timeless (pair_content γ a);
-    pair_content_exclusive γ a1 a2 :
-      pair_content γ a1 -∗ pair_content γ a2 -∗ False;
+    is_snapshot_persistent N γ p : Persistent (is_snapshot N γ p);
+    snapshot_content_timeless γ a : Timeless (snapshot_content γ a);
+    snapshot_content_exclusive γ a1 a2 :
+      snapshot_content γ a1 -∗ snapshot_content γ a2 -∗ False;
     (* specs *)
-    newPair_spec N (v1 v2 : val) :
-      {{{ True }}} newPair (v1, v2)%V {{{ γ p, RET p; is_pair N γ p ∗ pair_content γ (v1, v2) }}};
-    writeX_spec N γ (v: val) p :
-      is_pair N γ p -∗
-      <<< ∀ v1 v2 : val, pair_content γ (v1, v2) >>>
-        writeX (p, v)%V
+    new_snapshot_spec N (v : val) :
+      {{{ True }}} new_snapshot v {{{ γ p, RET p; is_snapshot N γ p ∗ snapshot_content γ v }}};
+    read_spec N γ p :
+      is_snapshot N γ p -∗
+      <<< ∀ v : val, snapshot_content γ v  >>>
+        read p
         @ ⊤∖↑N
-      <<< pair_content γ (v, v2), RET #() >>>;
-    writeY_spec N γ (v: val) p :
-      is_pair N γ p -∗
-      <<< ∀ v1 v2 : val, pair_content γ (v1, v2)  >>>
-        writeY (p, v)%V
+      <<< snapshot_content γ v, RET v >>>;
+    write_spec N γ (v: val) p :
+      is_snapshot N γ p -∗
+      <<< ∀ w : val, snapshot_content γ w  >>>
+        write p v
         @ ⊤∖↑N
-      <<< pair_content γ (v1, v), RET #() >>>;
-    readPair_spec N γ p :
-      is_pair N γ p -∗
-      <<< ∀ v1 v2 : val, pair_content γ (v1, v2) >>>
-        readPair p
+      <<< snapshot_content γ v, RET #() >>>;
+    read_with_spec N γ p (l : loc) :
+      is_snapshot N γ p -∗
+      <<< ∀ v w : val, snapshot_content γ v ∗ l ↦ w >>>
+        read_with p #l
         @ ⊤∖↑N
-      <<< pair_content γ (v1, v2), RET (v1, v2) >>>;
+      <<< snapshot_content γ v ∗ l ↦ w, RET (v, w) >>>;
 }.
 Arguments atomic_snapshot _ {_}.
 
 Existing Instances
-  is_pair_persistent pair_content_timeless
+  is_snapshot_persistent snapshot_content_timeless
   name_countable name_eqdec.
