@@ -188,8 +188,10 @@ Section conditional_counter.
      Remember that the thread winning the CAS might be just helping.  The token
      is owned by the thread whose request this is.
      In this state, [l_ghost_winner] serves as a token to make sure that
-     only the CAS winner can transition to here, and [loc_token l] serves as a
-     "location" token to ensure there is no ABA going on. *)
+     only the CAS winner can transition to here, and owning half of[l] serves as a
+     "location" token to ensure there is no ABA going on. Notice how [counter_inv]
+     owns *more than* half of its [l], which means we know that the [l] there
+     and here cannot be the same. *)
   Definition done_state Q (l l_ghost_winner : loc) (γ_t : gname) :=
     ((Q ∨ own_token γ_t) ∗ l_ghost_winner ↦ - ∗ l ↦{1/2} -)%I.
 
@@ -210,6 +212,8 @@ Section conditional_counter.
 
   Definition counter_inv γ_b γ_n f c :=
     (∃ (b : bool) (l : loc) (q : Qp) (s : abstract_state),
+       (* We own *more than* half of [l], which shows that this cannot
+          be the [l] of any [state] protocol in the [done] state. *)
        f ↦ #b ∗ c ↦{1/2} #l ∗ l ↦{1/2 + q} (state_to_val s) ∗
        own γ_b (● Excl' b) ∗
        match s with
