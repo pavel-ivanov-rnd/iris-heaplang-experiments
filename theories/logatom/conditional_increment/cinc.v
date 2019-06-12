@@ -159,13 +159,13 @@ Section conditional_counter.
     end.
 
   Inductive abstract_state : Set :=
-  | injl : Z → abstract_state
-  | injr : Z → proph_id → abstract_state.
+  | Quiescent : Z → abstract_state
+  | Updating : Z → proph_id → abstract_state.
 
   Definition state_to_val (s : abstract_state) : val :=
     match s with
-    | injl n => InjLV #n
-    | injr n p => InjRV (#n,#p)
+    | Quiescent n => InjLV #n
+    | Updating n p => InjRV (#n,#p)
     end.
 
   Global Instance state_to_val_inj : Inj (=) (=) state_to_val.
@@ -217,8 +217,8 @@ Section conditional_counter.
        f ↦ #b ∗ c ↦{1/2} #l ∗ l ↦{1/2 + q} (state_to_val s) ∗
        own γ_b (● Excl' b) ∗
        match s with
-        | injl n => c ↦{1/2} #l ∗ own γ_n (● Excl' n)
-        | injr n p =>
+        | Quiescent n => c ↦{1/2} #l ∗ own γ_n (● Excl' n)
+        | Updating n p =>
            ∃ P Q l_ghost_winner γ_t γ_s,
              (* There are two pieces of per-[state]-protocol ghost state:
              - [γ_t] is a token owned by whoever created this protocol and used
@@ -239,7 +239,7 @@ Section conditional_counter.
 
   Global Instance counter_content_timeless γs b n : Timeless (counter_content γs b n) := _.
 
-  Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (injl 0).
+  Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (Quiescent 0).
 
   Lemma counter_content_exclusive γs f1 c1 f2 c2 :
     counter_content γs f1 c1 -∗ counter_content γs f2 c2 -∗ False.
@@ -327,7 +327,7 @@ Section conditional_counter.
       iFrame "#∗". iSplitR "Hl"; iExists _; done. }
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hc" as "[Hc1 Hc2]".
-      iExists _, l_new, _, (injl n). iFrame. }
+      iExists _, l_new, _, (Quiescent n). iFrame. }
     iApply wp_fupd. wp_seq. iApply "HQ".
     iApply state_done_extract_Q; done.
   Qed.
@@ -457,7 +457,7 @@ Section conditional_counter.
     wp_load. destruct s as [n|n p].
     - iDestruct "Hrest" as "(Hc' & Hv)".
       iModIntro. iSplitR "AU Hl'".
-      { iModIntro. iExists _, _, (q/2)%Qp, (injl n). iFrame. }
+      { iModIntro. iExists _, _, (q/2)%Qp, (Quiescent n). iFrame. }
       wp_let. wp_load. wp_match. wp_apply wp_new_proph; first done.
       iIntros (l_ghost p') "Hp'".
       wp_let. wp_alloc ly as "Hly".
@@ -481,7 +481,7 @@ Section conditional_counter.
           iFrame. destruct (val_to_some_loc l_ghost); simpl; done. }
         iModIntro. iDestruct "Hly" as "[Hly1 Hly2]". iSplitR "Hl' Token". {
           (* close invariant *)
-          iNext. iExists _, _, _, (injr n p'). eauto 10 with iFrame.
+          iNext. iExists _, _, _, (Updating n p'). eauto 10 with iFrame.
         }
         wp_if. wp_apply complete_spec; [done..|].
         iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
@@ -496,7 +496,7 @@ Section conditional_counter.
       iDestruct "Hrest" as (P Q l_ghost γ_t γ_s) "[#InvS #P_AU]".
       iSplitR "Hl' AU".
       (* close invariant *)
-      { iModIntro. iExists _, _, _, (injr n p). iFrame. eauto 10 with iFrame. }
+      { iModIntro. iExists _, _, _, (Updating n p). iFrame. eauto 10 with iFrame. }
       wp_let. wp_load. wp_match. wp_pures.
       wp_apply complete_spec; [done..|].
       iIntros "_". wp_seq. by iApply "IH".
@@ -519,7 +519,7 @@ Section conditional_counter.
       with "[Hl_f Hl_c Hl_n Hb● Hn●]") as "#InvC".
     { iNext. iDestruct "Hl_c" as "[Hl_c1 Hl_c2]".
       iDestruct "Hl_n" as "[??]".
-      iExists true, l_n, (1/2)%Qp, (injl 0). iFrame. }
+      iExists true, l_n, (1/2)%Qp, (Quiescent 0). iFrame. }
     iModIntro.
     iApply ("HΦ" $! (#l_f, #l_c)%V (γ_b, γ_n)).
     iSplitR; last by iFrame. iExists γ_b, γ_n, l_f, l_c. iSplit; done.
@@ -559,12 +559,12 @@ Section conditional_counter.
       iDestruct (sync_counter_values with "Hn● Hn◯") as %->.
       iMod ("Hclose" with "[Hn◯ Hb◯]") as "HΦ"; first by iFrame.
       iModIntro. iSplitR "HΦ Hl'". {
-        iNext. iExists b, c, (q/2)%Qp, (injl au_n). iFrame.
+        iNext. iExists b, c, (q/2)%Qp, (Quiescent au_n). iFrame.
       }
       wp_let. wp_load. wp_match. iApply "HΦ".
     - iDestruct "Hrest" as (P Q l_ghost γ_t γ_s) "[#InvS #PAU]".
       iModIntro. iSplitR "AU Hl'". {
-        iNext. iExists b, c, (q/2)%Qp, (injr n p). eauto 10 with iFrame.
+        iNext. iExists b, c, (q/2)%Qp, (Updating n p). eauto 10 with iFrame.
       }
       wp_let. wp_load. wp_match. repeat wp_proj. wp_bind (complete _ _ _ _ _)%E.
       wp_apply complete_spec; [done..|].
