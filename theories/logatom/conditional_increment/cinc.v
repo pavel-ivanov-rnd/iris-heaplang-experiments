@@ -175,8 +175,6 @@ Section conditional_counter.
 
   Definition own_token γ := (own γ (Excl ()))%I.
 
-  Definition loc_token (l: loc) := (∃ γ, meta l N γ ∗ own_token γ)%I.
-
   Definition pending_state P (n : Z) (proph_winner : option loc) l_ghost_winner (γ_n : gname) :=
     (P ∗ ⌜match proph_winner with None => True | Some l => l = l_ghost_winner end⌝ ∗ own γ_n (● Excl' n))%I.
 
@@ -193,7 +191,7 @@ Section conditional_counter.
      only the CAS winner can transition to here, and [loc_token l] serves as a
      "location" token to ensure there is no ABA going on. *)
   Definition done_state Q (l l_ghost_winner : loc) (γ_t : gname) :=
-    ((Q ∨ own_token γ_t) ∗ l_ghost_winner ↦ - ∗ loc_token l)%I.
+    ((Q ∨ own_token γ_t) ∗ l_ghost_winner ↦ - ∗ l ↦{1/2} -)%I.
 
   (* We always need the [proph] in here so that failing threads coming late can
      always resolve their stuff.
@@ -212,9 +210,8 @@ Section conditional_counter.
 
   Definition counter_inv γ_b γ_n f c :=
     (∃ (b : bool) (l : loc) (q : Qp) (s : abstract_state),
-       f ↦ #b ∗ c ↦{1/2} #l ∗ l ↦{q} (state_to_val s) ∗
+       f ↦ #b ∗ c ↦{1/2} #l ∗ l ↦{1/2 + q} (state_to_val s) ∗
        own γ_b (● Excl' b) ∗
-       loc_token l ∗ (* the "location" token for ABA protection; also see [done_state] *)
        match s with
         | injl n => c ↦{1/2} #l ∗ own γ_n (● Excl' n)
         | injr n p =>
@@ -256,27 +253,6 @@ Section conditional_counter.
     apply (iffLR (frac_valid' _)) in Hv. by apply Qp_not_plus_q_ge_1 in Hv.
   Qed.
 
-  Lemma loc_token_exclusive l :
-    loc_token l -∗ loc_token l -∗ False.
-  Proof.
-    iIntros "Hl1 Hl2".
-    iDestruct "Hl1" as (γ1) "[Hm1 Ht1]".
-    iDestruct "Hl2" as (γ2) "[Hm2 Ht2]".
-    iDestruct (meta_agree with "Hm1 Hm2") as %->.
-    iDestruct (own_valid_2 with "Ht1 Ht2") as %Hcontra.
-    by inversion Hcontra.
-  Qed.
-
-  Lemma loc_token_alloc v :
-    {{{ True }}} ref v {{{ l, RET #l; l ↦ v ∗ loc_token l }}}.
-  Proof.
-    iIntros (Φ) "HT HΦ". iApply wp_fupd.
-    wp_apply (wp_alloc with "HT"). iIntros (l_new) "[Hl_new Hm_new]".
-    iMod (own_alloc (Excl ())) as (γ_l) "Htok"; first done.
-    iMod ((meta_set _ _ γ_l N) with "Hm_new") as "Hm"; first done.
-    iApply "HΦ". iFrame "Hl_new". iExists _. by iFrame.
-  Qed.
-
   (** Once a [state] protocol is [done] (as reflected by the [γ_s] token here),
       we can at any later point in time extract the [Q]. *)
   Lemma state_done_extract_Q P Q p m c_l l l_ghost γ_n γ_t γ_s :
@@ -310,11 +286,10 @@ Section conditional_counter.
     (□(own_token γ_t ={⊤}=∗ ▷ Q) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
     l_new ↦ InjLV #n -∗
-    loc_token l_new -∗
     WP Resolve (CAS #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
-    iIntros "#InvC #InvS PAU Hl_ghost HQ Hn● Hlntok Hl_new". wp_bind (Resolve _ _ _)%E.
-    iInv counterN as (b' l' q s) "(>Hf & >Hc & >Hl' & Hb● & Hltok & Hrest)".
+    iIntros "#InvC #InvS PAU Hl_ghost HQ Hn● [Hl_new Hl_new']". wp_bind (Resolve _ _ _)%E.
+    iInv counterN as (b' l' q s) "(>Hf & >Hc & >[Hl Hl'] & Hb● & Hrest)".
     iInv stateN as (vs) "(>Hp & [NotDone | Done])"; last first.
     { (* We cannot be [done] yet, as we own the "ghost location" that serves
          as token for that transition. *)
@@ -342,10 +317,10 @@ Section conditional_counter.
     iMod (own_update with "Hs") as "Hs".
     { apply (cmra_update_exclusive (Cinr (to_agree ()))). done. }
     iDestruct "Hs" as "#Hs'". iModIntro.
-    iSplitL "Hl_ghost_inv Hl_ghost Q Hltok Hp'".
+    iSplitL "Hl_ghost_inv Hl_ghost Q Hp' Hl".
     (* Update state to Done. *)
     { iNext. iExists _. iFrame "Hp'". iRight. unfold done_state.
-      iFrame "#∗". iExists _. done. }
+      iFrame "#∗". iSplitR "Hl"; iExists _; done. }
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hc" as "[Hc1 Hc2]".
       iExists _, l_new, _, (injl n). iFrame. }
@@ -364,7 +339,7 @@ Section conditional_counter.
     WP Resolve (CAS #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros (Hnl) "#InvC #InvS PAU HQ Hl_new". wp_bind (Resolve _ _ _)%E.
-    iInv counterN as (b' l' q s) "(>Hf & >Hc & >Hl' & >Hb● & >Hltok & Hrest)".
+    iInv counterN as (b' l' q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & Hrest)".
     iInv stateN as (vs) "(>Hp & [NotDone | [#Hs Done]])".
     { (* If the [state] protocol is not done yet, we can show that it
          is the active protocol still (l = l').  But then the CAS would
@@ -381,15 +356,17 @@ Section conditional_counter.
     (* It must be that l' ≠ l because we are in the failing thread. *)
     destruct (decide (l' = l)) as [->|Hn]. {
       (* The [state] protocol is [done] while still being the active protocol
-         of the [counter]?  Impossible, we got the location token for that! *)
-      iDestruct "Done" as "(_ & _ & >Hltok')".
-      iDestruct (loc_token_exclusive with "Hltok Hltok'") as "[]".
+         of the [counter]?  Impossible, now we will own more than the whole location! *)
+      iDestruct "Done" as "(_ & _ & >Hl'')".
+      iDestruct "Hl''" as (v') "Hl''".
+      iDestruct (mapsto_combine with "Hl Hl''") as "[Hl _]".
+      rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hl Hl'") as "[]".
     }
     (* The CAS fails. *)
     wp_apply (wp_resolve with "Hp"); first done. wp_cas_fail.
     iIntros (vs' ->) "Hp". iModIntro.
     iSplitL "Done Hp". { iNext. iExists _. iFrame "#∗". } iModIntro.
-    iSplitL "Hf Hc Hb● Hrest Hl' Hltok". { eauto 10 with iFrame. }
+    iSplitL "Hf Hc Hb● Hrest Hl Hl'". { eauto 10 with iFrame. }
     wp_seq. iApply "HQ".
     iApply state_done_extract_Q; done.
   Qed.
@@ -411,7 +388,7 @@ Section conditional_counter.
     iModIntro. iIntros (Φ) "_ HQ". wp_lam. wp_pures.
     wp_alloc l_ghost as "[Hl_ghost' Hl_ghost'2]". wp_bind (! _)%E. simpl.
     (* open outer invariant to read `f` *)
-    iInv counterN as (b' l' q s) "(>Hf & >Hc & >Hl' & >Hb● & >Hltok & Hrest)".
+    iInv counterN as (b' l' q s) "(>Hf & >Hc & >Hl' & >Hb● & Hrest)".
     wp_load.
     (* two different proofs depending on whether we are succeeding thread *)
     destruct (decide (l_ghost_inv = l_ghost)) as [-> | Hnl].
@@ -438,10 +415,9 @@ Section conditional_counter.
         iModIntro. iSplitR "Hl_ghost'2 HQ Hn●".
         { eauto 12 with iFrame. }
         destruct b2; wp_if; [ wp_op | .. ];
-        wp_apply (loc_token_alloc with "[//]"); iIntros (l_new) "[Hl_new Hm_new]";
-        wp_pures;
+        wp_alloc l_new as "Hl_new"; wp_pures;
           iApply (complete_succeeding_thread_pending
-                    with "InvC InvS PAU Hl_ghost'2 HQ Hn● Hl_new Hm_new").
+                    with "InvC InvS PAU Hl_ghost'2 HQ Hn● Hl_new").
       + (* Accepted: contradiction *)
         iDestruct "Accepted" as "[>Hl_ghost_inv _]".
         iDestruct "Hl_ghost_inv" as (v) "Hlghost".
@@ -455,7 +431,7 @@ Section conditional_counter.
     - (* we are the failing thread *)
       (* close invariant *)
       iModIntro.
-      iSplitL "Hf Hc Hrest Hl' Hb● Hltok". { eauto 10 with iFrame. }
+      iSplitL "Hf Hc Hrest Hl' Hb●". { eauto 10 with iFrame. }
       (* two equal proofs depending on value of b1 *)
       destruct b'; wp_if; [ wp_op | ..]; wp_alloc Hl_new as "Hl_new"; wp_pures;
         iApply (complete_failing_thread
@@ -473,22 +449,22 @@ Section conditional_counter.
     iIntros "#InvC". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
     iDestruct "Heq" as %[-> ->]. iIntros (Φ) "AU". iLöb as "IH".
     wp_lam. wp_proj. wp_let. wp_proj. wp_let. wp_bind (!_)%E.
-    iInv counterN as (b' l' q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
+    iInv counterN as (b' l' q s) "(>Hf & >Hc & >[Hl [Hl' Hl'']] & >Hb● & Hrest)".
     wp_load. destruct s as [n|n p].
     - iDestruct "Hrest" as "(Hc' & Hv)".
-      iModIntro. iSplitR "AU Hl".
+      iModIntro. iSplitR "AU Hl'".
       { iModIntro. iExists _, _, (q/2)%Qp, (injl n). iFrame. }
       wp_let. wp_load. wp_match. wp_apply wp_new_proph; first done.
       iIntros (l_ghost p') "Hp'".
-      wp_let. wp_apply (loc_token_alloc with "[//]"); iIntros (ly) "[Hly Hmy]".
+      wp_let. wp_alloc ly as "Hly".
       wp_let. wp_bind (CAS _ _ _)%E.
       (* open outer invariant again to CAS c_l *)
-      iInv counterN as (b2 l'' q2 s) "(>Hf & >Hc & >Hl' & >Hb● & >Hltok & Hrest)".
+      iInv counterN as (b2 l'' q2 s) "(>Hf & >Hc & >Hl & >Hb● & Hrest)".
       destruct (decide (l' = l'')) as [<- | Hn].
       + (* CAS succeeds *)
-        iDestruct (mapsto_agree with "Hl Hl'") as %<-%state_to_val_inj.
+        iDestruct (mapsto_agree with "Hl' Hl") as %<-%state_to_val_inj.
         iDestruct "Hrest" as ">[Hc' Hn●]". iCombine "Hc Hc'" as "Hc".
-        wp_cas_suc. iClear "Hltok".
+        wp_cas_suc.
         (* Initialize new [state] protocol .*)
         iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
         iMod (own_alloc (Excl ())) as (γ_t) "Token"; first done.
@@ -528,7 +504,7 @@ Section conditional_counter.
     {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs true 0 }}}.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
-    wp_apply (loc_token_alloc with "[//]"); iIntros (l_n) "[Hl_n Hltok]".
+    wp_alloc l_n as "Hl_n".
     wp_alloc l_c as "Hl_c". wp_let.
     wp_alloc l_f as "Hl_f". wp_let. wp_pair.
     iMod (own_alloc (● Excl' true  ⋅ ◯ Excl' true)) as (γ_b) "[Hb● Hb◯]".
@@ -536,9 +512,10 @@ Section conditional_counter.
     iMod (own_alloc (● Excl' 0  ⋅ ◯ Excl' 0)) as (γ_n) "[Hn● Hn◯]".
     { by apply auth_both_valid. }
     iMod (inv_alloc counterN _ (counter_inv γ_b γ_n l_f l_c)
-      with "[Hl_f Hl_c Hl_n Hltok Hb● Hn●]") as "#InvC".
+      with "[Hl_f Hl_c Hl_n Hb● Hn●]") as "#InvC".
     { iNext. iDestruct "Hl_c" as "[Hl_c1 Hl_c2]".
-      iExists true, l_n, _, (injl 0). iFrame. }
+      iDestruct "Hl_n" as "[??]".
+      iExists true, l_n, (1/2)%Qp, (injl 0). iFrame. }
     iModIntro.
     iApply ("HΦ" $! (#l_f, #l_c)%V (γ_b, γ_n)).
     iSplitR; last by iFrame. iExists γ_b, γ_n, l_f, l_c. iSplit; done.
@@ -552,7 +529,7 @@ Section conditional_counter.
   Proof.
     iIntros "#InvC" (Φ) "AU". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
     iDestruct "Heq" as %[-> ->]. wp_lam. wp_let. wp_proj.
-    iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
+    iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & Hrest)".
     iMod "AU" as (b' n') "[[Hb◯ Hn◯] [_ Hclose]]"; simpl.
     wp_store.
     iDestruct (sync_flag_values with "Hb● Hb◯") as %HEq; subst b.
@@ -570,7 +547,7 @@ Section conditional_counter.
   Proof.
     iIntros "#InvC" (Φ) "AU". iDestruct "InvC" as (γ_b γ_n f_l c_l) "[Heq InvC]".
     iDestruct "Heq" as %[-> ->]. iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
-    iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl Hl'] & >Hb● & >Hltok & Hrest)".
+    iInv counterN as (b c q s) "(>Hf & >Hc & >[Hl [Hl' Hl'']] & >Hb● & Hrest)".
     wp_load.
     destruct s as [n|n p].
     - iMod "AU" as (au_b au_n) "[[Hb◯ Hn◯] [_ Hclose]]"; simpl.
