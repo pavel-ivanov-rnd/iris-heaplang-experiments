@@ -17,7 +17,7 @@ Proof.
   eapply (wp_adequacy Σ _); eauto.
   iIntros (Hinv ?).
   iMod (gen_heap_init σ) as (Hheap) "Hh".
-  iModIntro. iExists (λ σ _, gen_heap_ctx σ); iFrame.
+  iModIntro. iExists (λ σ _, gen_heap_ctx σ), (λ _, True%I); iFrame.
   set (HeapΣ := (HeapG Σ Hinv Hheap)).
   iApply (wp_wand with "[]").
   - replace e with e.[env_subst[]] by by asimpl.

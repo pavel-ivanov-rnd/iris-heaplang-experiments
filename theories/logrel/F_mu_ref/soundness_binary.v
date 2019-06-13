@@ -25,7 +25,7 @@ Proof.
     rewrite /to_gen_heap fin_maps.map_fmap_empty.
     iFrame. }
   set (HeapΣ := HeapG Σ Hinv Hheap).
-  iExists (λ σ _, gen_heap_ctx σ); iFrame.
+  iExists (λ σ _, gen_heap_ctx σ), (λ _, True%I); iFrame.
   iApply wp_fupd. iApply (wp_wand with "[-]").
   - iPoseProof (Hlog _ _ with "[$Hcfg]") as "Hrel".
     { iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }

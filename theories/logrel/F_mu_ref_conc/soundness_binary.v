@@ -22,7 +22,7 @@ Proof.
   iMod (inv_alloc specN _ (spec_inv ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
   { iNext. iExists [e'], ∅. rewrite /to_gen_heap fin_maps.map_fmap_empty. auto. }
   set (HeapΣ := (HeapIG Σ Hinv Hheap)).
-  iExists (λ σ _, gen_heap_ctx σ); iFrame.
+  iExists (λ σ _, gen_heap_ctx σ), (λ _, True%I); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
   iPoseProof ((Hlog _ _ [] []) with "[]") as "Hrel".
