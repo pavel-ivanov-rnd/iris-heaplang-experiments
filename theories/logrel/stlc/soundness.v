@@ -20,4 +20,3 @@ Proof.
   set (HΣ := IrisG _ _ Hinv (λ _ _ _, True)%I (λ _, True)%I).
   iApply (wp_wand with "[]"). by iApply wp_soundness. eauto.
 Qed.
-
