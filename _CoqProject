@@ -107,3 +107,6 @@ theories/logatom/snapshot/spec.v
 theories/logatom/snapshot/atomic_snapshot.v
 theories/logatom/conditional_increment/spec.v
 theories/logatom/conditional_increment/cinc.v
+theories/logatom/rdcss/rdcss.v
+theories/logatom/rdcss/spec.v
+theories/logatom/rdcss/lib/gc.v
