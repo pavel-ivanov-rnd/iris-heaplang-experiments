@@ -36,9 +36,19 @@ Section stacks.
     iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
   Qed.
 
-  Definition is_list_pre (P : val → iProp Σ) (F : val -d> iProp Σ) :
-     val -d> iProp Σ := λ v,
-    (v ≡ NONEV ∨ ∃ (l : loc) (h t : val), ⌜v ≡ SOMEV #l⌝ ∗ l ↦{-} (h, t)%V ∗ P h ∗ ▷ F t)%I.
+  Definition oloc_to_val (ol: option loc) : val :=
+    match ol with
+    | None => NONEV
+    | Some loc => SOMEV (#loc)
+    end.
+  Local Instance oloc_to_val_inj : Inj (=) (=) oloc_to_val.
+  Proof. intros [|][|]; simpl; congruence. Qed.
+
+  Definition is_list_pre (P : val → iProp Σ) (F : option loc -d> iProp Σ) :
+     option loc -d> iProp Σ := λ v, match v with
+     | None => True
+     | Some l => ∃ (h : val) (t : option loc), l ↦{-} (h, oloc_to_val t)%V ∗ P h ∗ ▷ F t
+     end%I.
 
   Local Instance is_list_contr (P : val → iProp Σ) : Contractive (is_list_pre P).
   Proof.
@@ -58,28 +68,22 @@ Section stacks.
     rewrite is_list_eq. apply (fixpoint_unfold (is_list_pre P)).
   Qed.
 
-  (* TODO: shouldn't have to explicitly return is_list *)
-  Lemma is_list_unboxed (P : val → iProp Σ) v :
-      is_list P v -∗ ⌜val_is_unboxed v⌝ ∗ is_list P v.
+  Lemma is_list_dup (P : val → iProp Σ) v :
+    is_list P v -∗ is_list P v ∗ match v with
+      | None => True
+      | Some l => ∃ h t, l ↦{-} (h, oloc_to_val t)%V
+      end.
   Proof.
-    iIntros "Hstack"; iSplit; last done;
-    iDestruct (is_list_unfold with "Hstack") as "[->|Hstack]";
-    last iDestruct "Hstack" as (l h t) "(-> & _)"; done.
-  Qed.
-
-  Lemma is_list_disj (P : val → iProp Σ) v :
-    is_list P v -∗ is_list P v ∗ (⌜v ≡ NONEV⌝ ∨ ∃ (l : loc) h t, ⌜v ≡ SOMEV #l%V⌝ ∗ l ↦{-} (h, t)%V).
-  Proof.
-    iIntros "Hstack".
-    iDestruct (is_list_unfold with "Hstack") as "[%|Hstack]"; simplify_eq.
-    - rewrite is_list_unfold; iSplitR; [iLeft|]; eauto.
-    - iDestruct "Hstack" as (l h t) "(% & Hl & Hlist)".
-      iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]"; simplify_eq.
-      rewrite (is_list_unfold _ (InjRV _)); iSplitR "Hl2"; iRight; iExists _, _, _; by iFrame.
+    iIntros "Hstack". iDestruct (is_list_unfold with "Hstack") as "Hstack".
+    destruct v as [l|].
+    - iDestruct "Hstack" as (h t) "(Hl & Hlist)".
+      iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]".
+      rewrite (is_list_unfold _ (Some _)); iSplitR "Hl2"; iExists _, _; by iFrame.
+    - rewrite is_list_unfold; iSplitR; eauto.
   Qed.
 
   Definition stack_inv P v :=
-    (∃ l v', ⌜v = #l⌝ ∗ l ↦ v' ∗ is_list P v')%I.
+    (∃ l ol', ⌜v = #l⌝ ∗ l ↦ oloc_to_val ol' ∗ is_list P ol')%I.
 
   Definition is_stack (P : val → iProp Σ) v :=
     inv N (stack_inv P v).
@@ -92,8 +96,8 @@ Section stacks.
     wp_lam.
     wp_alloc ℓ as "Hl".
     iMod (inv_alloc N ⊤ (stack_inv P #ℓ) with "[Hl]") as "Hinv".
-    { iNext; iExists ℓ, NONEV; iFrame;
-      by iSplit; last (iApply is_list_unfold; iLeft). }
+    { iNext; iExists ℓ, None; iFrame;
+      by iSplit; last (iApply is_list_unfold). }
     by iApply "Hpost".
   Qed.
 
@@ -109,17 +113,17 @@ Section stacks.
     { iNext; iExists _, _; by iFrame. }
     iModIntro. wp_let. wp_alloc ℓ' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
     iInv N as (ℓ'' v'') "(>% & >Hl & Hlist)" "Hclose"; simplify_eq.
-    destruct (decide (v' = v'')) as [ -> |].
-    - iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
-      wp_cas_suc.
+    destruct (decide (v' = v'')) as [->|Hne].
+    - wp_cas_suc. { destruct v''; left; done. }
       iMod ("Hclose" with "[HP Hl Hl' Hlist]") as "_".
-      { iNext; iExists _, (InjRV #ℓ'); iFrame; iSplit; first done;
-        rewrite (is_list_unfold _ (InjRV _)). iRight; iExists _, _, _; iFrame; eauto. }
+      { iNext; iExists _, (Some ℓ'); iFrame; iSplit; first done;
+        rewrite (is_list_unfold _ (Some _)). iExists _, _; iFrame; eauto. }
       iModIntro.
       wp_if.
       by iApply "HΦ".
-    - iDestruct (is_list_unboxed with "Hlist") as "[>% Hlist]".
-      wp_cas_fail.
+    - wp_cas_fail.
+      { destruct v', v''; simpl; congruence. }
+      { destruct v''; left; done. }
       iMod ("Hclose" with "[Hl Hlist]") as "_".
       { iNext; iExists _, _; by iFrame. }
       iModIntro.
@@ -134,37 +138,36 @@ Section stacks.
     iLöb as "IH".
     wp_lam. wp_bind (Load _).
     iInv N as (ℓ v') "(>% & Hl & Hlist)" "Hclose"; subst.
+    iDestruct (is_list_dup with "Hlist") as "[Hlist Hlist2]".
     wp_load.
-    iDestruct (is_list_disj with "Hlist") as "[Hlist Hdisj]".
     iMod ("Hclose" with "[Hl Hlist]") as "_".
     { iNext; iExists _, _; by iFrame. }
     iModIntro.
-    iDestruct "Hdisj" as "[-> | Heq]".
+    destruct v' as [l|]; last first.
     - wp_match.
       iApply "HΦ"; by iLeft.
-    - iDestruct "Heq" as (l h t) "[-> Hl]".
-      wp_match. wp_bind (Load _).
+    - wp_match. wp_bind (Load _).
       iInv N as (ℓ' v') "(>% & Hl' & Hlist)" "Hclose". simplify_eq.
-      iDestruct "Hl" as (q) "Hl".
+      iDestruct "Hlist2" as (???) "Hl".
       wp_load.
       iMod ("Hclose" with "[Hl' Hlist]") as "_".
       { iNext; iExists _, _; by iFrame. }
       iModIntro.
       wp_pures. wp_bind (CAS _ _ _).
       iInv N as (ℓ'' v'') "(>% & Hl' & Hlist)" "Hclose". simplify_eq.
-      destruct (decide (v'' = InjRV #l)) as [-> |].
+      destruct (decide (v'' = (Some l))) as [-> |].
       * rewrite is_list_unfold.
-        iDestruct "Hlist" as "[>% | H]"; first done.
-        iDestruct "H" as (ℓ''' h' t') "(>% & Hl'' & HP & Hlist)"; simplify_eq.
+        iDestruct "Hlist" as (h' t') "(Hl'' & HP & Hlist)".
         iDestruct "Hl''" as (q') "Hl''".
+        simpl.
         wp_cas_suc.
-        iDestruct (mapsto_agree with "Hl'' Hl") as "%"; simplify_eq.
+        iDestruct (mapsto_agree with "Hl'' Hl") as %[= <- <-%oloc_to_val_inj].
         iMod ("Hclose" with "[Hl' Hlist]") as "_".
         { iNext; iExists ℓ'', _; by iFrame. }
         iModIntro.
         wp_pures.
-        iApply ("HΦ" with "[HP]"); iRight; iExists h; by iFrame.
-      * wp_cas_fail.
+        iApply ("HΦ" with "[HP]"); iRight; iExists _; by iFrame.
+      * wp_cas_fail. { destruct v''; simpl; congruence. }
         iMod ("Hclose" with "[Hl' Hlist]") as "_".
         { iNext; iExists ℓ'', _; by iFrame. }
         iModIntro.

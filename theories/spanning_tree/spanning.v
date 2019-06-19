@@ -75,7 +75,7 @@ Section Helpers.
     rewrite Hil2' in Hil2; inversion Hil2; subst.
     iDestruct (auth_own_graph_valid with "Hi1") as %Hvl.
     destruct u as [[] uch].
-    - wp_cas_fail; first done.
+    - wp_cas_fail.
       iDestruct (graph_close with "[Hi3 Hil3 Hil4]") as "Hi3";
       eauto.
       { iFrame. iExists _; eauto. iSplitR; eauto. by iExists _; iFrame. }
@@ -85,7 +85,7 @@ Section Helpers.
       { iNext. unfold graph_inv at 2. iExists _; iFrame; auto. }
       iModIntro. iFrame. iRight; by iFrame.
     - (* CAS succeeds *)
-      wp_cas_suc; first done.
+      wp_cas_suc.
       iMod (mark_graph _ _ x uch with "[Hi1 Hx]") as "[Hi1 Hx]"; try by iFrame.
       { apply (proj1 (not_elem_of_dom (D := gset loc) G' x)).
         intros Hid. eapply in_dom_of_graph in Hid; eauto; tauto. }

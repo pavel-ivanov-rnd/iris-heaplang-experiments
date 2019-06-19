@@ -383,9 +383,6 @@ Section types_properties.
     wp_apply (wp_wand with "(H2 [//])"); iIntros (w2) "HA2".
     iDestruct (lty_unboxed with "HA2") as %?.
     wp_apply (wp_wand with "(H1 [//])"); iIntros (w1); iDestruct 1 as (l ->) "#?".
-    iInv (tyN.@l) as (v) "[>Hl Hv]".
-    destruct (decide (v = w2)) as [->|].
-    - wp_cas_suc. eauto 10.
-    - wp_cas_fail. eauto 10.
+    iInv (tyN.@l) as (v) "[>Hl Hv]". wp_cas as ?|?; eauto 10.
   Qed.
 End types_properties.

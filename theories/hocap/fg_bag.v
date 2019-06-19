@@ -49,49 +49,51 @@ Section proof.
   Lemma rown_duplicate l v : rown l v -∗ rown l v ∗ rown l v.
   Proof. iDestruct 1 as (q) "[Hl Hl']". iSplitL "Hl"; iExists _; eauto. Qed.
 
-  Fixpoint is_list (hd : val) (xs : list val) : iProp Σ :=
-    match xs with
-    | [] => ⌜hd = NONEV⌝%I
-    | x::xs => (∃ (l : loc) (tl : val),
-                   ⌜hd = SOMEV #l⌝ ∗ rown l (x, tl) ∗ is_list tl xs)%I
+  Definition oloc_to_val (ol: option loc) : val :=
+    match ol with
+    | None => NONEV
+    | Some loc => SOMEV (#loc)
     end.
+  Local Instance oloc_to_val_inj : Inj (=) (=) oloc_to_val.
+  Proof. intros [|][|]; simpl; congruence. Qed.
 
-  Lemma is_list_unboxed hd xs :
-    is_list hd xs -∗ ⌜val_is_unboxed hd⌝.
-  Proof.
-    destruct xs.
-    - iIntros (->). done.
-    - iIntros "Hl". iDestruct "Hl" as (?? ->) "_". done.
-  Qed.
+  Fixpoint is_list (hd : option loc) (xs : list val) : iProp Σ :=
+    match xs, hd with
+    | [], None => True
+    | x::xs, Some l => ∃ (tl : option loc),
+                   rown l (x, oloc_to_val tl) ∗ is_list tl xs
+    | _, _ => False
+    end%I.
 
   Lemma is_list_duplicate hd xs : is_list hd xs -∗ is_list hd xs ∗ is_list hd xs.
   Proof.
     iInduction xs as [ | x xs ] "IH" forall (hd); simpl; eauto.
-    iDestruct 1 as (l tl) "[% [Hro Htl]]"; simplify_eq.
+    destruct hd; last by auto.
+    iDestruct 1 as (tl) "[Hro Htl]".
     rewrite rown_duplicate. iDestruct "Hro" as "[Hro Hro']".
     iDestruct ("IH" with "Htl") as "[Htl Htl']".
-    iSplitL "Hro Htl"; iExists _,_; iFrame; eauto.
+    iSplitL "Hro Htl"; iExists _; iFrame; eauto.
   Qed.
 
   Lemma is_list_agree hd xs ys : is_list hd xs -∗ is_list hd ys -∗ ⌜xs = ys⌝.
   Proof.
     iInduction xs as [ | x xs ] "IH" forall (hd ys); simpl; eauto.
-    - iIntros "%"; subst.
-      destruct ys; eauto. simpl.
-      iDestruct 1 as (? ?) "[% ?]". simplify_eq.
-    - iDestruct 1 as (l tl) "(% & Hro & Hls)"; simplify_eq.
+    - destruct hd; first by auto.
+      destruct ys; eauto.
+    - destruct hd; last by auto.
       destruct ys as [| y ys]; eauto. simpl.
-      iDestruct 1 as (l' tl') "(% & Hro' & Hls')"; simplify_eq.
+      iDestruct 1 as (tl) "(Hro & Hls)".
+      iDestruct 1 as (tl') "(Hro' & Hls')".
       iDestruct "Hro" as (q) "Hro".
       iDestruct "Hro'" as (q') "Hro'".
-      iDestruct (mapsto_agree l' q q' (PairV x tl) (PairV y tl')
+      iDestruct (mapsto_agree l q q' (PairV x (oloc_to_val tl)) (PairV y (oloc_to_val tl'))
                 with "Hro Hro'") as %?. simplify_eq/=.
       iDestruct ("IH" with "Hls Hls'") as %->. done.
   Qed.
 
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
-    (∃ (hd : val) (ls : list val),
-        b ↦ hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (list_to_set_disj ls)))%I.
+    (∃ (hd : option loc) (ls : list val),
+        b ↦ oloc_to_val hd ∗ is_list hd ls ∗ own γb ((1/2)%Qp, to_agree (list_to_set_disj ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
     (∃ (b : loc), ⌜x = #b⌝ ∗ inv N (bag_inv γb b))%I.
   Definition bag_contents (γb : gname) (X : gmultiset val) : iProp Σ :=
@@ -134,7 +136,7 @@ Section proof.
     wp_alloc r as "Hr".
     iMod (own_alloc (1%Qp, to_agree ∅)) as (γb) "[Ha Hf]"; first done.
     iMod (inv_alloc N _ (bag_inv γb r) with "[Ha Hr]") as "#Hinv".
-    { iNext. iExists _,[]. simpl. iFrame. eauto. }
+    { iNext. iExists None,[]. simpl. iFrame. }
     iModIntro. iApply "HΦ".
     rewrite /is_bag /bag_contents. iFrame.
     iExists _. by iFrame "Hinv".
@@ -162,15 +164,16 @@ Section proof.
     wp_alloc n as "Hn".
     wp_pures. wp_bind (CAS _ _ _).
     iInv N as (o' ls) "[Ho [Hls >Hb]]" "Hcl".
-    iPoseProof (is_list_unboxed with "Hls") as "#>%".
     destruct (decide (o = o')) as [->|?].
-    - wp_cas_suc.
+    - wp_cas_suc. { destruct o'; left; done. }
       iMod ("Hvs" with "[$Hb $HP]") as "[Hb HQ]".
       iMod ("Hcl" with "[Ho Hn Hls Hb]") as "_".
-      { iNext. iExists _,(v::ls). iFrame "Ho Hb".
-        simpl. iExists _,_. iFrame. iSplit; eauto. by iExists 1%Qp. }
+      { iNext. iExists (Some _),(v::ls). iFrame "Ho Hb".
+        simpl. iExists _. iFrame. by iExists 1%Qp. }
       iModIntro. wp_if_true. by iApply "HΦ".
     - wp_cas_fail.
+      { destruct o, o'; simpl; congruence. }
+      { destruct o'; left; done. }
       iMod ("Hcl" with "[Ho Hls Hb]") as "_".
       { iNext. iExists _,ls. by iFrame "Ho Hb". }
       iModIntro. wp_if_false.
@@ -196,38 +199,38 @@ Section proof.
     iInv N as (o ls) "[Ho [Hls >Hb]]" "Hcl".
     wp_load.
     destruct ls as [|x ls]; simpl.
-    - iDestruct "Hls" as %->.
+    - destruct o; first done.
       iMod ("Hvs2" with "[$Hb $HP]") as "[Hb HQ]".
       iMod ("Hcl" with "[Ho Hb]") as "_".
       { iNext. iExists _,[]. by iFrame. }
       iModIntro. repeat wp_pure _.
       by iApply "HΦ".
-    - iDestruct "Hls" as (hd tl) "(% & Hhd & Hls)"; simplify_eq/=.
+    - destruct o as [hd|]; last done.
+      iDestruct "Hls" as (tl) "(Hhd & Hls)"; simplify_eq/=.
       rewrite rown_duplicate. iDestruct "Hhd" as "[Hhd Hhd']".
       rewrite is_list_duplicate. iDestruct "Hls" as "[Hls Hls']".
       iMod ("Hcl" with "[Ho Hb Hhd Hls]") as "_".
-      { iNext. iExists _,(x::ls). simpl; iFrame; eauto.
-        iExists _, _; eauto. by iFrame. }
+      { iNext. iExists (Some _),(x::ls). simpl; iFrame; eauto.
+        iExists _; eauto. by iFrame. }
       iModIntro. repeat wp_pure _.
       iDestruct "Hhd'" as (q) "Hhd".
       wp_load. repeat wp_pure _.
       wp_bind (CAS _ _ _).
       iInv N as (o' ls') "[Ho [Hls >Hb]]" "Hcl".
-      destruct (decide (o' = (InjRV #hd))) as [->|?].
+      destruct (decide (o' = (Some hd))) as [->|?].
       + wp_cas_suc.
         (* The list is still the same *)
         rewrite (is_list_duplicate tl). iDestruct "Hls'" as "[Hls' Htl]".
-        iAssert (is_list (InjRV #hd) (x::ls)) with "[Hhd Hls']" as "Hls'".
-        { simpl. iExists hd,tl. iFrame; iSplit; eauto.
-          iExists q. iFrame. }
+        iAssert (is_list (Some hd) (x::ls)) with "[Hhd Hls']" as "Hls'".
+        { simpl. iExists tl. iFrame. iExists q. iFrame. }
         iDestruct (is_list_agree with "Hls Hls'") as %?. simplify_eq.
         iClear "Hls'".
-        iDestruct "Hls" as (hd' tl') "(% & Hro' & Htl')". simplify_eq.
+        iDestruct "Hls" as (tl') "(Hro' & Htl')".
         iMod ("Hvs1" with "[$Hb $HP]") as "[Hb HQ]".
         iMod ("Hcl" with "[Ho Htl Hb]") as "_".
         { iNext. iExists _,ls. by iFrame "Ho Hb". }
         iModIntro. wp_pures. by iApply "HΦ".
-      + wp_cas_fail.
+      + wp_cas_fail. { destruct o'; simpl; congruence. }
         iMod ("Hcl" with "[Ho Hls Hb]") as "_".
         { iNext. iExists _,ls'. by iFrame "Ho Hb". }
         iModIntro. wp_if_false.

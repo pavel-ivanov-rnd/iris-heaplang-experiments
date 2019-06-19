@@ -266,7 +266,7 @@ Proof.
   (* We now reason by case on the success/failure of the CAS. *)
   destruct (decide (u = w)) as [[= ->]|NE].
   - (* The CAS succeeded. *)
-    wp_cas_suc. { case w; done. (* Administrative stuff. *) }
+    wp_cas_suc. { case w; left; done. (* Administrative stuff. *) }
     (* This was the linearization point. We access the preconditon. *)
     iMod "AU" as (zs) "[Hγ◯ [_ HClose]]".
     (* Use agreement on ressource [γ] to learn [zs = ys]. *)
@@ -280,7 +280,7 @@ Proof.
     (* And conclude the proof easily, after some computation steps. *)
     wp_if. iExact "H".
   - (* The CAS failed. *)
-    wp_cas_fail. { eapply not_inj. done. }
+    wp_cas_fail. { case u, w; simpl; congruence. }
     { case u, w; simpl; eauto. (* Administrative stuff. *) }
     (* We can eliminate the modality. *)
     iModIntro. iSplitL "Hγ● Hl HPhys"; first by eauto 10 with iFrame.
@@ -324,7 +324,7 @@ Proof.
     (* We reason by case on the success/failure of the CAS. *)
     destruct (decide (u = Some w)) as [[= ->]|Hx].
     * (* The CAS succeeded, so this is the linearization point. *)
-      wp_cas_suc; first done.
+      wp_cas_suc.
       (* The list [ys] must be non-empty, otherwise the proof is trivial. *)
       destruct ys; first done.
       (* We access the precondition, prior to performing an update. *)

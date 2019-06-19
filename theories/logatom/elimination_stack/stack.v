@@ -106,6 +106,10 @@ Section stack.
   Local Instance stack_elem_to_val_inj : Inj (=) (=) stack_elem_to_val.
   Proof. rewrite /Inj /stack_elem_to_val=>??. repeat case_match; congruence. Qed.
 
+  Lemma stack_elem_to_val_for_compare rep :
+    val_for_compare (stack_elem_to_val rep) = stack_elem_to_val rep.
+  Proof. destruct rep; done. Qed.
+
   Fixpoint list_inv (l : list val) (rep : option loc) : iProp :=
     match l with
     | nil => ⌜rep = None⌝
@@ -203,7 +207,7 @@ Section stack.
     awp_apply cas_spec; [by destruct stack_rep|].
     iInv stackN as (stack_rep' offer_rep l) "(>Hs● & >H↦ & Hlist & Hoffer)".
     iAaccIntro with "H↦"; first by eauto 10 with iFrame.
-    iIntros "H↦".
+    iIntros "H↦". rewrite !stack_elem_to_val_for_compare.
     destruct (decide (stack_elem_to_val stack_rep' = stack_elem_to_val stack_rep)) as
       [->%stack_elem_to_val_inj|_].
     - (* The CAS succeeded. Update everything accordingly. *)
@@ -299,6 +303,7 @@ Section stack.
       iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & Hrem)".
       iAaccIntro with "H↦"; first by eauto 10 with iFrame.
       iIntros "H↦". change (InjRV #tail) with (stack_elem_to_val (Some tail)).
+      rewrite !stack_elem_to_val_for_compare.
       destruct (decide (stack_elem_to_val stack_rep = stack_elem_to_val (Some tail))) as
         [->%stack_elem_to_val_inj|_].
       + (* CAS succeeded! It must still be the same head element in the list,
@@ -308,8 +313,7 @@ Section stack.
           %[->%Excl_included%leibniz_equiv _]%auth_both_valid.
         destruct l as [|v' l]; simpl.
         { (* Contradiction. *) iDestruct "Hlist" as ">%". done. }
-        iDestruct "Hlist" as (tail' q' rep') "[>Heq [>Htail' Hlist]]".
-        iDestruct "Heq" as %[= <-].
+        iDestruct "Hlist" as (tail' q' rep') "[>% [>Htail' Hlist]]". simplify_eq.
         iDestruct (mapsto_agree with "Htail Htail'") as %[= <- <-%stack_elem_to_val_inj].
         iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
         { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
@@ -334,7 +338,7 @@ Section stack.
         iDestruct "Hoff" as (Poff Qoff γo) "[#Hoinv #AUoff]".
         iInv offerN as (offer_st) "[>Hoff↦ Hoff]".
         iAaccIntro with "Hoff↦"; first by eauto 10 with iFrame.
-        iIntros "Hoff↦".
+        iIntros "Hoff↦". simpl.
         destruct (decide (#(offer_state_rep offer_st) = #0)) as [Heq|_]; last first.
         { (* CAS failed, we don't do a thing. *)
           iSplitR "AU"; first by eauto 10 with iFrame.
