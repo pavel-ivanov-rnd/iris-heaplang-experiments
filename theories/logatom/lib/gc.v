@@ -7,7 +7,7 @@ Import uPred.
 
 Definition gcN: namespace := nroot .@ "gc".
 
-Definition gc_mapUR : ucmraT := gmapUR loc $ optionR $ exclR $ valC.
+Definition gc_mapUR : ucmraT := gmapUR loc $ optionR $ exclR $ valO.
 
 Definition to_gc_map (gcm: gmap loc val) : gc_mapUR := (λ v : val, Excl' v) <$> gcm.
 
@@ -112,7 +112,9 @@ Section to_gc_map.
 End to_gc_map.
 
 Section gc.
-  Context `{!invG Σ, !heapG Σ, gG: gcG Σ}.
+  Context `{!invG Σ, !heapG Σ, !gcG Σ}.
+
+  (* FIXME: still needs a constructor. *)
 
   Global Instance is_gc_loc_persistent (l: loc): Persistent (is_gc_loc l).
   Proof. rewrite /is_gc_loc. apply _. Qed.
@@ -158,7 +160,7 @@ Section gc.
     iFrame.
   Qed.
 
-  Lemma is_gc_lookup_Some  l gcm: is_gc_loc l -∗ own (gc_name gG) (● to_gc_map gcm) -∗ ⌜∃ v, gcm !! l = Some v⌝.
+  Lemma is_gc_lookup_Some  l gcm: is_gc_loc l -∗ own (gc_name _) (● to_gc_map gcm) -∗ ⌜∃ v, gcm !! l = Some v⌝.
     iIntros "Hgc_l H◯".
     iCombine "H◯ Hgc_l" as "Hcomb".
     iDestruct (own_valid with "Hcomb") as %Hvalid.
@@ -170,7 +172,7 @@ Section gc.
     by apply leibniz_equiv_iff in Hsome.
   Qed.
 
-  Lemma gc_mapsto_lookup_Some l v gcm: gc_mapsto l v -∗ own (gc_name gG) (● to_gc_map gcm) -∗ ⌜ gcm !! l = Some v ⌝.
+  Lemma gc_mapsto_lookup_Some l v gcm: gc_mapsto l v -∗ own (gc_name _) (● to_gc_map gcm) -∗ ⌜ gcm !! l = Some v ⌝.
   Proof.
     iIntros "Hgc_l H●".
     iCombine "H● Hgc_l" as "Hcomb".
@@ -180,12 +182,17 @@ Section gc.
     by apply gc_map_singleton_included.
   Qed.
 
-  Lemma gc_access l v E:
-    ↑gcN ⊆ E → gc_inv -∗ gc_mapsto l v ={E, E ∖ ↑gcN}=∗ (l ↦ v ∗ (∀ w, l ↦ w ={E ∖ ↑gcN, E}=∗ gc_mapsto l w)).
+  (** An accessor to make use of [gc_mapsto].
+    This opens the invariant *before* consuming [gc_mapsto] so that you can use
+    this before opening an atomic update that provides [gc_mapsto]!. *)
+  Lemma gc_access E:
+    ↑gcN ⊆ E →
+    gc_inv ={E, E ∖ ↑gcN}=∗ ∀ l v, gc_mapsto l v -∗
+      (l ↦ v ∗ (∀ w, l ↦ w ==∗ gc_mapsto l w ∗ |={E ∖ ↑gcN, E}=> True)).
   Proof.
-    iIntros (HN) "#Hinv Hgc_l".
+    iIntros (HN) "#Hinv".
     iMod (inv_open_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
-    iModIntro.
+    iIntros "!>" (l v) "Hgc_l".
     iDestruct "P" as (gcm) "[H● HsepM]".
     iDestruct (gc_mapsto_lookup_Some with "Hgc_l H●") as %Hsome.
     iDestruct (big_sepM_delete with "HsepM") as "[Hl HsepM]"=>//. 
@@ -199,6 +206,7 @@ Section gc.
     iDestruct (big_sepM_insert with "[Hl HsepM]") as "HsepM"; [ | iFrame | ].
     { apply lookup_delete. }
     rewrite insert_delete. rewrite <- to_gc_map_insert.
+    iModIntro. iFrame.
     iMod ("Hclose" with "[H● HsepM]"); [ iExists _; by iFrame | by iModIntro].
   Qed.   
 
