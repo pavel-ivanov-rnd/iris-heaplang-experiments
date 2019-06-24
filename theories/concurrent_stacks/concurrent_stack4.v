@@ -119,24 +119,24 @@ Section proofs.
     {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ can_push P Q v'') ∨ (⌜v' = InjLV #()⌝ ∗ (Q #())) }}}.
   Proof.
     iIntros (Φ) "[Hinv Hγ] HΦ". iDestruct "Hinv" as (v' l) "[-> #Hinv]".
-    wp_lam. wp_pures. wp_bind (CAS _ _ _).
+    wp_lam. wp_pures. wp_bind (CmpXchg _ _ _).
     iInv Nside_channel as "Hstages" "Hclose".
     iDestruct "Hstages" as "[[Hl HP] | [[Hl HQ] | [[Hl H] | [Hl H]]]]".
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("Hclose" with "[Hl Hγ]") as "_".
       { iNext; iRight; iRight; iFrame. }
       iModIntro.
       wp_pures.
       by iApply "HΦ"; iLeft; iExists _; iFrame.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hl Hγ]") as "_".
       { iNext; iRight; iRight; iLeft; iFrame. }
       iModIntro.
       wp_pures.
       iApply ("HΦ" with "[HQ]"); iRight; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iDestruct (own_valid_2 with "H Hγ") as %[].
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iDestruct (own_valid_2 with "H Hγ") as %[].
   Qed.
 
@@ -149,11 +149,11 @@ Section proofs.
         (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ Ψ v') ∨ (⌜v' = InjLV #()⌝ ∗ (do_pop ∧ Q')) }}}.
   Proof.
     simpl; iIntros (Φ) "[H [Hopener Hupd]] HΦ"; iDestruct "H" as (v l) "[-> #Hinv]".
-    wp_lam. wp_proj. wp_bind (CAS _ _ _).
+    wp_lam. wp_proj. wp_bind (CmpXchg _ _ _).
     iInv Nside_channel as "Hstages" "Hclose".
     iDestruct "Hstages" as "[[Hl Hpush] | [[Hl HQ] | [[Hl Hγ] | [Hl Hγ]]]]".
     - iMod "Hopener" as (xs) "[HP Hcloser]".
-      wp_cas_suc.
+      wp_cmpxchg_suc.
       iMod ("Hpush" with "HP") as "[HP HQ]".
       iMod ("Hupd" with "HP") as "[HP HΨ]".
       iMod ("Hcloser" with "HP") as "_".
@@ -162,19 +162,19 @@ Section proofs.
       iApply fupd_intro_mask; first done.
       wp_pures.
       iApply "HΦ"; iLeft; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hl HQ]") as "_".
       { iRight; iLeft; iFrame. }
       iModIntro.
       wp_pures.
       iApply "HΦ"; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hl Hγ]").
       { iRight; iRight; iFrame. }
       iModIntro.
       wp_pures.
       iApply "HΦ"; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hl Hγ]").
       { iRight; iRight; iFrame. }
       iModIntro.
@@ -350,25 +350,25 @@ Section proofs.
       { iNext; iExists _, _; iFrame. }
       clear xs.
       iModIntro.
-      wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
+      wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CmpXchg _ _ _).
       iInv Nstack as (list' xs) "(Hl & Hlist & HP)" "Hclose".
       destruct (decide (list = list')) as [ -> |].
-      * wp_cas_suc. { destruct list'; left; done. }
+      * wp_cmpxchg_suc. { destruct list'; left; done. }
         iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
         iMod ("Hupd" with "HP") as "[HP HΨ]".
         iMod "Hupd'" as "_".
         iMod ("Hclose" with "[Hl Hl' HP Hlist]") as "_".
         { iNext; iExists (Some _), (v' :: xs); iFrame; iExists _; iFrame; auto. }
         iModIntro.
-        wp_if.
+        wp_pures.
         by iApply ("HΦ" with "HΨ").
-      * wp_cas_fail.
+      * wp_cmpxchg_fail.
       { destruct list, list'; simpl; congruence. }
       { destruct list'; left; done. }
         iMod ("Hclose" with "[Hl HP Hlist]").
         { iExists _, _; iFrame. }
         iModIntro.
-        wp_if.
+        wp_pures.
         iApply ("IH" with "HΦ Hupd").
     - wp_match. iApply ("HΦ" with "HΨ").
   Qed.
@@ -426,10 +426,10 @@ Section proofs.
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
         { iNext; iExists _, _; iFrame. }
         iModIntro.
-        wp_pures. wp_bind (CAS _ _ _).
+        wp_pures. wp_bind (CmpXchg _ _ _).
         iInv Nstack as (v' xs'') "(Hl & Hlist & HP)" "Hclose".
         destruct (decide (v' = (Some l'))) as [ -> |].
-        + wp_cas_suc.
+        + wp_cmpxchg_suc.
           iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
           simplify_eq.
           iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
@@ -444,7 +444,7 @@ Section proofs.
           iModIntro.
           wp_pures.
           iApply ("HΦ" with "HΨ").
-        + wp_cas_fail. { destruct v'; simpl; congruence. }
+        + wp_cmpxchg_fail. { destruct v'; simpl; congruence. }
           iMod ("Hclose" with "[Hlist Hl HP]") as "_".
           { iNext; iExists _, _; iFrame. }
           iModIntro.

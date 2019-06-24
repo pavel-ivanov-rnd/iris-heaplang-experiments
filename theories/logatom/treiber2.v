@@ -260,13 +260,13 @@ Proof.
   (* We can now perform the load, and get rid of the modality. *)
   wp_load. iModIntro. iSplitL "Hl Hγ● HPhys"; first by eauto 10 with iFrame.
   (* We then resume stepping through the program, and focus on the CAS. *)
-  wp_alloc r as "Hr". wp_inj. wp_bind (CAS _ _ _)%E.
+  wp_alloc r as "Hr". wp_inj. wp_bind (CmpXchg _ _ _)%E.
   (* Now, we need to use the invariant again to gain information on [ℓ]. *)
   iInv "HInv" as (ys) ">[HPhys Hγ●]". iDestruct "HPhys" as (u) "[Hl HPhys]".
   (* We now reason by case on the success/failure of the CAS. *)
   destruct (decide (u = w)) as [[= ->]|NE].
   - (* The CAS succeeded. *)
-    wp_cas_suc. { case w; left; done. (* Administrative stuff. *) }
+    wp_cmpxchg_suc. { case w; left; done. (* Administrative stuff. *) }
     (* This was the linearization point. We access the preconditon. *)
     iMod "AU" as (zs) "[Hγ◯ [_ HClose]]".
     (* Use agreement on ressource [γ] to learn [zs = ys]. *)
@@ -278,14 +278,14 @@ Proof.
     (* We can eliminate the modality. *)
     iModIntro. iSplitR "H"; first by eauto 10 with iFrame.
     (* And conclude the proof easily, after some computation steps. *)
-    wp_if. iExact "H".
+    wp_pures. iExact "H".
   - (* The CAS failed. *)
-    wp_cas_fail. { case u, w; simpl; congruence. }
+    wp_cmpxchg_fail. { case u, w; simpl; congruence. }
     { case u, w; simpl; eauto. (* Administrative stuff. *) }
     (* We can eliminate the modality. *)
     iModIntro. iSplitL "Hγ● Hl HPhys"; first by eauto 10 with iFrame.
     (* And conclude the proof by induction hypothesis. *)
-    wp_if. iApply "IH". iExact "AU".
+    wp_pures. iApply "IH". iExact "AU".
 Qed.
 
 (** As for [push_stack] the specification of [pop_stack] depends on a location
@@ -315,7 +315,7 @@ Proof.
     iModIntro. iSplitL "Hl Hγ● HPhys1"; first by eauto 10 with iFrame.
     (* We continue stepping through the program, and focus on the CAS. *)
     wp_let. wp_match. iDestruct "HPhys2" as (r q) "[Hw HP]".
-    wp_load. wp_let. wp_proj. wp_bind (CAS _ _ _)%E.
+    wp_load. wp_let. wp_proj. wp_bind (CmpXchg _ _ _)%E.
     (* We need to use the invariant again to gain information on [ℓ]. *)
     iInv "HInv" as (ys) ">[H Hγ●]".
     unfold phys_stack. iDestruct "H" as (u) "[Hl HPhys]".
@@ -324,7 +324,7 @@ Proof.
     (* We reason by case on the success/failure of the CAS. *)
     destruct (decide (u = Some w)) as [[= ->]|Hx].
     * (* The CAS succeeded, so this is the linearization point. *)
-      wp_cas_suc.
+      wp_cmpxchg_suc.
       (* The list [ys] must be non-empty, otherwise the proof is trivial. *)
       destruct ys; first done.
       (* We access the precondition, prior to performing an update. *)
@@ -341,13 +341,13 @@ Proof.
       (* Eliminate the modality. *)
       iModIntro. iSplitR "HΦ"; first by eauto 10 with iFrame.
       (* And conclude the proof. *)
-      wp_if. wp_proj. wp_inj. iExact "HΦ".
+      wp_pures. iExact "HΦ".
     * (* The CAS failed. *)
-      wp_cas_fail. { intro H. apply Hx. destruct u; inversion H; done. }
+      wp_cmpxchg_fail. { intro H. apply Hx. destruct u; inversion H; done. }
       (* We can eliminate the modality. *)
       iModIntro. iSplitR "AU"; first by eauto 10 with iFrame.
       (* And conclude the proof using the induction hypothesis. *)
-      wp_if. iApply "IH". iExact "AU".
+      wp_pures. iApply "IH". iExact "AU".
   - (* The stack is empty, the load was the linearization point,  we can hence
        commit (without updating the stack). So we access the precondition. *)
     iClear "HPhys1 HPhys2". iMod "AU" as (xs) "[Hγ◯ [_ HClose]]".
@@ -358,7 +358,7 @@ Proof.
     (* We finally eliminate the modality and conclude the proof by taking some
        computation steps, and using our hypothesis. *)
     iModIntro. iSplitR "HΦ"; first by eauto 10 with iFrame.
-    wp_let. wp_match. wp_inj. iExact "HΦ".
+    wp_pures. iExact "HΦ".
 Qed.
 
 End treiber_stack.

@@ -111,23 +111,23 @@ Section stacks.
     wp_load.
     iMod ("Hclose" with "[Hl Hlist]") as "_".
     { iNext; iExists _, _; by iFrame. }
-    iModIntro. wp_let. wp_alloc ℓ' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
+    iModIntro. wp_let. wp_alloc ℓ' as "Hl'". wp_pures. wp_bind (CmpXchg _ _ _).
     iInv N as (ℓ'' v'') "(>% & >Hl & Hlist)" "Hclose"; simplify_eq.
     destruct (decide (v' = v'')) as [->|Hne].
-    - wp_cas_suc. { destruct v''; left; done. }
+    - wp_cmpxchg_suc. { destruct v''; left; done. }
       iMod ("Hclose" with "[HP Hl Hl' Hlist]") as "_".
       { iNext; iExists _, (Some ℓ'); iFrame; iSplit; first done;
         rewrite (is_list_unfold _ (Some _)). iExists _, _; iFrame; eauto. }
       iModIntro.
-      wp_if.
+      wp_pures.
       by iApply "HΦ".
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       { destruct v', v''; simpl; congruence. }
       { destruct v''; left; done. }
       iMod ("Hclose" with "[Hl Hlist]") as "_".
       { iNext; iExists _, _; by iFrame. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply ("IH" with "HP HΦ").
   Qed.
 
@@ -153,25 +153,25 @@ Section stacks.
       iMod ("Hclose" with "[Hl' Hlist]") as "_".
       { iNext; iExists _, _; by iFrame. }
       iModIntro.
-      wp_pures. wp_bind (CAS _ _ _).
+      wp_pures. wp_bind (CmpXchg _ _ _).
       iInv N as (ℓ'' v'') "(>% & Hl' & Hlist)" "Hclose". simplify_eq.
       destruct (decide (v'' = (Some l))) as [-> |].
       * rewrite is_list_unfold.
         iDestruct "Hlist" as (h' t') "(Hl'' & HP & Hlist)".
         iDestruct "Hl''" as (q') "Hl''".
         simpl.
-        wp_cas_suc.
+        wp_cmpxchg_suc.
         iDestruct (mapsto_agree with "Hl'' Hl") as %[= <- <-%oloc_to_val_inj].
         iMod ("Hclose" with "[Hl' Hlist]") as "_".
         { iNext; iExists ℓ'', _; by iFrame. }
         iModIntro.
         wp_pures.
         iApply ("HΦ" with "[HP]"); iRight; iExists _; by iFrame.
-      * wp_cas_fail. { destruct v''; simpl; congruence. }
+      * wp_cmpxchg_fail. { destruct v''; simpl; congruence. }
         iMod ("Hclose" with "[Hl' Hlist]") as "_".
         { iNext; iExists ℓ'', _; by iFrame. }
         iModIntro.
-        wp_if.
+        wp_pures.
         iApply ("IH" with "HΦ").
   Qed.
 End stacks.

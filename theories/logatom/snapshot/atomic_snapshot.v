@@ -224,12 +224,12 @@ Section atomic_snapshot.
     wp_load. wp_proj. wp_let. wp_op. wp_alloc l1'new as "Hl1'new".
     wp_let.
     (* CAS *)
-    wp_bind (CAS _ _ _)%E.
+    wp_bind (CmpXchg _ _ _)%E.
     (* open invariant *)
     iInv N as (q' l1'' T x' v'') ">[Hl1 [Hl1'' [Hx⚫ [Ht● Ht]]]]".
     iDestruct "Ht" as %[Ht Hvt].
     destruct (decide (l1'' = l1')) as [-> | Hn].
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iDestruct (mapsto_agree with "Hl1'frac2 Hl1''") as %[= -> ->]. iClear "Hl1'frac2".
       (* open AU *)
       iMod "AU" as (xv) "[Hx [_ Hclose]]".
@@ -257,10 +257,10 @@ Section atomic_snapshot.
           rewrite Hd in Hv. clear Hd. apply elem_of_union in Hv.
           destruct Hv as [Hv%elem_of_singleton_1 | Hv]; first done.
           specialize (Hvt _ Hv). lia.
-      + wp_if. done.
-    - wp_cas_fail. iModIntro. iSplitR "AU".
+      + wp_pures. done.
+    - wp_cmpxchg_fail. iModIntro. iSplitR "AU".
       + iNext. rewrite /snapshot_inv. eauto 10 with iFrame.
-      + wp_if. iApply "IH"; last eauto. rewrite /is_snapshot. eauto.
+      + wp_pures. iApply "IH"; last eauto. rewrite /is_snapshot. eauto.
   Qed.
 
   Lemma read_spec γ p :

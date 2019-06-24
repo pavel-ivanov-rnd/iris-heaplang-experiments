@@ -23,7 +23,7 @@ Definition new_counter : val :=
 
 (*
   complete(c, f, x, n, p) :=
-    Resolve CAS(c, x, ref (injL (if !f then n+1 else n))) p (ref ()) ;; ()
+    Resolve CmpXchg(c, x, ref (injL (if !f then n+1 else n))) p (ref ()) ;; ()
  *)
 Definition complete : val :=
   λ: "c" "f" "x" "n" "p",
@@ -31,7 +31,7 @@ Definition complete : val :=
     (* Compare with #true to make this a total operation that never
        gets stuck, no matter the value stored in [f]. *)
     let: "new_n" := if: !"f" = #true then "n" + #1 else "n" in
-    Resolve (CAS "c" "x" (ref (InjL "new_n"))) "p" "l_ghost" ;; #().
+    Resolve (CmpXchg "c" "x" (ref (InjL "new_n"))) "p" "l_ghost" ;; #().
 
 (*
   get c :=
@@ -131,7 +131,7 @@ Section conditional_counter.
 
   Fixpoint val_to_some_loc (vs : list (val * val)) : option loc :=
     match vs with
-    | (#true , LitV (LitLoc l)) :: _  => Some l
+    | ((_, #true)%V, LitV (LitLoc l)) :: _  => Some l
     | _                         :: vs => val_to_some_loc vs
     | _                               => None
     end.
@@ -161,12 +161,12 @@ Section conditional_counter.
   Definition accepted_state Q (proph_winner : option loc) (l_ghost_winner : loc) :=
     (l_ghost_winner ↦{1/2} - ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
 
-  (* The same thread then wins the CAS and moves from [accepted] to [done].
+  (* The same thread then wins the CmpXchg and moves from [accepted] to [done].
      Then, the [γ_t] token guards the transition to take out [Q].
-     Remember that the thread winning the CAS might be just helping.  The token
+     Remember that the thread winning the CmpXchg might be just helping.  The token
      is owned by the thread whose request this is.
      In this state, [l_ghost_winner] serves as a token to make sure that
-     only the CAS winner can transition to here, and owning half of[l] serves as a
+     only the CmpXchg winner can transition to here, and owning half of[l] serves as a
      "location" token to ensure there is no ABA going on. Notice how [counter_inv]
      owns *more than* half of its [l], which means we know that the [l] there
      and here cannot be the same. *)
@@ -264,7 +264,7 @@ Section conditional_counter.
     (□(own_token γ_t ={⊤}=∗ ▷ Q) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
     l_new ↦ InjLV #n -∗
-    WP Resolve (CAS #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros "#InvC #InvS Hl_ghost HQ Hn● [Hl_new Hl_new']". wp_bind (Resolve _ _ _)%E.
     iInv counterN as (l' q s) "(>Hc & >[Hl Hl'] & Hrest)".
@@ -286,9 +286,9 @@ Section conditional_counter.
        while a [state] protocol is not [done], it owns enough of
        the [counter] protocol to ensure that does not move anywhere else. *)
     iDestruct (mapsto_agree with "Hc Hc'") as %[= ->].
-    (* We perform the CAS. *)
+    (* We perform the CmpXchg. *)
     iCombine "Hc Hc'" as "Hc".
-    wp_apply (wp_resolve with "Hp"); first done; wp_cas_suc.
+    wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
     iIntros (vs' ->) "Hp'". simpl.
     (* Update to Done. *)
     iDestruct "Accepted" as "[Hl_ghost_inv [HEq Q]]".
@@ -313,19 +313,19 @@ Section conditional_counter.
     inv stateN (state_inv P Q p m c_l l l_ghost_inv γ_n γ_t γ_s) -∗
     (□(own_token γ_t ={⊤}=∗ ▷ Q) -∗ Φ #()) -∗
     l_new ↦ InjLV #n -∗
-    WP Resolve (CAS #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #c_l #l #l_new) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros (Hnl) "#InvC #InvS HQ Hl_new". wp_bind (Resolve _ _ _)%E.
     iInv counterN as (l' q s) "(>Hc & >[Hl Hl'] & Hrest)".
     iInv stateN as (vs) "(>Hp & [NotDone | [#Hs Done]])".
     { (* If the [state] protocol is not done yet, we can show that it
-         is the active protocol still (l = l').  But then the CAS would
+         is the active protocol still (l = l').  But then the CmpXchg would
          succeed, and our prophecy would have told us that.
          So here we can prove that the prophecy was wrong. *)
         iDestruct "NotDone" as "(_ & >Hc' & State)".
         iDestruct (mapsto_agree with "Hc Hc'") as %[=->].
         iCombine "Hc Hc'" as "Hc".
-        wp_apply (wp_resolve with "Hp"); first done; wp_cas_suc.
+        wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
         iIntros (vs' ->). iDestruct "State" as "[Pending | Accepted]".
         + iDestruct "Pending" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
         + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs. }
@@ -339,8 +339,8 @@ Section conditional_counter.
       iDestruct (mapsto_combine with "Hl Hl''") as "[Hl _]".
       rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hl Hl'") as "[]".
     }
-    (* The CAS fails. *)
-    wp_apply (wp_resolve with "Hp"); first done. wp_cas_fail.
+    (* The CmpXchg fails. *)
+    wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
     iIntros (vs' ->) "Hp". iModIntro.
     iSplitL "Done Hp". { iNext. iExists _. iFrame "#∗". } iModIntro.
     iSplitL "Hc Hrest Hl Hl'". { eauto 10 with iFrame. }
@@ -444,14 +444,14 @@ Section conditional_counter.
       wp_let. wp_load. wp_match. wp_apply wp_new_proph; first done.
       iIntros (l_ghost p') "Hp'".
       wp_let. wp_alloc ly as "Hly".
-      wp_let. wp_bind (CAS _ _ _)%E.
+      wp_let. wp_bind (CmpXchg _ _ _)%E.
       (* open outer invariant again to CAS c_l *)
       iInv counterN as (l'' q2 s) "(>Hc & >Hl & Hrest)".
       destruct (decide (l' = l'')) as [<- | Hn].
       + (* CAS succeeds *)
         iDestruct (mapsto_agree with "Hl' Hl") as %<-%state_to_val_inj.
         iDestruct "Hrest" as ">[Hc' Hn●]". iCombine "Hc Hc'" as "Hc".
-        wp_cas_suc.
+        wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
         iMod "AU" as (b' n') "[[CC Hf] [Hclose _]]".
         iDestruct (gc_is_gc with "Hf") as "#Hgc".
@@ -470,13 +470,13 @@ Section conditional_counter.
           (* close invariant *)
           iNext. iExists _, _, (Updating f n p'). eauto 10 with iFrame.
         }
-        wp_if. wp_apply complete_spec; [done..|].
+        wp_pures. wp_apply complete_spec; [done..|].
         iIntros "Ht". iMod ("Ht" with "Token") as "Φ". wp_seq. by wp_lam.
       + (* CAS fails: closing invariant and invoking IH *)
-        wp_cas_fail.
+        wp_cmpxchg_fail.
         iModIntro. iSplitR "AU".
         { iModIntro. iExists _, _, s. iFrame. }
-        wp_if. by iApply "IH".
+        wp_pures. by iApply "IH".
     - (* l' ↦ injR *)
       iModIntro.
       (* extract state invariant *)

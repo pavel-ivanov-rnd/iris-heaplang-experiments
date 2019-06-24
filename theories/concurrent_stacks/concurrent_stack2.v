@@ -97,22 +97,22 @@ Section side_channel.
     {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}}.
   Proof.
     iIntros (Φ) "[Hinv Hγ] HΦ". iDestruct "Hinv" as (v' l) "[-> #Hinv]".
-    wp_lam. wp_bind (CAS _ _ _). wp_pures.
+    wp_lam. wp_bind (CmpXchg _ _ _). wp_pures.
     iInv N as "Hstages" "Hclose".
     iDestruct "Hstages" as "[[Hl HP] | [H | [Hl H]]]".
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("Hclose" with "[Hl Hγ]") as "_".
       { iRight; iRight; iFrame. }
       iModIntro.
       wp_pures.
       by iApply "HΦ"; iLeft; iExists _; iSplit.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[H]") as "_".
       { iRight; iLeft; auto. }
       iModIntro.
       wp_pures.
       by iApply "HΦ"; iRight.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iDestruct (own_valid_2 with "H Hγ") as %[].
   Qed.
 
@@ -123,22 +123,22 @@ Section side_channel.
     {{{ v', RET v'; (∃ v'' : val, ⌜v' = InjRV v''⌝ ∗ P v'') ∨ ⌜v' = InjLV #()⌝ }}}.
   Proof.
     iIntros (Φ) "H HΦ"; iDestruct "H" as (v l) "[-> #Hinv]".
-    wp_lam. wp_proj. wp_bind (CAS _ _ _).
+    wp_lam. wp_proj. wp_bind (CmpXchg _ _ _).
     iInv N as "Hstages" "Hclose".
     iDestruct "Hstages" as "[[H HP] | [H | [Hl Hγ]]]".
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("Hclose" with "[H]") as "_".
       { by iRight; iLeft. }
       iModIntro.
       wp_pures.
       iApply "HΦ"; iLeft; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[H]") as "_".
       { by iRight; iLeft. }
       iModIntro.
       wp_pures.
       iApply "HΦ"; auto.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hl Hγ]").
       { iRight; iRight; iFrame. }
       iModIntro.
@@ -326,23 +326,23 @@ Section stack_works.
       iMod ("Hclose" with "[Hl Hlist]") as "_".
       { iNext; iExists _; iFrame. }
       iModIntro.
-      wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
+      wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CmpXchg _ _ _).
       iInv N as (list) "(Hl & Hlist)" "Hclose".
       destruct (decide (v'' = list)) as [ -> |].
-      * wp_cas_suc. { destruct list; left; done. }
+      * wp_cmpxchg_suc. { destruct list; left; done. }
         iMod ("Hclose" with "[HP Hl Hl' Hlist]") as "_".
         { iNext; iExists (Some _); iFrame.
           rewrite (is_list_unfold _ (Some _)). iExists _, _; iFrame; eauto. }
         iModIntro.
-        wp_if.
+        wp_pures.
         by iApply "HΦ".
-      * wp_cas_fail.
+      * wp_cmpxchg_fail.
         { destruct list, v''; simpl; congruence. }
         { destruct list; left; done. }
         iMod ("Hclose" with "[Hl Hlist]") as "_".
         { iNext; iExists _; by iFrame. }
         iModIntro.
-        wp_if.
+        wp_pures.
         iApply ("IH" with "HP HΦ").
     - wp_match.
       by iApply "HΦ".
@@ -373,24 +373,24 @@ Section stack_works.
         iMod ("Hclose" with "[Hl Hlist]") as "_".
         { iNext; iExists _; by iFrame. }
         iModIntro.
-        wp_let. wp_proj. wp_bind (CAS _ _ _). wp_pures.
+        wp_let. wp_proj. wp_bind (CmpXchg _ _ _). wp_pures.
         iInv N as (v'') "[Hl Hlist]" "Hclose".
         destruct (decide (v'' = Some list)) as [-> |].
         + rewrite is_list_unfold.
           iDestruct "Hlist" as (h' t') "(Hl'' & HP & Hlist)".
           iDestruct "Hl''" as (q') "Hl''".
-          wp_cas_suc.
+          wp_cmpxchg_suc.
           iDestruct (mapsto_agree with "Hl'' Hl'") as "%"; simplify_eq.
           iMod ("Hclose" with "[Hl Hlist]") as "_".
           { iNext; iExists _; by iFrame. }
           iModIntro.
           wp_pures.
           iApply ("HΦ" with "[HP]"); iRight; iExists _; by iFrame.
-        + wp_cas_fail. { destruct v''; simpl; congruence. }
+        + wp_cmpxchg_fail. { destruct v''; simpl; congruence. }
           iMod ("Hclose" with "[Hl Hlist]") as "_".
           { iNext; iExists _; by iFrame. }
           iModIntro.
-          wp_if.
+          wp_pures.
           iApply ("IH" with "HΦ").
     - iDestruct "HSome" as (v) "[-> HP]".
       wp_pures.

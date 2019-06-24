@@ -169,21 +169,21 @@ Section cnt_spec.
     iModIntro.
     wp_let.
     wp_op.
-    wp_bind (CAS _ _ _)%E.
+    wp_bind (CmpXchg _ _ _)%E.
     iInv (N .@ "internal") as (m') "[>Hpt >Hown]" "HClose".
     destruct (decide (m = m')); simplify_eq.
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("HVS" $! m' with "[Hown HP]") as "[Hown HQ]"; first iFrame.
       iMod ("HClose" with "[Hpt Hown]") as "_".
       { iNext; iExists _; iFrame. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply "HCont"; by iFrame.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("HClose" with "[Hpt Hown]") as "_".
       { iNext; iExists _; iFrame. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply ("IH" with "HP HCont").
   Qed.
 

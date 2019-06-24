@@ -118,23 +118,23 @@ Section stack_works.
     { iNext; iExists _, _; iFrame. }
     clear xs.
     iModIntro.
-    wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CAS _ _ _).
+    wp_let. wp_alloc l' as "Hl'". wp_pures. wp_bind (CmpXchg _ _ _).
     iInv N as (list' xs) "(Hl & Hlist & HP)" "Hclose".
     destruct (decide (list = list')) as [ -> |].
-    - wp_cas_suc. { destruct list'; left; done. }
+    - wp_cmpxchg_suc. { destruct list'; left; done. }
       iMod ("Hupd" with "HP") as "[HP HΨ]".
       iMod ("Hclose" with "[Hl Hl' HP Hlist]") as "_".
       { iNext; iExists (Some _), (v :: xs); iFrame; iExists _; iFrame; auto. }
       iModIntro.
-      wp_if.
+      wp_pures.
       by iApply ("HΦ" with "HΨ").
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       { destruct list, list'; simpl; congruence. }
       { destruct list'; left; done. }
       iMod ("Hclose" with "[Hl HP Hlist]").
       { iExists _, _; iFrame. }
       iModIntro.
-      wp_if.
+      wp_pures.
       iApply ("IH" with "Hupd HΦ").
   Qed.
 
@@ -172,10 +172,10 @@ Section stack_works.
       iMod ("Hclose" with "[Hlist Hl HP]") as "_".
       { iNext; iExists _, _; iFrame. }
       iModIntro.
-      wp_let. wp_proj. wp_bind (CAS _ _ _). wp_pures.
+      wp_let. wp_proj. wp_bind (CmpXchg _ _ _). wp_pures.
       iInv N as (v' xs'') "(Hl & Hlist & HP)" "Hclose".
       destruct (decide (v' = (Some l'))) as [ -> |].
-      * wp_cas_suc.
+      * wp_cmpxchg_suc.
         iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
         simplify_eq.
         iDestruct "Hupd" as "[Hupdcons _]".
@@ -188,11 +188,11 @@ Section stack_works.
         iModIntro.
         wp_pures.
         iApply ("HΦ" with "HΨ").
-      * wp_cas_fail. { destruct v'; simpl; congruence. }
+      * wp_cmpxchg_fail. { destruct v'; simpl; congruence. }
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
         { iNext; iExists _, _; iFrame. }
         iModIntro.
-        wp_if.
+        wp_pures.
         iApply ("IH" with "Hupd HΦ").
   Qed.
 End stack_works.

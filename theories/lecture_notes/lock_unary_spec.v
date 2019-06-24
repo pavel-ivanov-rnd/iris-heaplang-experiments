@@ -109,17 +109,19 @@ Section lock_spec.
     iIntros (HE φ) "#Hi Hcont"; rewrite /acquire.
     iLöb as "IH".
     wp_rec.
-    wp_bind (CAS _ _ _).
+    wp_bind (CmpXchg _ _ _).
     iInv (lockN l) as "[(Hl & HP & Ht)|Hl]" "Hcl".
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
+      wp_proj.
       wp_if.
       iApply "Hcont".
       iFrame.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
+      wp_proj.
       wp_if.
       iApply ("IH" with "[$Hcont]").
   Qed.
@@ -167,16 +169,18 @@ Section lock_spec.
     iIntros (HE) "#Hi"; rewrite /acquire.
     iLöb as "IH".
     wp_rec.
-    wp_bind (CAS _ _ _).
+    wp_bind (CmpXchg _ _ _).
     iInv (lockN l) as "[(Hl & HP & Ht)|Hl]" "Hcl".
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
+      wp_proj.
       wp_if.
       iFrame.
-    - wp_cas_fail.
+    - wp_cmpxchg_fail.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.
+      wp_proj.
       wp_if.
       iApply "IH".
   Qed.

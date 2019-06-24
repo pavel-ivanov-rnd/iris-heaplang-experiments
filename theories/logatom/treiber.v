@@ -108,18 +108,18 @@ Section proof.
     iDestruct "Hxs" as (hd) "[Hs Hhd]".
     wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by eauto with iFrame.
     iModIntro. wp_let. wp_alloc l as "Hl". wp_let.
-    wp_bind (CAS _ _ _)%E.
+    wp_bind (CmpXchg _ _ _)%E.
     iMod "HP" as (xs') "[Hxs' Hvs']".
     iDestruct "Hxs'" as (hd') "[Hs' Hhd']".
     destruct (decide (hd = hd')) as [->|Hneq].
-    * wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
+    * wp_cmpxchg_suc. iDestruct "Hvs'" as "[_ Hvs']".
       iMod ("Hvs'" with "[-]") as "HQ".
       { simpl. by eauto 10 with iFrame. }
-      iModIntro. wp_if. eauto.
-    * wp_cas_fail.
+      iModIntro. wp_pures. eauto.
+    * wp_cmpxchg_fail.
       iDestruct "Hvs'" as "[Hvs' _]".
       iMod ("Hvs'" with "[-]") as "HP"; first by eauto with iFrame.
-      iModIntro. wp_if. by iApply "IH".
+      iModIntro. wp_pures. by iApply "IH".
   Qed.
 
   Lemma pop_atomic_spec (s: loc) :
@@ -147,11 +147,11 @@ Section proof.
       iMod ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
       { eauto with iFrame. }
       iModIntro. wp_let. wp_load. wp_match. wp_proj.
-      wp_bind (CAS _ _ _).
+      wp_bind (CmpXchg _ _ _).
       iMod "HP" as (xs'') "[Hxs'' Hvs']".
     iDestruct "Hxs''" as (hd'') "[Hs'' Hhd'']".
       destruct (decide (hd = hd'')) as [->|Hneq].
-      + wp_cas_suc. iDestruct "Hvs'" as "[_ Hvs']".
+      + wp_cmpxchg_suc. iDestruct "Hvs'" as "[_ Hvs']".
         destruct xs'' as [|x'' xs''].
         { simpl. iDestruct "Hhd''" as (?) "H".
           iExFalso. by iDestruct (@mapsto_agree with "[$Hhd1] [$H]") as %?. }
@@ -159,9 +159,9 @@ Section proof.
         iDestruct (@mapsto_agree with "[$Hhd1] [$Hhd'']") as %[=]. subst.
         iMod ("Hvs'" with "[-]") as "HQ".
         { eauto with iFrame.  }
-        iModIntro. wp_if. wp_pures. eauto.
-      + wp_cas_fail. iDestruct "Hvs'" as "[Hvs' _]".
+        iModIntro. wp_pures. eauto.
+      + wp_cmpxchg_fail. iDestruct "Hvs'" as "[Hvs' _]".
         iMod ("Hvs'" with "[-]") as "HP"; first by eauto with iFrame.
-        iModIntro. wp_if. by iApply "IH".
+        iModIntro. wp_pures. by iApply "IH".
   Qed.
 End proof.

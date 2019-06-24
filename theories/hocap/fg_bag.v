@@ -162,21 +162,21 @@ Section proof.
     { iNext. iExists _,_. iFrame. } clear ls.
     iModIntro.
     wp_alloc n as "Hn".
-    wp_pures. wp_bind (CAS _ _ _).
+    wp_pures. wp_bind (CmpXchg _ _ _).
     iInv N as (o' ls) "[Ho [Hls >Hb]]" "Hcl".
     destruct (decide (o = o')) as [->|?].
-    - wp_cas_suc. { destruct o'; left; done. }
+    - wp_cmpxchg_suc. { destruct o'; left; done. }
       iMod ("Hvs" with "[$Hb $HP]") as "[Hb HQ]".
       iMod ("Hcl" with "[Ho Hn Hls Hb]") as "_".
       { iNext. iExists (Some _),(v::ls). iFrame "Ho Hb".
         simpl. iExists _. iFrame. by iExists 1%Qp. }
-      iModIntro. wp_if_true. by iApply "HΦ".
-    - wp_cas_fail.
+      iModIntro. wp_pures. by iApply "HΦ".
+    - wp_cmpxchg_fail.
       { destruct o, o'; simpl; congruence. }
       { destruct o'; left; done. }
       iMod ("Hcl" with "[Ho Hls Hb]") as "_".
       { iNext. iExists _,ls. by iFrame "Ho Hb". }
-      iModIntro. wp_if_false.
+      iModIntro. wp_proj. wp_if.
       by iApply ("IH" with "HP [HΦ]").
   Qed.
 
@@ -214,11 +214,11 @@ Section proof.
         iExists _; eauto. by iFrame. }
       iModIntro. repeat wp_pure _.
       iDestruct "Hhd'" as (q) "Hhd".
-      wp_load. repeat wp_pure _.
-      wp_bind (CAS _ _ _).
+      wp_load. wp_pures.
+      wp_bind (CmpXchg _ _ _).
       iInv N as (o' ls') "[Ho [Hls >Hb]]" "Hcl".
       destruct (decide (o' = (Some hd))) as [->|?].
-      + wp_cas_suc.
+      + wp_cmpxchg_suc.
         (* The list is still the same *)
         rewrite (is_list_duplicate tl). iDestruct "Hls'" as "[Hls' Htl]".
         iAssert (is_list (Some hd) (x::ls)) with "[Hhd Hls']" as "Hls'".
@@ -230,10 +230,10 @@ Section proof.
         iMod ("Hcl" with "[Ho Htl Hb]") as "_".
         { iNext. iExists _,ls. by iFrame "Ho Hb". }
         iModIntro. wp_pures. by iApply "HΦ".
-      + wp_cas_fail. { destruct o'; simpl; congruence. }
+      + wp_cmpxchg_fail. { destruct o'; simpl; congruence. }
         iMod ("Hcl" with "[Ho Hls Hb]") as "_".
         { iNext. iExists _,ls'. by iFrame "Ho Hb". }
-        iModIntro. wp_if_false.
+        iModIntro. wp_proj. wp_if.
         by iApply ("IH" with "HP [HΦ]").
   Qed.
 End proof.

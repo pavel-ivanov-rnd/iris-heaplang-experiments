@@ -70,21 +70,21 @@ Section proofs.
     wp_load. iMod ("Hclose" with "[Hs H1]").
     { iNext. iFrame. iExists xs, hd. iFrame. }
     iModIntro. wp_let. wp_alloc l as "Hl".
-    wp_let. wp_bind (CAS _ _ _)%E.
+    wp_let. wp_bind (CmpXchg _ _ _)%E.
     iInv N as "H1" "Hclose".
     iDestruct "H1" as (xs' hd') "[>Hs H1]".
     destruct (decide (hd = hd')) as [->|Hneq].
-    - wp_cas_suc.
+    - wp_cmpxchg_suc.
       iMod (inv_alloc N _ (R x) with "[HRx]") as "#HRx"; first eauto.
       iMod ("Hclose" with "[Hs Hl H1]").
       { iNext. iFrame. iExists (x::xs'), l.
         iFrame. simpl. iExists hd', 1%Qp. iFrame.
         by iFrame "#". }
-      iModIntro. wp_if. by iApply "HΦ".
-    - wp_cas_fail.
+      iModIntro. wp_pures. by iApply "HΦ".
+    - wp_cmpxchg_fail.
       iMod ("Hclose" with "[Hs H1]").
       { iNext. iFrame. iExists (xs'), hd'. iFrame. }
-      iModIntro. wp_if. iApply ("IH" with "HRx").
+      iModIntro. wp_pures. iApply ("IH" with "HRx").
       by iNext.
   Qed.
 

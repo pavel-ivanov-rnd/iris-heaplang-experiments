@@ -316,10 +316,10 @@ Section monotone_counter.
     { iNext; iExists m; iFrame. }
     iModIntro.
     wp_let; wp_op; wp_let.
-    wp_bind (CAS _ _ _)%E.
+    wp_bind (CmpXchg _ _ _)%E.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
-    + wp_cas_suc.
+    + wp_cmpxchg_suc.
       (* If the CAS succeeds we need to update our ghost state. This is achieved using the own_update rule/lemma.
          The arguments are the ghost name and the ghost resources x from which and to which we are updating.
          Finally we need to give up own γ x to get ownership of the new resources.
@@ -332,12 +332,12 @@ Section monotone_counter.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       { iNext; iExists (1 + m)%nat.
         rewrite Nat2Z.inj_succ Z.add_1_l; iFrame. }
-      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]").
+      iModIntro; wp_pures; iApply ("HCont" with "[HInv HOwnFrag]").
       iExists γ; iFrame "#"; iFrame.
-    + wp_cas_fail; first intros ?; simplify_eq.
+    + wp_cmpxchg_fail; first intros ?; simplify_eq.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       - iExists k; iFrame.
-      - iModIntro; wp_if.
+      - iModIntro. wp_proj. wp_if.
         iApply ("IH" with "HOwnFrag HCont"); iFrame.
   Qed.
 End monotone_counter.
@@ -501,22 +501,22 @@ Section monotone_counter'.
     { iNext; iExists m; iFrame. }
     iModIntro.
     wp_let; wp_op; wp_let.
-    wp_bind (CAS _ _ _)%E.
+    wp_bind (CmpXchg _ _ _)%E.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
-    + wp_cas_suc.
+    + wp_cmpxchg_suc.
       iMod (own_update γ ((● m ⋅ ◯ n)) (● (S m : mnatUR) ⋅ (◯ (S n : mnatUR))) with "[HOwnFrag HOwnAuth]") as "[HOwnAuth HOwnFrag]".
       { apply mcounterRA_update'. }
       { rewrite own_op; iFrame. }
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       { iNext; iExists (1 + m)%nat.
         rewrite Nat2Z.inj_succ Z.add_1_l; iFrame. }
-      iModIntro; wp_if; iApply ("HCont" with "[HInv HOwnFrag]").
+      iModIntro; wp_pures; iApply ("HCont" with "[HInv HOwnFrag]").
       iExists γ; iFrame "#"; iFrame.
-    + wp_cas_fail; first intros ?; simplify_eq.
+    + wp_cmpxchg_fail; first intros ?; simplify_eq.
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
       - iExists k; iFrame.
-      - iModIntro; wp_if.
+      - iModIntro. wp_proj. wp_if.
         iApply ("IH" with "HOwnFrag HCont"); iFrame.
   Qed.
 End monotone_counter'.
@@ -621,16 +621,16 @@ Section ccounter.
     wp_bind (! _)%E. iInv N as (c) ">[Hγ Hpt]" "Hclose".
     wp_load. iMod ("Hclose" with "[Hpt Hγ]") as "_"; [iNext; iExists c; by iFrame|].
     iModIntro. wp_let. wp_op. wp_let.
-    wp_bind (CAS _ _ _). iInv N as (c') ">[Hγ Hpt]" "Hclose".
+    wp_bind (CmpXchg _ _ _). iInv N as (c') ">[Hγ Hpt]" "Hclose".
     destruct (decide (c' = c)) as [->|].
     - iMod (own_update_2 with "Hγ Hown") as "[Hγ Hown]".
       { apply ccounterRA_update. } (* We use the update lemma for our RA. *)
-      wp_cas_suc. iMod ("Hclose" with "[Hpt Hγ]") as "_".
+      wp_cmpxchg_suc. iMod ("Hclose" with "[Hpt Hγ]") as "_".
       { iNext. iExists (S c). rewrite Nat2Z.inj_succ Z.add_1_l. by iFrame. }
-      iModIntro. wp_if. iApply "HΦ". by iFrame "Hinv".
-    - wp_cas_fail; first (by intros [= ?%Nat2Z.inj]).
+      iModIntro. wp_pures. iApply "HΦ". by iFrame "Hinv".
+    - wp_cmpxchg_fail; first (by intros [= ?%Nat2Z.inj]).
       iMod ("Hclose" with "[Hpt Hγ]") as "_"; [iNext; iExists c'; by iFrame|].
-      iModIntro. wp_if. by iApply ("IH" with "[Hown] [HΦ]"); auto.
+      iModIntro. wp_pures. by iApply ("IH" with "[Hown] [HΦ]"); auto.
   Qed.
 
   Lemma read_contrib_spec γ ℓ q n :
