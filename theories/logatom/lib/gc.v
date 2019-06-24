@@ -11,7 +11,7 @@ Definition gc_mapUR : ucmraT := gmapUR loc $ optionR $ exclR $ valO.
 
 Definition to_gc_map (gcm: gmap loc val) : gc_mapUR := (λ v : val, Excl' v) <$> gcm.
 
-Class gcG  (Σ : gFunctors) := Gc_mapG {
+Class gcG  (Σ : gFunctors) := GcG {
   gc_inG :> inG Σ (authR (gc_mapUR));
   gc_name : gname
 }.
@@ -111,10 +111,24 @@ Section to_gc_map.
   Qed.
 End to_gc_map.
 
+Lemma gc_init `{!invG Σ, !heapG Σ, !gcPreG Σ} E:
+  (|==> ∃ _ : gcG Σ, |={E}=> gc_inv)%I.
+Proof.
+  iMod (own_alloc (● (to_gc_map ∅))) as (γ) "H●".
+  { rewrite auth_auth_valid. exact: to_gc_map_valid. }
+  iModIntro.
+  iExists (GcG Σ _ γ).
+  iAssert (gc_inv_P (gG := GcG Σ _ γ)) with "[H●]" as "P". 
+  {
+    iExists _. iFrame.
+    by iApply big_sepM_empty.
+  }
+  iMod ((inv_alloc gcN E gc_inv_P) with "P") as "#InvGC".
+  iModIntro. iFrame "#".
+Qed.
+
 Section gc.
   Context `{!invG Σ, !heapG Σ, !gcG Σ}.
-
-  (* FIXME: still needs a constructor. *)
 
   Global Instance is_gc_loc_persistent (l: loc): Persistent (is_gc_loc l).
   Proof. rewrite /is_gc_loc. apply _. Qed.

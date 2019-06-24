@@ -4,7 +4,6 @@ From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.rdcss Require Import spec.
-From iris_examples.logatom.rdcss Require Export gc.
 Import uPred bi List Decidable.
 Set Default Proof Using "Type".
 
@@ -43,7 +42,7 @@ Definition new_rdcss : val :=
     (* data = (l_m, m1, n1, n2, p) *)
     let l_ghost = ref #() in
     let n_new = (if !l_m = m1 then n1 else n2) in
-      Resolve (CAS l_n (InjR l_descr) (ref (InjL n_new))) p l_ghost ; #().
+      Resolve (CmpXchg l_n (InjR l_descr) (ref (InjL n_new))) p l_ghost ; #().
  *)
 Definition complete : val :=
   λ: "l_descr" "l_n",
@@ -56,7 +55,7 @@ Definition complete : val :=
     let: "p"   := Snd ("data") in
     let: "l_ghost" := ref #() in
     let: "n_new" := (if: !"l_m" = "m1" then "n2" else "n1") in
-    Resolve (CAS "l_n" (InjR "l_descr") (InjL "n_new")) "p" "l_ghost" ;; #().
+    Resolve (CmpXchg "l_n" (InjR "l_descr") (InjL "n_new")) "p" "l_ghost" ;; #().
 
 (*
   get(l_n) :=
@@ -81,10 +80,10 @@ Definition get : val :=
     let p := NewProph in
     let l_descr := ref (l_m, m1, n1, n2, p) in
     (rec: rdcss_inner()
-       let r := CAS(l_n, InjL n1, InjR l_descr) in
+       let (r, b) := CmpXchg(l_n, InjL n1, InjR l_descr) in
        match r with
          InjL n => 
-           if n = n1 then
+           if b then
              complete(l_descr, l_n) ; n1
            else
              n
@@ -101,15 +100,15 @@ Definition rdcss: val :=
     let: "l_descr" := ref ("l_m", "m1", "n1", "n2", "p") in
     (* start rdcss computation with allocated descriptor *)
     ( rec: "rdcss_inner" "_" :=
-        let: "r" := (CAS "l_n" (InjL "n1") (InjR "l_descr")) in
-        match: "r" with
+        let: "r" := CmpXchg "l_n" (InjL "n1") (InjR "l_descr") in
+        match: Fst "r" with
           InjL "n" =>
             (* non-descriptor value read, check if CAS was successful *)
-            if: "n" = "n1" then
-              (* CAS was successful, finish operation *)
+            if: Snd "r" then
+              (* CmpXchg was successful, finish operation *)
               complete "l_descr" "l_n" ;; "n1"
             else
-              (* CAS failed, hence we could linearize at the CAS *)
+              (* CmpXchg failed, hence we could linearize at the CmpXchg *)
               "n"
         | InjR "l_descr_other" =>
             (* a descriptor from a different operation was read, try to help and then restart *)
@@ -120,9 +119,9 @@ Definition rdcss: val :=
 
 (** ** Proof setup *)
 
-Definition numUR      := authR $ optionUR $ exclR ZC.
-Definition tokenUR    := exclR unitC.
-Definition one_shotUR := csumR (exclR unitC) (agreeR unitC).
+Definition numUR      := authR $ optionUR $ exclR ZO.
+Definition tokenUR    := exclR unitO.
+Definition one_shotUR := csumR (exclR unitO) (agreeR unitO).
 
 Class rdcssG Σ := RDCSSG {
                      rdcss_numG      :> inG Σ numUR;
@@ -163,10 +162,10 @@ Section rdcss.
 
   (** Definition of the invariant *)
 
-  Fixpoint val_to_some_loc (ln: loc) (vs : list (val * val)) : option loc :=
-    match vs with
-    | (InjRV (LitV (LitLoc ln')), LitV (LitLoc l)) :: _  => if bool_decide(ln = ln') then Some l else None 
-    | _                         :: vs => val_to_some_loc ln vs
+  Fixpoint val_to_some_loc (pvs : list (val * val)) : option loc :=
+    match pvs with
+    | ((_, #true)%V, LitV (LitLoc l)) :: _  => Some l
+    | _                         :: vs => val_to_some_loc vs
     | _                               => None
     end.
 
@@ -210,9 +209,11 @@ Section rdcss.
   Definition descr_inv P Q (p : proph_id) n (l_n l_descr l_ghost_winner : loc) γ_n γ_t γ_s : iProp Σ :=
     (∃ vs, proph p vs ∗
       (own γ_s (Cinl $ Excl ()) ∗
-       (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (val_to_some_loc l_descr vs) l_ghost_winner γ_n
-        ∨ accepted_state (Q #n) (val_to_some_loc l_descr vs) l_ghost_winner ))
+       (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (val_to_some_loc vs) l_ghost_winner γ_n
+        ∨ accepted_state (Q #n) (val_to_some_loc vs) l_ghost_winner ))
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q #n) l_descr l_ghost_winner γ_t))%I.
+
+  Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv.
 
   Definition pau P Q γ l_m m1 n1 n2 :=
     (▷ P -∗ ◇ AU << ∀ (m n : Z), (gc_mapsto l_m #m) ∗ rdcss_content γ n >> @ (⊤∖↑N)∖↑gcN, ∅
@@ -269,7 +270,7 @@ Section rdcss.
     apply (iffLR (frac_valid' _)) in Hv. by apply Qp_not_plus_q_ge_1 in Hv.
   Qed.
 
-  (** Once a [state] protocol is [done] (as reflected by the [γ_s] token here),
+  (** Once a [descr] protocol is [done] (as reflected by the [γ_s] token here),
       we can at any later point in time extract the [Q]. *)
   Lemma state_done_extract_Q P Q p n l_n l_descr l_ghost γ_n γ_t γ_s :
     inv descrN (descr_inv P Q p n l_n l_descr l_ghost γ_n γ_t γ_s) -∗
@@ -300,7 +301,7 @@ Section rdcss.
     l_ghost ↦{1 / 2} #() -∗
     (□(own_token γ_t ={⊤}=∗ ▷ (Q #n1)) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
-    WP Resolve (CAS #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros "#InvC #InvS Hl_ghost HQ Hn●". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
@@ -328,8 +329,8 @@ Section rdcss.
     iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "([>Hld >Hld'] & Hrest)".
     (* We perform the CAS. *)
     iCombine "Hln Hln'" as "Hln".
-    wp_apply (wp_resolve with "Hp"); first done. wp_cas_suc.
-    iIntros (vs' ->) "Hp'". simpl. case_bool_decide; simplify_eq.
+    wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_suc.
+    iIntros (vs' ->) "Hp'". simpl.
     (* Update to Done. *)
     iDestruct "Accepted" as "[Hl_ghost_inv [HEq Q]]".
     iMod (own_update with "Hs") as "Hs".
@@ -352,7 +353,7 @@ Section rdcss.
     inv rdcssN (rdcss_inv γ_n l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_inv γ_n γ_t γ_s) -∗
     (□(own_token γ_t ={⊤}=∗ ▷ (Q #n1)) -∗ Φ #()) -∗
-    WP Resolve (CAS #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros (Hnl) "#InvC #InvS HQ". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
@@ -364,8 +365,8 @@ Section rdcss.
         iDestruct "NotDone" as "(_ & >Hln' & State)".
         iDestruct (mapsto_agree with "Hln Hln'") as %[=->].
         iCombine "Hln Hln'" as "Hlln".
-        wp_apply (wp_resolve with "Hp"); first done; wp_cas_suc.
-        iIntros (vs' ->). simpl. case_bool_decide; simplify_eq.
+        wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
+        iIntros (vs' ->). simpl.
         iDestruct "State" as "[Pending | Accepted]".
         + iDestruct "Pending" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
         + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs. }
@@ -374,10 +375,10 @@ Section rdcss.
     destruct s as [n' |l_descr' ].
     { (* (injL n) is the current value, hence the CAS fails *)
       (* FIXME: proof duplication *)
-      wp_apply (wp_resolve with "Hp"); first done. wp_cas_fail.
+      wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
       iIntros (vs' ->) "Hp". iModIntro.
-      iSplitL "Done Hp". { iNext. iExists _. iFrame "#∗". } iModIntro.
-      iSplitL "Hln Hrest". { iNext. iExists _. iFrame. iFrame. }
+      iSplitL "Done Hp". { by eauto 12 with iFrame. } iModIntro.
+      iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
       wp_seq. iApply "HQ".
       iApply state_done_extract_Q; done.
     }
@@ -392,10 +393,10 @@ Section rdcss.
       rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
     }
     (* The CAS fails. *)
-    wp_apply (wp_resolve with "Hp"); first done. wp_cas_fail.
+    wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
     iIntros (vs' ->) "Hp". iModIntro.
-    iSplitL "Done Hp". { iNext. iExists _. iFrame "#∗". } iModIntro.
-    iSplitL "Hln Hrest". { iNext. iExists _. iFrame. iFrame. }
+    iSplitL "Done Hp". { by eauto 12 with iFrame. } iModIntro.
+    iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
     wp_seq. iApply "HQ".
     iApply state_done_extract_Q; done.
   Qed.
@@ -452,10 +453,10 @@ Section rdcss.
         iModIntro. iSplitL "Q Hl_ghost' Hp Hvs Hs Hln'".
         { iModIntro. iNext. iExists _. iFrame "Hp". iLeft. iFrame.
           iRight. iSplitL "Hl_ghost'"; first by iExists _.
-          destruct (val_to_some_loc l_descr vs) eqn:Hvts; iFrame. }
+          destruct (val_to_some_loc vs) eqn:Hvts; iFrame. }
         (* close outer inv *)
         iModIntro. iSplitR "Hl_ghost'2 HQ Hn●".
-        { iModIntro. iExists _. iFrame. eauto. }
+        { by eauto 12 with iFrame. }
         iModIntro.
         destruct (decide (m' = m1)) as [-> | ?];
         wp_op;
@@ -491,24 +492,22 @@ Section rdcss.
 
   (** ** Proof of [rdcss] *)
   Lemma rdcss_spec γ_n v (l_m: loc) (m1 n1 n2: Z) :
-    is_rdcss γ_n v -∗ is_gc_loc l_m -∗ 
+    is_rdcss γ_n v -∗
     <<< ∀ (m n: Z), gc_mapsto l_m #m ∗ rdcss_content γ_n n >>>
         rdcss #l_m v #m1 #n1 #n2 @((⊤∖↑N)∖↑gcN)
     <<< gc_mapsto l_m #m ∗ rdcss_content γ_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET #n >>>.
   Proof.
-    iIntros "Hrdcss #GC". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
+    iIntros "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
     iDestruct "Heq" as %->. iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
     (* allocate fresh descriptor *)
     wp_lam. wp_pures. 
     wp_apply wp_new_proph; first done.
     iIntros (proph_values p') "Hp'".
     wp_let. wp_alloc l_descr as "Hld".
-    wp_let. 
+    wp_pures.
     (* invoke inner recursive function [rdcss_inner] *)
-    (* FIXME: would be nice to put iLöb here to avoid another
-       wp_pures tactic at the end *)
-    wp_pures. iLöb as "IH".
-    wp_bind (CAS _ _ _)%E.
+    iLöb as "IH".
+    wp_bind (CmpXchg _ _ _)%E.
     (* open outer invariant for the CAS *)
     iInv rdcssN as (s) "(>Hln & Hrest)".
     destruct s as [n|l_descr' lm' m1' n1' n2' p].
@@ -518,31 +517,34 @@ Section rdcss.
       destruct (decide (n1 = n)) as [-> | Hneq].
       + (* values match -> CAS is successful *)
         iCombine "Hln Hln'" as "Hln".
-        wp_cas_suc.
+        wp_cmpxchg_suc.
+        (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
+        iMod "AU" as (b' n') "[[Hf CC] [Hclose _]]".
+        iDestruct (gc_is_gc with "Hf") as "#Hgc".
+        iMod ("Hclose" with "[Hf CC]") as "AU"; first by iFrame.
         (* Initialize new [descr] protocol .*)
         iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
         iMod (own_alloc (Excl ())) as (γ_t) "Token"; first done.
         iMod (own_alloc (Cinl $ Excl ())) as (γ_s) "Hs"; first done.
         iDestruct "Hln" as "[Hln Hln']".
-        set (winner := default l_descr (val_to_some_loc l_descr proph_values)).
+        set (winner := default l_descr (val_to_some_loc proph_values)).
         iMod (inv_alloc descrN _ (descr_inv AU_later _ _ _ _ _ winner _ _ _)
               with "[AU Hs Hp' Hln' Hn●]") as "#Hinv".
         {
           iNext. iExists _. iFrame "Hp'". iLeft. iFrame. iLeft.
-          iFrame. destruct (val_to_some_loc l_descr proph_values); simpl; done.
+          iFrame. destruct (val_to_some_loc proph_values); simpl; done.
         }
         iModIntro. iDestruct "Hld" as "[Hld1 [Hld2 Hld3]]". iSplitR "Hld2 Token".
         { (* close outer invariant *)
           iNext. iCombine "Hld1 Hld3" as "Hld1". iExists (Updating l_descr l_m m1 n n2 p').
           eauto 12 with iFrame. 
         }
-        wp_let. wp_match.
-        wp_op. case_bool_decide; simplify_eq.
-        wp_if. wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]");[ done..|].
+        wp_pures.
+        wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]");[ done..|].
         iIntros "Ht". iMod ("Ht" with "Token") as "Φ". by wp_seq.
       + (* values do not match -> CAS fails 
            we can commit here *)
-        wp_cas_fail.
+        wp_cmpxchg_fail.
         iMod "AU" as (m'' n'') "[[Hm◯ Hn◯] [_ Hclose]]"; simpl.
         (* synchronize B location *)
         iDestruct (sync_num_values with "Hn● Hn◯") as %->.
@@ -550,19 +552,18 @@ Section rdcss.
         {  destruct (decide _) as [[_ ?] | _]; [done | iFrame ]. }
         iModIntro. iSplitR "HΦ".
         { iModIntro. iExists (Quiescent n''). iFrame. }
-        wp_let. wp_match. wp_op. case_bool_decide; simplify_eq.
-        wp_if. iFrame.
+        wp_pures. iFrame.
     - (* l_n ↦ injR l_ndescr' *)
       (* a descriptor l_descr' is currently stored at l_n -> CAS fails
          try to help the on-going operation *)
-      wp_cas_fail. 
+      wp_cmpxchg_fail. 
       iModIntro.
       (* extract descr invariant *)
       iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "([Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
       iSplitR "AU Hld2 Hld Hp'".
       (* close invariant, retain some permission to l_descr', so it can be read later *)
       { iModIntro. iExists (Updating l_descr' lm' m1' n1' n2' p). iFrame. eauto 12 with iFrame. }
-      wp_let. wp_match. 
+      wp_pures.
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]"); [done..|].
       iIntros "_". wp_seq. wp_pures.
       iApply ("IH" with "AU Hp' Hld").
