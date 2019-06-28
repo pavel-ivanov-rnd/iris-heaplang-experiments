@@ -419,7 +419,7 @@ Section conditional_counter.
       iModIntro. iSplitL "Hc Hrest Hl'". { eauto 10 with iFrame. }
       (* two equal proofs depending on value of b1 *)
       wp_pures.
-      destruct (bool_decide (val_for_compare b = #true));
+      destruct (bool_decide (b = #true));
       wp_alloc Hl_new as "Hl_new"; wp_pures;
         iApply (complete_failing_thread
                   with "InvC InvS HQ Hl_new"); done.

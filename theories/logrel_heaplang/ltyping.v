@@ -160,8 +160,13 @@ Section types_properties.
   Proof. iIntros (v). by iDestruct 1 as (i ->) "?". Qed.
 
   (* Operator typing *)
-  Global Instance lty_bin_op_eq A : LTyBinOp EqOp A A lty_bool.
-  Proof. iIntros (v1 v2) "_ _". rewrite /bin_op_eval /lty_car /=. eauto. Qed.
+  Global Instance lty_bin_op_eq A : LTyUnboxed A → LTyBinOp EqOp A A lty_bool.
+  Proof.
+    iIntros (? v1 v2) "A1 _". rewrite /bin_op_eval /lty_car /=.
+    iDestruct (lty_unboxed with "A1") as %Hunb.
+    rewrite decide_True; last solve_vals_compare_safe.
+    eauto.
+  Qed.
   Global Instance lty_bin_op_arith op :
     TCElemOf op [PlusOp; MinusOp; MultOp; QuotOp; RemOp;
                  AndOp; OrOp; XorOp; ShiftLOp; ShiftROp] →

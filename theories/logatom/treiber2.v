@@ -280,7 +280,7 @@ Proof.
     (* And conclude the proof easily, after some computation steps. *)
     wp_pures. iExact "H".
   - (* The CAS failed. *)
-    wp_cmpxchg_fail. { case u, w; simpl; congruence. }
+    wp_cmpxchg_fail. { exact: not_inj.  }
     { case u, w; simpl; eauto. (* Administrative stuff. *) }
     (* We can eliminate the modality. *)
     iModIntro. iSplitL "Hγ● Hl HPhys"; first by eauto 10 with iFrame.

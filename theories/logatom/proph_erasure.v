@@ -29,7 +29,7 @@ Fixpoint erase_expr (e : expr) : expr :=
   | Store e1 e2 => Store (erase_expr e1) (erase_expr e2)
   | CmpXchg e0 e1 e2 => CmpXchg (erase_expr e0) (erase_expr e1) (erase_expr e2)
   | FAA e1 e2 => FAA (erase_expr e1) (erase_expr e2)
-  | NewProph => Skip
+  | NewProph => ((λ: <>, #LitErased)%V #())
   | Resolve e0 e1 e2 => Fst (Fst (erase_expr e0, erase_expr e1, erase_expr e2))
   end
 with
@@ -38,7 +38,7 @@ erase_val (v : val) : val :=
   | LitV l =>
     LitV
       match l with
-      | LitProphecy p => LitUnit
+      | LitProphecy p => LitErased
       | _ => l
       end
   | RecV f x e => RecV f x (erase_expr e)
@@ -185,24 +185,29 @@ Proof. rewrite /is_safe /reducible /=. eauto 10 using head_prim_step. Qed.
 Lemma prim_step_safe e σ κ e' σ' efs : prim_step e σ κ e' σ' efs → is_safe e σ.
 Proof. rewrite /is_safe /reducible /=. eauto 10. Qed.
 
-Lemma val_for_compare_erase v1 v2 :
-   val_for_compare v1 = val_for_compare v2 ↔
-   val_for_compare (erase_val v1) = val_for_compare (erase_val v2).
+Lemma val_is_unboxed_erased v :
+  val_is_unboxed (erase_val v) ↔ val_is_unboxed v.
 Proof.
-  revert v2; induction v1; induction v2; split; intros Ho; simpl in *;
-    repeat case_match; simpl in *; simplify_eq; eauto; firstorder.
+  destruct v; rewrite /= /lit_is_unboxed; repeat (done || simpl; case_match).
 Qed.
-
-Lemma val_for_compare_erase_bdec v1 v2 :
-  bool_decide (val_for_compare v1 = val_for_compare v2) =
-  bool_decide (val_for_compare (erase_val v1) = val_for_compare (erase_val v2)).
-Proof. by apply bool_decide_iff; rewrite val_for_compare_erase. Qed.
-
-Lemma vals_cmpxchg_compare_safe_erase v1 v2 :
-  vals_cmpxchg_compare_safe (erase_val v1) (erase_val v2) ↔
-  vals_cmpxchg_compare_safe v1 v2.
+Lemma vals_compare_safe_erase v1 v2 :
+  vals_compare_safe (erase_val v1) (erase_val v2) ↔
+  vals_compare_safe v1 v2.
+Proof. rewrite /vals_compare_safe !val_is_unboxed_erased. done. Qed.
+Lemma vals_compare v1 v2 :
+  vals_compare_safe v1 v2 →
+  (v1 = v2) ↔ (erase_val v1 = erase_val v2).
 Proof.
-  by destruct v1; destruct v2; repeat (done || simpl; case_match).
+  destruct v1, v2; rewrite /= /lit_is_unboxed;
+    repeat (done || (by intros [[] | []]) || simpl; case_match).
+Qed.
+(* Rewrite with [vals_compare] does not work, so derive a version
+that wraps it in [bool_decide], that can be rewritten. *)
+Lemma vals_compare_bdec v1 v2 :
+  vals_compare_safe v1 v2 →
+  bool_decide (v1 = v2) = bool_decide (erase_val v1 = erase_val v2).
+Proof.
+  intros ?. eapply bool_decide_iff. apply vals_compare. done.
 Qed.
 
 (** if un_op_eval succeeds on erased value,
@@ -228,10 +233,14 @@ Proof.
     simplify_eq; simpl in *; simplify_eq; eauto.
   - eexists _; split; eauto; simpl.
     erewrite bool_decide_iff; first by eauto.
-    by rewrite val_for_compare_erase.
+    apply vals_compare. done.
   - repeat f_equal.
     erewrite bool_decide_iff; first by eauto.
-    by rewrite -val_for_compare_erase.
+    symmetry. apply vals_compare. done.
+  - exfalso. match goal with H: ¬_ |- _ => apply H end.
+    eapply vals_compare_safe_erase. done.
+  - exfalso. match goal with H: ¬_ |- _ => apply H end.
+    eapply vals_compare_safe_erase. done.
 Qed.
 
 Lemma erase_heap_lookup h l : (erase_heap h) !! l = None ↔ h !! l = None.
@@ -332,7 +341,7 @@ Proof.
            first match goal with
                  | |- head_step NewProph _ _ _ _ _ => by apply new_proph_id_fresh
                  | _ => by econstructor;
-                       eauto using erase_heap_lookup, val_for_compare_erase
+                       eauto using erase_heap_lookup
                  end;
            try rewrite -val_for_compare_erase;
            rewrite ?erase_expr_subst' /erase_state ?erase_heap_insert /=;
@@ -344,21 +353,21 @@ Proof.
       rewrite ?erase_heap_insert /=; eauto using erase_state_init.
   - (* case of CmpXchg succeeding *)
     match goal with
-    | H : bool_decide (val_for_compare (erase_val _)
-                        = val_for_compare (erase_val _)) = _ |- _ =>
-      rename H into Hvfc; rewrite -val_for_compare_erase_bdec in Hvfc
+    | H : bool_decide (erase_val _ = erase_val _) = _ |- _ =>
+      rename H into Hvfc
     end.
+    rewrite -vals_compare_bdec in Hvfc; last by eapply vals_compare_safe_erase.
     eexists _, _, _, _; simpl; split.
-    { econstructor; first rewrite -vals_cmpxchg_compare_safe_erase; eauto. }
+    { econstructor; eauto. rewrite -vals_compare_safe_erase //. }
     rewrite Hvfc /erase_state ?erase_heap_insert /=; eauto.
   - (* case of CmpXchg failing *)
     match goal with
-    | H : bool_decide (val_for_compare (erase_val _)
-                        = val_for_compare (erase_val _)) = _ |- _ =>
-      rename H into Hvfc; rewrite -val_for_compare_erase_bdec in Hvfc
+    | H : bool_decide (erase_val _ = erase_val _) = _ |- _ =>
+      rename H into Hvfc
     end.
+    rewrite -vals_compare_bdec in Hvfc; last by eapply vals_compare_safe_erase.
     eexists _, _, _, _; simpl; split.
-    { econstructor; first rewrite -vals_cmpxchg_compare_safe_erase; eauto. }
+    { econstructor; eauto. rewrite -vals_compare_safe_erase //. }
     rewrite Hvfc; eauto.
 Qed.
 
@@ -655,21 +664,21 @@ Proof.
     match goal with | H : is_Some _ |- _ => inversion H end.
     do 3 eexists; apply head_prim_step; econstructor.
     by rewrite /erase_state /state_upd_heap /= erase_heap_lookup' H0; eauto.
-  - (* CAS-fail *)
+  - (* CmpXchg *)
     match goal with
-    | H : vals_cmpxchg_compare_safe ?A ?B |- _ =>
-      destruct (bool_decide (val_for_compare A = val_for_compare B)) eqn:Heqvls
+    | H : vals_compare_safe ?A ?B |- _ =>
+      destruct (bool_decide (A = B)) eqn:Heqvls
     end.
     + do 3 eexists; apply head_prim_step;
         econstructor; last (by eauto);
-          first (by apply vals_cmpxchg_compare_safe_erase); [].
+          last (by apply vals_compare_safe_erase); [].
       match goal with
       | H : heap _ !! _ = _ |- _ =>
           by rewrite /erase_state /state_upd_heap /= erase_heap_lookup' H
       end.
     + do 3 eexists; apply head_prim_step;
         econstructor; last (by eauto);
-          first (by apply vals_cmpxchg_compare_safe_erase); [].
+          last (by apply vals_compare_safe_erase); [].
       match goal with
       | H : heap _ !! _ = _ |- _ =>
           by rewrite /erase_state /state_upd_heap /= erase_heap_lookup' H
