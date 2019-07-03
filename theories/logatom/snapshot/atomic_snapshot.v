@@ -9,7 +9,7 @@ From iris_examples.logatom.snapshot Require Import spec.
 Set Default Proof Using "Type".
 
 (** Specifying snapshots with histories
-    Implementing atomic pair snapshot data structure from Sergey et al. (ESOP 2015) *)
+    Inspired by atomic pair snapshot data structure from Sergey et al. (ESOP 2015) *)
 
 
 (*
@@ -25,6 +25,9 @@ Definition new_snapshot : val :=
       let xp1 = !xp in
       let v   = (!xp1).2
       let xp2 = ref (x, v + 1)
+      // This is where we need the nested references: the CAS compares the old
+      // inner reference with the new one, because it cannot atomically compared
+      // a pair of values.
       if CAS xp xp1 xp2
         then ()
         else writeX (xp, yp) x
