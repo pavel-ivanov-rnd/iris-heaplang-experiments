@@ -28,13 +28,13 @@ Set Default Proof Using "Type".
 *)
 
 (*
-  new_rdcss(init_v) :=
-    let l_n = ref ( ref(injL init_v) ) in
+  new_rdcss(n) :=
+    let l_n = ref ( ref(injL n) ) in
     ref l_n
  *)
 Definition new_rdcss : val :=
-  λ: "init_v",
-    let: "l_n" := ref (InjL "init_v") in "l_n".
+  λ: "n",
+    let: "l_n" := ref (InjL "n") in "l_n".
 
 (*
   complete(l_descr, l_n) :=
@@ -246,8 +246,8 @@ Section rdcss.
 
   Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _ _)) => unfold rdcss_inv.
 
-  Definition is_rdcss (γ_n : gname) (rdcss_data: val) :=
-    (∃ (l_n : loc), ⌜rdcss_data = #l_n⌝ ∧ inv rdcssN (rdcss_inv γ_n l_n) ∧ gc_inv ∧ ⌜N ## gcN⌝)%I.
+  Definition is_rdcss (γ_n : gname) (l_n: loc) :=
+    (inv rdcssN (rdcss_inv γ_n l_n) ∧ gc_inv ∧ ⌜N ## gcN⌝)%I.
 
   Global Instance is_rdcss_persistent γ_n l_n: Persistent (is_rdcss γ_n l_n) := _.
 
@@ -493,14 +493,16 @@ Section rdcss.
   Qed.
 
   (** ** Proof of [rdcss] *)
-  Lemma rdcss_spec γ_n v (l_m: loc) (m1 n1 n2: val) :
-    val_is_unboxed m1 → val_is_unboxed (InjLV n1) → is_rdcss γ_n v -∗
+  Lemma rdcss_spec γ_n (l_n l_m: loc) (m1 n1 n2: val) :
+    val_is_unboxed m1 →
+    val_is_unboxed (InjLV n1) →
+    is_rdcss γ_n l_n -∗
     <<< ∀ (m n: val), gc_mapsto l_m m ∗ rdcss_content γ_n n >>>
-        rdcss #l_m v m1 n1 n2 @((⊤∖↑N)∖↑gcN)
+        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑gcN)
     <<< gc_mapsto l_m m ∗ rdcss_content γ_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>.
   Proof.
-    iIntros (Hm1_unbox Hn1_unbox) "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
-    iDestruct "Heq" as %->. iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
+    iIntros (Hm1_unbox Hn1_unbox) "Hrdcss". iDestruct "Hrdcss" as "(#InvR & #InvGC & Hdisj)".
+    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
     (* allocate fresh descriptor *)
     wp_lam. wp_pures. 
     wp_apply wp_new_proph; first done.
@@ -573,36 +575,36 @@ Section rdcss.
   Qed.
 
   (** ** Proof of [new_rdcss] *)
-  Lemma new_rdcss_spec (init_v: val) :
+  Lemma new_rdcss_spec (n: val) :
     N ## gcN → gc_inv -∗
     {{{ True }}}
-        new_rdcss init_v
-    {{{ l_n γ_n, RET l_n ; is_rdcss γ_n l_n ∗ rdcss_content γ_n init_v }}}.
+        new_rdcss n
+    {{{ l_n γ_n, RET #l_n ; is_rdcss γ_n l_n ∗ rdcss_content γ_n n }}}.
   Proof.
     iIntros (Hdisj) "#InvGC". iModIntro.
     iIntros (Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
     wp_alloc ln as "Hln".
-    iMod (own_alloc (● Excl' init_v  ⋅ ◯ Excl' init_v)) as (γ_n) "[Hn● Hn◯]".
+    iMod (own_alloc (● Excl' n  ⋅ ◯ Excl' n)) as (γ_n) "[Hn● Hn◯]".
     { by apply auth_both_valid. }
     iMod (inv_alloc rdcssN _ (rdcss_inv γ_n ln)
       with "[Hln Hn●]") as "#InvR".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]".
-      iExists (Quiescent init_v). iFrame. }
+      iExists (Quiescent n). iFrame. }
     wp_let.
     iModIntro.
-    iApply ("HΦ" $! #ln γ_n).
-    iSplitR; last by iFrame. iExists ln. by iFrame "#". 
+    iApply ("HΦ" $! ln γ_n).
+    iSplitR; last by iFrame. by iFrame "#". 
   Qed.
 
   (** ** Proof of [get] *)
-  Lemma get_spec γ_n v :
-    is_rdcss γ_n v -∗
+  Lemma get_spec γ_n l_n :
+    is_rdcss γ_n l_n -∗
     <<< ∀ (n : val), rdcss_content γ_n n >>>
-        get v @(⊤∖↑N)
+        get #l_n @(⊤∖↑N)
     <<< rdcss_content γ_n n, RET n >>>.
   Proof.
-    iIntros "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
-    iDestruct "Heq" as %->. iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
+    iIntros "Hrdcss". iDestruct "Hrdcss" as "(#InvR & #InvGC & Hdisj)".
+    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
     iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
     wp_load.
