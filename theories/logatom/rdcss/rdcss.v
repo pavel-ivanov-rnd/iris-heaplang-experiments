@@ -18,13 +18,13 @@ Set Default Proof Using "Type".
    2) l_n corresponds to the B location in the paper and identifies a single RDCSS instance.
    3) Values stored at the B location have type
 
-      Int + Ref (Ref * Int * Int * Int * Proph)
+      Val + Ref (Ref * Val * Val * Val * Proph)
 
       3.1) If the value is injL n, then no operation is on-going and the logical state is n.
       3.2) If the value is injR (Ref (l_m', m1', n1', n2', p)), then an operation is on-going
            with corresponding A location l_m'. The reference pointing to the tuple of values
-           corresponds to the descriptor in the paper. We use the name l_descr for the
-           such a descriptor reference.
+           corresponds to the descriptor in the paper. We use the name l_descr for such a
+           descriptor reference.
 *)
 
 (*
@@ -33,8 +33,8 @@ Set Default Proof Using "Type".
     ref l_n
  *)
 Definition new_rdcss : val :=
-  λ: <>,
-    let: "l_n" := ref (InjL #0) in "l_n".
+  λ: "init_v",
+    let: "l_n" := ref (InjL "init_v") in "l_n".
 
 (*
   complete(l_descr, l_n) :=
@@ -119,18 +119,18 @@ Definition rdcss: val :=
 
 (** ** Proof setup *)
 
-Definition numUR      := authR $ optionUR $ exclR ZO.
+Definition valUR      := authR $ optionUR $ exclR valO.
 Definition tokenUR    := exclR unitO.
 Definition one_shotUR := csumR (exclR unitO) (agreeR unitO).
 
 Class rdcssG Σ := RDCSSG {
-                     rdcss_numG      :> inG Σ numUR;
+                     rdcss_valG      :> inG Σ valUR;
                      rdcss_tokenG    :> inG Σ tokenUR;
                      rdcss_one_shotG :> inG Σ one_shotUR;
                    }.
 
 Definition rdcssΣ : gFunctors :=
-  #[GFunctor numUR; GFunctor tokenUR; GFunctor one_shotUR].
+  #[GFunctor valUR; GFunctor tokenUR; GFunctor one_shotUR].
 
 Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
 Proof. solve_inG. Qed.
@@ -142,23 +142,23 @@ Section rdcss.
   Local Definition descrN   := N .@ "descr".
   Local Definition rdcssN := N .@ "rdcss".
 
-  (** Updating and synchronizing the number RAs *)
+  (** Updating and synchronizing the value RAs *)
 
-  Lemma sync_num_values γ_n (n m : Z) :
+  Lemma sync_values γ_n (n m : val) :
     own γ_n (● Excl' n) -∗ own γ_n (◯ Excl' m) -∗ ⌜n = m⌝.
   Proof.
     iIntros "H● H◯". iCombine "H●" "H◯" as "H". iDestruct (own_valid with "H") as "H".
       by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid.
   Qed.
 
-  Lemma update_num_value γ_n (n1 n2 m : Z) :
+  Lemma update_value γ_n (n1 n2 m : val) :
     own γ_n (● Excl' n1) -∗ own γ_n (◯ Excl' n2) ==∗ own γ_n (● Excl' m) ∗ own γ_n (◯ Excl' m).
   Proof.
     iIntros "H● H◯". iCombine "H●" "H◯" as "H". rewrite -own_op. iApply (own_update with "H").
     by apply auth_update, option_local_update, exclusive_local_update.
   Qed.
 
-  Definition rdcss_content (γ_n : gname) (n : Z) := (own γ_n (◯ Excl' n))%I.
+  Definition rdcss_content (γ_n : gname) (n : val) := (own γ_n (◯ Excl' n))%I.
 
   (** Definition of the invariant *)
 
@@ -170,18 +170,18 @@ Section rdcss.
     end.
 
   Inductive abstract_state : Set :=
-  | Quiescent : Z → abstract_state
-  | Updating : loc → loc → Z → Z → Z → proph_id → abstract_state.
+  | Quiescent : val → abstract_state
+  | Updating : loc → loc → val → val → val → proph_id → abstract_state.
 
   Definition state_to_val (s : abstract_state) : val :=
     match s with
-    | Quiescent n => InjLV #n
+    | Quiescent n => InjLV n
     | Updating ld lm m1 n1 n2 p => InjRV #ld
     end.
 
   Definition own_token γ := (own γ (Excl ()))%I.
 
-  Definition pending_state P (n1 : Z) (proph_winner : option loc) l_ghost_winner (γ_n : gname) :=
+  Definition pending_state P (n1 : val) (proph_winner : option loc) l_ghost_winner (γ_n : gname) :=
     (P ∗ ⌜match proph_winner with None => True | Some l => l = l_ghost_winner end⌝ ∗ own γ_n (● Excl' n1))%I.
 
   (* After the prophecy said we are going to win the race, we commit and run the AU,
@@ -210,15 +210,15 @@ Section rdcss.
     (∃ vs, proph p vs ∗
       (own γ_s (Cinl $ Excl ()) ∗
        (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (val_to_some_loc vs) l_ghost_winner γ_n
-        ∨ accepted_state (Q #n) (val_to_some_loc vs) l_ghost_winner ))
-       ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q #n) l_descr l_ghost_winner γ_t))%I.
+        ∨ accepted_state (Q n) (val_to_some_loc vs) l_ghost_winner ))
+       ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q n) l_descr l_ghost_winner γ_t))%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv.
 
   Definition pau P Q γ l_m m1 n1 n2 :=
-    (▷ P -∗ ◇ AU << ∀ (m n : Z), (gc_mapsto l_m #m) ∗ rdcss_content γ n >> @ (⊤∖↑N)∖↑gcN, ∅
-                 << (gc_mapsto l_m #m) ∗ (rdcss_content γ (if (decide ((m = m1) ∧ (n = n1))) then n2 else n)),
-                    COMM Q #n >>)%I.
+    (▷ P -∗ ◇ AU << ∀ (m n : val), (gc_mapsto l_m m) ∗ rdcss_content γ n >> @ (⊤∖↑N)∖↑gcN, ∅
+                 << (gc_mapsto l_m m) ∗ (rdcss_content γ (if (decide ((m = m1) ∧ (n = n1))) then n2 else n)),
+                    COMM Q n >>)%I.
 
   Definition rdcss_inv γ_n l_n :=
     (∃ (s : abstract_state),
@@ -228,7 +228,7 @@ Section rdcss.
            (* (InjLV #n) = state_to_val (Quiescent n) *)
            (* In this state the CAS which expects to read (InjRV _) in
               [complete] fails always.*)
-           l_n ↦{1/2} (InjLV #n) ∗ own γ_n (● Excl' n)
+           l_n ↦{1/2} (InjLV n) ∗ own γ_n (● Excl' n)
         | Updating l_descr l_m m1 n1 n2 p =>
            ∃ q P Q l_ghost_winner γ_t γ_s,
              (* (InjRV #l_descr) = state_to_val (Updating l_descr l_m m1 n1 n2 p) *)
@@ -238,7 +238,8 @@ Section rdcss.
              - [γ_s] reflects whether the protocol is [done] yet or not. *)
            (* We own *more than* half of [l_descr], which shows that this cannot
               be the [l_descr] of any [descr] protocol in the [done] state. *)
-             l_descr ↦{1/2 + q} (#l_m, #m1, #n1, #n2, #p)%V ∗  
+             ⌜val_is_unboxed m1⌝ ∗
+             l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗  
              inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_winner γ_n γ_t γ_s) ∗
              □ pau P Q γ_n l_m m1 n1 n2 ∗ is_gc_loc l_m
        end)%I.
@@ -252,7 +253,7 @@ Section rdcss.
 
   Global Instance rdcss_content_timeless γ_n n : Timeless (rdcss_content γ_n n) := _.
   
-  Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (Quiescent 0).
+  Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (Quiescent #0).
 
   Lemma rdcss_content_exclusive γ_n l_n_1 l_n_2 :
     rdcss_content γ_n l_n_1 -∗ rdcss_content γ_n l_n_2 -∗ False.
@@ -275,7 +276,7 @@ Section rdcss.
   Lemma state_done_extract_Q P Q p n l_n l_descr l_ghost γ_n γ_t γ_s :
     inv descrN (descr_inv P Q p n l_n l_descr l_ghost γ_n γ_t γ_s) -∗
     own γ_s (Cinr (to_agree ())) -∗
-    □(own_token γ_t ={⊤}=∗ ▷ (Q #n)).
+    □(own_token γ_t ={⊤}=∗ ▷ (Q n)).
   Proof.
     iIntros "#Hinv #Hs !# Ht".
     iInv descrN as (vs) "(Hp & [NotDone | Done])".
@@ -295,13 +296,13 @@ Section rdcss.
 
   (** The part of [complete] for the succeeding thread that moves from [accepted] to [done] state *)
   Lemma complete_succeeding_thread_pending (γ_n γ_t γ_s : gname) l_n P Q p
-        (n1 n : Z) (l_descr l_ghost : loc) Φ :
+        (n1 n : val) (l_descr l_ghost : loc) Φ :
     inv rdcssN (rdcss_inv γ_n l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost γ_n γ_t γ_s) -∗
     l_ghost ↦{1 / 2} #() -∗
-    (□(own_token γ_t ={⊤}=∗ ▷ (Q #n1)) -∗ Φ #()) -∗
+    (□(own_token γ_t ={⊤}=∗ ▷ (Q n1)) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
-    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros "#InvC #InvS Hl_ghost HQ Hn●". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
@@ -326,7 +327,7 @@ Section rdcss.
     { simpl. iDestruct (mapsto_agree with "Hln Hln'") as %Heq. inversion Heq. }
     iDestruct (mapsto_agree with "Hln Hln'") as %[= ->].
     simpl.
-    iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "([>Hld >Hld'] & Hrest)".
+    iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "(_ & [>Hld >Hld'] & Hrest)".
     (* We perform the CAS. *)
     iCombine "Hln Hln'" as "Hln".
     wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_suc.
@@ -352,8 +353,8 @@ Section rdcss.
     l_ghost_inv ≠ l_ghost →
     inv rdcssN (rdcss_inv γ_n l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_inv γ_n γ_t γ_s) -∗
-    (□(own_token γ_t ={⊤}=∗ ▷ (Q #n1)) -∗ Φ #()) -∗
-    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV #n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    (□(own_token γ_t ={⊤}=∗ ▷ (Q n1)) -∗ Φ #()) -∗
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #l_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros (Hnl) "#InvC #InvS HQ". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
@@ -388,7 +389,7 @@ Section rdcss.
          of the [rdcss] instance?  Impossible, now we will own more than the whole descriptor location! *)
       iDestruct "Done" as "(_ & _ & >Hld)".
       iDestruct "Hld" as (v') "Hld".
-      iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "(>[Hld' Hld''] & Hrest)".
+      iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "(_ & >[Hld' Hld''] & Hrest)".
       iDestruct (mapsto_combine with "Hld Hld'") as "[Hld _]".
       rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
     }
@@ -406,18 +407,19 @@ Section rdcss.
      this request, then you get [Q].  But we also try to complete other
      thread's requests, which is why we cannot ask for the token
      as a precondition. *)
-  Lemma complete_spec (l_n l_m l_descr : loc) (m1 n1 n2 : Z) (p : proph_id) γ_n γ_t γ_s l_ghost_inv P Q q:
+  Lemma complete_spec (l_n l_m l_descr : loc) (m1 n1 n2 : val) (p : proph_id) γ_n γ_t γ_s l_ghost_inv P Q q:
+    val_is_unboxed m1 →
     N ## gcN → 
     inv rdcssN (rdcss_inv γ_n l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_inv γ_n γ_t γ_s) -∗
     □ pau P Q γ_n l_m m1 n1 n2 -∗
     is_gc_loc l_m -∗
     gc_inv -∗
-    {{{ l_descr ↦{q} (#l_m, #m1, #n1, #n2, #p) }}}
+    {{{ l_descr ↦{q} (#l_m, m1, n1, n2, #p) }}}
        complete #l_descr #l_n
-    {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷(Q #n1)) }}}.
+    {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷(Q n1)) }}}.
   Proof.
-    iIntros (Hdisj) "#InvC #InvS #PAU #isGC #InvGC".
+    iIntros (Hm_unbox Hdisj) "#InvC #InvS #PAU #isGC #InvGC".
     iModIntro. iIntros (Φ) "Hld HQ".  wp_lam. wp_let.
     wp_bind (! _)%E. wp_load. iClear "Hld". wp_pures.
     wp_alloc l_ghost as "[Hl_ghost' Hl_ghost'2]". wp_pures.
@@ -437,8 +439,8 @@ Section rdcss.
         iMod "AU" as (m' n') "[CC [_ Hclose]]".
         iDestruct "CC" as "[Hgc_lm Hn◯]". 
         (* sync B location and update it if required *)
-        iDestruct (sync_num_values with "Hn● Hn◯") as %->.
-        iMod (update_num_value _ _ _ (if decide (m' = m1 ∧ n' = n') then n2 else n') with "Hn● Hn◯")
+        iDestruct (sync_values with "Hn● Hn◯") as %->.
+        iMod (update_value _ _ _ (if decide (m' = m1 ∧ n' = n') then n2 else n') with "Hn● Hn◯")
           as "[Hn● Hn◯]".
         (* get access to A location *)
         iDestruct ("Hgc" with "Hgc_lm") as "[Hl Hgc_close]".
@@ -484,20 +486,20 @@ Section rdcss.
       { iExists _. iFrame. iFrame. }
       (* two equal proofs depending on value of m1 *)
       wp_op.
-      destruct (decide (v = #m1)) as [-> | ];
+      destruct (decide (v = m1)) as [-> | ];
       case_bool_decide; simplify_eq; wp_if;  wp_pures;
       iApply (complete_failing_thread
                  with "InvC InvS HQ"); done.
   Qed.
 
   (** ** Proof of [rdcss] *)
-  Lemma rdcss_spec γ_n v (l_m: loc) (m1 n1 n2: Z) :
-    is_rdcss γ_n v -∗
-    <<< ∀ (m n: Z), gc_mapsto l_m #m ∗ rdcss_content γ_n n >>>
-        rdcss #l_m v #m1 #n1 #n2 @((⊤∖↑N)∖↑gcN)
-    <<< gc_mapsto l_m #m ∗ rdcss_content γ_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET #n >>>.
+  Lemma rdcss_spec γ_n v (l_m: loc) (m1 n1 n2: val) :
+    val_is_unboxed m1 → val_is_unboxed (InjLV n1) → is_rdcss γ_n v -∗
+    <<< ∀ (m n: val), gc_mapsto l_m m ∗ rdcss_content γ_n n >>>
+        rdcss #l_m v m1 n1 n2 @((⊤∖↑N)∖↑gcN)
+    <<< gc_mapsto l_m m ∗ rdcss_content γ_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>.
   Proof.
-    iIntros "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
+    iIntros (Hm1_unbox Hn1_unbox) "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
     iDestruct "Heq" as %->. iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
     (* allocate fresh descriptor *)
     wp_lam. wp_pures. 
@@ -547,7 +549,7 @@ Section rdcss.
         wp_cmpxchg_fail.
         iMod "AU" as (m'' n'') "[[Hm◯ Hn◯] [_ Hclose]]"; simpl.
         (* synchronize B location *)
-        iDestruct (sync_num_values with "Hn● Hn◯") as %->.
+        iDestruct (sync_values with "Hn● Hn◯") as %->.
         iMod ("Hclose" with "[Hm◯ Hn◯]") as "HΦ".
         {  destruct (decide _) as [[_ ?] | _]; [done | iFrame ]. }
         iModIntro. iSplitR "HΦ".
@@ -559,7 +561,8 @@ Section rdcss.
       wp_cmpxchg_fail. 
       iModIntro.
       (* extract descr invariant *)
-      iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "([Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
+      iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1'_unbox & [Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
+      iDestruct "Hm1'_unbox" as %Hm1'_unbox.
       iSplitR "AU Hld2 Hld Hp'".
       (* close invariant, retain some permission to l_descr', so it can be read later *)
       { iModIntro. iExists (Updating l_descr' lm' m1' n1' n2' p). iFrame. eauto 12 with iFrame. }
@@ -570,21 +573,21 @@ Section rdcss.
   Qed.
 
   (** ** Proof of [new_rdcss] *)
-  Lemma new_rdcss_spec :
+  Lemma new_rdcss_spec (init_v: val) :
     N ## gcN → gc_inv -∗
     {{{ True }}}
-        new_rdcss #()
-    {{{ l_n γ_n, RET l_n ; is_rdcss γ_n l_n ∗ rdcss_content γ_n 0 }}}.
+        new_rdcss init_v
+    {{{ l_n γ_n, RET l_n ; is_rdcss γ_n l_n ∗ rdcss_content γ_n init_v }}}.
   Proof.
     iIntros (Hdisj) "#InvGC". iModIntro.
     iIntros (Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
     wp_alloc ln as "Hln".
-    iMod (own_alloc (● Excl' 0  ⋅ ◯ Excl' 0)) as (γ_n) "[Hn● Hn◯]".
+    iMod (own_alloc (● Excl' init_v  ⋅ ◯ Excl' init_v)) as (γ_n) "[Hn● Hn◯]".
     { by apply auth_both_valid. }
     iMod (inv_alloc rdcssN _ (rdcss_inv γ_n ln)
       with "[Hln Hn●]") as "#InvR".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]".
-      iExists (Quiescent 0). iFrame. }
+      iExists (Quiescent init_v). iFrame. }
     wp_let.
     iModIntro.
     iApply ("HΦ" $! #ln γ_n).
@@ -594,9 +597,9 @@ Section rdcss.
   (** ** Proof of [get] *)
   Lemma get_spec γ_n v :
     is_rdcss γ_n v -∗
-    <<< ∀ (n : Z), rdcss_content γ_n n >>>
+    <<< ∀ (n : val), rdcss_content γ_n n >>>
         get v @(⊤∖↑N)
-    <<< rdcss_content γ_n n, RET #n >>>.
+    <<< rdcss_content γ_n n, RET n >>>.
   Proof.
     iIntros "Hrdcss". iDestruct "Hrdcss" as (l_n) "(Heq & #InvR & #InvGC & Hdisj)".
     iDestruct "Heq" as %->. iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
@@ -606,15 +609,16 @@ Section rdcss.
     destruct s as [n|l_descr lm m1 n1 n2 p].
     - iMod "AU" as (au_n) "[Hn◯ [_ Hclose]]"; simpl.
       iDestruct "Hrest" as "[Hln' Hn●]".
-      iDestruct (sync_num_values with "Hn● Hn◯") as %->.
+      iDestruct (sync_values with "Hn● Hn◯") as %->.
       iMod ("Hclose" with "Hn◯") as "HΦ". 
       iModIntro. iSplitR "HΦ". {
         iNext. iExists (Quiescent au_n). iFrame.
       }
       wp_match. iApply "HΦ".
-    - iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "([Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
+    - iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1_unbox & [Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
+      iDestruct "Hm1_unbox" as %Hm1_unbox.
       iModIntro. iSplitR "AU Hld'". {
-        iNext. iExists (Updating l_descr lm m1 n1 n2 p). eauto 11 with iFrame. 
+        iNext. iExists (Updating l_descr lm m1 n1 n2 p). eauto 12 with iFrame. 
       }
       wp_match. 
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld']"); [done..|].
