@@ -28,8 +28,8 @@ Set Default Proof Using "Type".
 *)
 
 (*
-  new_rdcss() :=
-    let l_n = ref ( ref(injL 0) ) in
+  new_rdcss(init_v) :=
+    let l_n = ref ( ref(injL init_v) ) in
     ref l_n
  *)
 Definition new_rdcss : val :=
