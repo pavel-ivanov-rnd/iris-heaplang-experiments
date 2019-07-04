@@ -13,7 +13,7 @@ Set Default Proof Using "Type".
 
 
 (*
-     newPair v :=
+     new_snapshot v :=
        ref (ref (v, 0))
  *)
 Definition new_snapshot : val :=
@@ -56,10 +56,10 @@ Definition read : val :=
       let (_, v') = !!xp in
       if v = v'
         then (x, y)
-        else readPair l
+        else read_with l
  *)
 Definition read_with_proph : val :=
-  rec: "readPair" "xp" "l" :=
+  rec: "read_with" "xp" "l" :=
     let: "proph"  := NewProph in
     let: "x"  := ! !"xp" in
     let: "y"  := !"l" in
@@ -68,7 +68,7 @@ Definition read_with_proph : val :=
     resolve_proph: "proph" to: "v_eq" ;;
     if: "v_eq"
     then (Fst "x", "y")
-    else  "readPair" "xp" "l".
+    else  "read_with" "xp" "l".
 
 
 (** The CMRA & functor we need. *)
