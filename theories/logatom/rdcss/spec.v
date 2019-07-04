@@ -18,7 +18,7 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
   is_rdcss (N : namespace) (γ : name) (l_n : loc) : iProp Σ;
   rdcss_content (γ : name) (n : val) : iProp Σ;
   (* -- predicate properties -- *)
-  is_rdcss_persistent N γ v : Persistent (is_rdcss N γ v);
+  is_rdcss_persistent N γ l_n : Persistent (is_rdcss N γ l_n);
   rdcss_content_timeless γ n : Timeless (rdcss_content γ n);
   rdcss_content_exclusive γ n1 n2 : rdcss_content γ n1 -∗ rdcss_content γ n2 -∗ False;
   (* -- operation specs -- *)

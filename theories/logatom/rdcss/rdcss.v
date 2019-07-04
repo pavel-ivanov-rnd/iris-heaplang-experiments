@@ -176,7 +176,7 @@ Section rdcss.
   Definition state_to_val (s : abstract_state) : val :=
     match s with
     | Quiescent n => InjLV n
-    | Updating ld lm m1 n1 n2 p => InjRV #ld
+    | Updating l_descr l_m m1 n1 n2 p => InjRV #l_descr
     end.
 
   Definition own_token γ := (own γ (Excl ()))%I.
@@ -323,7 +323,7 @@ Section rdcss.
     (* So, we are [Accepted]. Now we can show that (InjRV l_descr) = (state_to_val s), because
        while a [descr] protocol is not [done], it owns enough of
        the [rdcss] protocol to ensure that does not move anywhere else. *)
-    destruct s as [n' |ld' lm' m1' n1' n2' p'].
+    destruct s as [n' | l_descr' l_m' m1' n1' n2' p'].
     { simpl. iDestruct (mapsto_agree with "Hln Hln'") as %Heq. inversion Heq. }
     iDestruct (mapsto_agree with "Hln Hln'") as %[= ->].
     simpl.
@@ -365,7 +365,7 @@ Section rdcss.
          So here we can prove that the prophecy was wrong. *)
         iDestruct "NotDone" as "(_ & >Hln' & State)".
         iDestruct (mapsto_agree with "Hln Hln'") as %[=->].
-        iCombine "Hln Hln'" as "Hlln".
+        iCombine "Hln Hln'" as "Hln".
         wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
         iIntros (vs' ->). simpl.
         iDestruct "State" as "[Pending | Accepted]".
@@ -373,7 +373,7 @@ Section rdcss.
         + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs. }
     (* So, we know our protocol is [Done]. *)
     (* It must be that (state_to_val s) ≠ l because we are in the failing thread. *)
-    destruct s as [n' |l_descr' ].
+    destruct s as [n' | l_descr' l_m' m1' n1' n2' p'].
     { (* (injL n) is the current value, hence the CAS fails *)
       (* FIXME: proof duplication *)
       wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
@@ -506,7 +506,7 @@ Section rdcss.
     (* allocate fresh descriptor *)
     wp_lam. wp_pures. 
     wp_apply wp_new_proph; first done.
-    iIntros (proph_values p') "Hp'".
+    iIntros (proph_values p) "Hp".
     wp_let. wp_alloc l_descr as "Hld".
     wp_pures.
     (* invoke inner recursive function [rdcss_inner] *)
@@ -514,7 +514,7 @@ Section rdcss.
     wp_bind (CmpXchg _ _ _)%E.
     (* open outer invariant for the CAS *)
     iInv rdcssN as (s) "(>Hln & Hrest)".
-    destruct s as [n|l_descr' lm' m1' n1' n2' p].
+    destruct s as [n | l_descr' l_m' m1' n1' n2' p'].
     - (* l_n ↦ injL n *)
       (* a non-value descriptor n is currently stored at l_n *)
       iDestruct "Hrest" as ">[Hln' Hn●]".
@@ -533,14 +533,14 @@ Section rdcss.
         iDestruct "Hln" as "[Hln Hln']".
         set (winner := default l_descr (val_to_some_loc proph_values)).
         iMod (inv_alloc descrN _ (descr_inv AU_later _ _ _ _ _ winner _ _ _)
-              with "[AU Hs Hp' Hln' Hn●]") as "#Hinv".
+              with "[AU Hs Hp Hln' Hn●]") as "#Hinv".
         {
-          iNext. iExists _. iFrame "Hp'". iLeft. iFrame. iLeft.
+          iNext. iExists _. iFrame "Hp". iLeft. iFrame. iLeft.
           iFrame. destruct (val_to_some_loc proph_values); simpl; done.
         }
         iModIntro. iDestruct "Hld" as "[Hld1 [Hld2 Hld3]]". iSplitR "Hld2 Token".
         { (* close outer invariant *)
-          iNext. iCombine "Hld1 Hld3" as "Hld1". iExists (Updating l_descr l_m m1 n n2 p').
+          iNext. iCombine "Hld1 Hld3" as "Hld1". iExists (Updating l_descr l_m m1 n n2 p).
           eauto 12 with iFrame. 
         }
         wp_pures.
@@ -565,13 +565,13 @@ Section rdcss.
       (* extract descr invariant *)
       iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1'_unbox & [Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
       iDestruct "Hm1'_unbox" as %Hm1'_unbox.
-      iSplitR "AU Hld2 Hld Hp'".
+      iSplitR "AU Hld2 Hld Hp".
       (* close invariant, retain some permission to l_descr', so it can be read later *)
-      { iModIntro. iExists (Updating l_descr' lm' m1' n1' n2' p). iFrame. eauto 12 with iFrame. }
+      { iModIntro. iExists (Updating l_descr' l_m' m1' n1' n2' p'). iFrame. eauto 12 with iFrame. }
       wp_pures.
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]"); [done..|].
       iIntros "_". wp_seq. wp_pures.
-      iApply ("IH" with "AU Hp' Hld").
+      iApply ("IH" with "AU Hp Hld").
   Qed.
 
   (** ** Proof of [new_rdcss] *)
@@ -583,16 +583,16 @@ Section rdcss.
   Proof.
     iIntros (Hdisj) "#InvGC". iModIntro.
     iIntros (Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
-    wp_alloc ln as "Hln".
+    wp_alloc l_n as "Hln".
     iMod (own_alloc (● Excl' n  ⋅ ◯ Excl' n)) as (γ_n) "[Hn● Hn◯]".
     { by apply auth_both_valid. }
-    iMod (inv_alloc rdcssN _ (rdcss_inv γ_n ln)
+    iMod (inv_alloc rdcssN _ (rdcss_inv γ_n l_n)
       with "[Hln Hn●]") as "#InvR".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]".
       iExists (Quiescent n). iFrame. }
     wp_let.
     iModIntro.
-    iApply ("HΦ" $! ln γ_n).
+    iApply ("HΦ" $! l_n γ_n).
     iSplitR; last by iFrame. by iFrame "#". 
   Qed.
 
@@ -608,7 +608,7 @@ Section rdcss.
     iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
     wp_load.
-    destruct s as [n|l_descr lm m1 n1 n2 p].
+    destruct s as [n | l_descr l_m m1 n1 n2 p].
     - iMod "AU" as (au_n) "[Hn◯ [_ Hclose]]"; simpl.
       iDestruct "Hrest" as "[Hln' Hn●]".
       iDestruct (sync_values with "Hn● Hn◯") as %->.
@@ -620,7 +620,7 @@ Section rdcss.
     - iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1_unbox & [Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
       iDestruct "Hm1_unbox" as %Hm1_unbox.
       iModIntro. iSplitR "AU Hld'". {
-        iNext. iExists (Updating l_descr lm m1 n1 n2 p). eauto 12 with iFrame. 
+        iNext. iExists (Updating l_descr l_m m1 n1 n2 p). eauto 12 with iFrame. 
       }
       wp_match. 
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld']"); [done..|].
