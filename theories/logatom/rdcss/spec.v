@@ -15,28 +15,30 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
   name_eqdec : EqDecision name;
   name_countable : Countable name;
   (* -- predicates -- *)
-  is_rdcss (N : namespace) (γ : name) (v : val) : iProp Σ;
-  rdcss_content (γ : name) (n : Z) : iProp Σ;
+  is_rdcss (N : namespace) (γ : name) (l_n : loc) : iProp Σ;
+  rdcss_content (γ : name) (n : val) : iProp Σ;
   (* -- predicate properties -- *)
-  is_rdcss_persistent N γ v : Persistent (is_rdcss N γ v);
+  is_rdcss_persistent N γ l_n : Persistent (is_rdcss N γ l_n);
   rdcss_content_timeless γ n : Timeless (rdcss_content γ n);
   rdcss_content_exclusive γ n1 n2 : rdcss_content γ n1 -∗ rdcss_content γ n2 -∗ False;
   (* -- operation specs -- *)
-  new_rdcss_spec N :
+  new_rdcss_spec N (n : val):
     N ## gcN → gc_inv -∗
     {{{ True }}}
-        new_rdcss #()
-    {{{ lln γ, RET lln ; is_rdcss N γ lln ∗ rdcss_content γ 0 }}};
-  rdcss_spec N γ v (lm : loc) (m1 n1 n2 : Z):
-    is_rdcss N γ v -∗
-    <<< ∀ (m n: Z), gc_mapsto lm #m ∗ rdcss_content γ n >>>
-        rdcss #lm v #m1 #n1 #n2 @((⊤∖↑N)∖↑gcN)
-    <<< gc_mapsto lm #m ∗ rdcss_content γ (if decide (m = m1 ∧ n = n1) then n2 else n), RET #n >>>;
-  get_spec N γ v:
-    is_rdcss N γ v -∗
-    <<< ∀ (n : Z), rdcss_content γ n >>>
-        get v @(⊤∖↑N)
-    <<< rdcss_content γ n, RET #n >>>;
+        new_rdcss n
+    {{{ l_n γ, RET #l_n ; is_rdcss N γ l_n ∗ rdcss_content γ n }}};
+  rdcss_spec N γ (l_n l_m : loc) (m1 n1 n2 : val):
+    val_is_unboxed m1 →
+    val_is_unboxed (InjLV n1) →
+    is_rdcss N γ l_n -∗
+    <<< ∀ (m n: val), gc_mapsto l_m m ∗ rdcss_content γ n >>>
+        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑gcN)
+    <<< gc_mapsto l_m m ∗ rdcss_content γ (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>;
+  get_spec N γ (l_n : loc):
+    is_rdcss N γ l_n -∗
+    <<< ∀ (n : val), rdcss_content γ n >>>
+        get #l_n @(⊤∖↑N)
+    <<< rdcss_content γ n, RET n >>>;
 }.
 Arguments atomic_rdcss _ {_} {_}.
 
