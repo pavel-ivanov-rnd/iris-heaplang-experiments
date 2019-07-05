@@ -110,3 +110,5 @@ theories/logatom/conditional_increment/cinc.v
 theories/logatom/rdcss/rdcss.v
 theories/logatom/rdcss/spec.v
 theories/logatom/proph_erasure.v
+theories/logatom/herlihy_wing_queue/spec.v
+theories/logatom/herlihy_wing_queue/hwq.v
