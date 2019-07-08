@@ -28,21 +28,17 @@ Set Default Proof Using "Type".
 *)
 
 (*
-  new_rdcss(n) :=
-    let l_n = ref ( ref(injL n) ) in
-    ref l_n
+  new_rdcss(n) := ref (injL n)
  *)
-Definition new_rdcss : val :=
-  λ: "n",
-    let: "l_n" := ref (InjL "n") in "l_n".
+Definition new_rdcss : val := λ: "n", ref (InjL "n").
 
 (*
   complete(l_descr, l_n) :=
     let (l_m, m1, n1, n2, p) := !l_descr in
     (* data = (l_m, m1, n1, n2, p) *)
-    let l_ghost = ref #() in
+    let p_ghost = NewProph in
     let n_new = (if !l_m = m1 then n1 else n2) in
-      Resolve (CmpXchg l_n (InjR l_descr) (ref (InjL n_new))) p l_ghost ; #().
+      Resolve (CmpXchg l_n (InjR l_descr) (ref (InjL n_new))) p p_ghost ; #().
  *)
 Definition complete : val :=
   λ: "l_descr" "l_n",
@@ -53,9 +49,9 @@ Definition complete : val :=
     let: "n1"  := Snd (Fst (Fst ("data"))) in
     let: "n2"  := Snd (Fst ("data")) in
     let: "p"   := Snd ("data") in
-    let: "l_ghost" := ref #() in
+    let: "p_ghost" := NewProph in
     let: "n_new" := (if: !"l_m" = "m1" then "n2" else "n1") in
-    Resolve (CmpXchg "l_n" (InjR "l_descr") (InjL "n_new")) "p" "l_ghost" ;; #().
+    Resolve (CmpXchg "l_n" (InjR "l_descr") (InjL "n_new")) "p" "p_ghost" ;; #().
 
 (*
   get(l_n) :=
@@ -103,7 +99,7 @@ Definition rdcss: val :=
         let: "r" := CmpXchg "l_n" (InjL "n1") (InjR "l_descr") in
         match: Fst "r" with
           InjL "n" =>
-            (* non-descriptor value read, check if CAS was successful *)
+            (* non-descriptor value read, check if CmpXchg was successful *)
             if: Snd "r" then
               (* CmpXchg was successful, finish operation *)
               complete "l_descr" "l_n" ;; "n1"
@@ -162,10 +158,10 @@ Section rdcss.
 
   (** Definition of the invariant *)
 
-  Fixpoint val_to_some_loc (pvs : list (val * val)) : option loc :=
+  Fixpoint proph_extract_winner (pvs : list (val * val)) : option proph_id :=
     match pvs with
-    | ((_, #true)%V, LitV (LitLoc l)) :: _  => Some l
-    | _                         :: vs => val_to_some_loc vs
+    | ((_, #true)%V, LitV (LitProphecy p)) :: _  => Some p
+    | _                         :: vs => proph_extract_winner vs
     | _                               => None
     end.
 
@@ -181,39 +177,53 @@ Section rdcss.
 
   Definition own_token γ := (own γ (Excl ()))%I.
 
-  Definition pending_state P (n1 : val) (proph_winner : option loc) l_ghost_winner (γ_n : gname) :=
-    (P ∗ ⌜match proph_winner with None => True | Some l => l = l_ghost_winner end⌝ ∗ own γ_n (● Excl' n1))%I.
+  Definition pending_state P (n1 : val) (proph_winner : option proph_id) p_ghost_winner (γ_n γ_a: gname) :=
+    (P ∗
+     ⌜match proph_winner with None => True | Some p => p = p_ghost_winner end⌝ ∗
+     own γ_n (● Excl' n1) ∗
+     own_token γ_a)%I.
 
   (* After the prophecy said we are going to win the race, we commit and run the AU,
      switching from [pending] to [accepted]. *)
-  Definition accepted_state Q (proph_winner : option loc) (l_ghost_winner : loc) :=
-    (l_ghost_winner ↦{1/2} - ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
+  Definition accepted_state Q (proph_winner : option proph_id) (p_ghost_winner : proph_id) :=
+    ((∃ vs, proph p_ghost_winner vs) ∗
+     match proph_winner with
+       None => True
+     | Some p => ⌜p = p_ghost_winner⌝ ∗ Q
+     end)%I.
 
-  (* The same thread then wins the CAS and moves from [accepted] to [done].
+  (* The same thread then wins the CmpXchg and moves from [accepted] to [done].
      Then, the [γ_t] token guards the transition to take out [Q].
-     Remember that the thread winning the CAS might be just helping.  The token
+     Remember that the thread winning the CmpXchg might be just helping.  The token
      is owned by the thread whose request this is.
-     In this state, [l_ghost_winner] serves as a token to make sure that
-     only the CAS winner can transition to here, and owning half of [l_descr] serves as a
+     In this state, [p_ghost_winner] serves as a token to make sure that
+     only the CmpXchg winner can transition to here, and owning half of [l_descr] serves as a
      "location" token to ensure there is no ABA going on. Notice how [rdcss_inv]
      owns *more than* half of its [l_descr] in the Updating state,
      which means we know that the [l_descr] there and here cannot be the same. *)
-  Definition done_state Qn (l_descr l_ghost_winner : loc) (γ_t : gname) :=
-    ((Qn ∨ own_token γ_t) ∗ l_ghost_winner ↦ - ∗ (l_descr ↦{1/2} -) )%I.
+  Definition done_state Qn (l_descr : loc) (p_ghost_winner : proph_id) (γ_t γ_a: gname) :=
+    ((Qn ∨ own_token γ_t) ∗ (∃ vs, proph p_ghost_winner vs) ∗ (l_descr ↦{1/2} -) ∗ own_token γ_a)%I.
 
   (* Invariant expressing the descriptor protocol.
-     We always need the [proph] in here so that failing threads coming late can
-     always resolve their stuff.
-     Moreover, we need a way for anyone who has observed the [done] state to
-     prove that we will always remain [done]; that's what the one-shot token [γ_s] is for. *)
-  Definition descr_inv P Q (p : proph_id) n (l_n l_descr l_ghost_winner : loc) γ_n γ_t γ_s : iProp Σ :=
+     - We always need the [proph] in here so that failing threads coming late can
+       always resolve their stuff.
+     - We need a way for anyone who has observed the [done] state to
+       prove that we will always remain [done]; that's what the one-shot token [γ_s] is for.
+     - [γ_a] is a token which is owned by the invariant in [pending] and [done] but not in [accepted].
+       This permits the CmpXchg winner to gain ownership of the token when moving to [accepted] and
+       hence ensures that no other thread can move from [accepted] to [done].
+       Side remark: One could get rid of this token if one supported fractional ownership of
+                    prophecy resources by only keeping half permission to the prophecy resource
+                    in the invariant in [accepted] while the other half would be kept by the CmpXchg winner.
+   *)
+  Definition descr_inv P Q (p : proph_id) n (l_n l_descr : loc) (p_ghost_winner : proph_id) γ_n γ_t γ_s γ_a: iProp Σ :=
     (∃ vs, proph p vs ∗
       (own γ_s (Cinl $ Excl ()) ∗
-       (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (val_to_some_loc vs) l_ghost_winner γ_n
-        ∨ accepted_state (Q n) (val_to_some_loc vs) l_ghost_winner ))
-       ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q n) l_descr l_ghost_winner γ_t))%I.
+       (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (proph_extract_winner vs) p_ghost_winner γ_n γ_a
+        ∨ accepted_state (Q n) (proph_extract_winner vs) p_ghost_winner ))
+       ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q n) l_descr p_ghost_winner γ_t γ_a))%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv.
 
   Definition pau P Q γ l_m m1 n1 n2 :=
     (▷ P -∗ ◇ AU << ∀ (m n : val), (gc_mapsto l_m m) ∗ rdcss_content γ n >> @ (⊤∖↑N)∖↑gcN, ∅
@@ -226,21 +236,23 @@ Section rdcss.
        match s with
        | Quiescent n =>
            (* (InjLV #n) = state_to_val (Quiescent n) *)
-           (* In this state the CAS which expects to read (InjRV _) in
+           (* In this state the CmpXchg which expects to read (InjRV _) in
               [complete] fails always.*)
            l_n ↦{1/2} (InjLV n) ∗ own γ_n (● Excl' n)
         | Updating l_descr l_m m1 n1 n2 p =>
-           ∃ q P Q l_ghost_winner γ_t γ_s,
+           ∃ q P Q p_ghost_winner γ_t γ_s γ_a,
              (* (InjRV #l_descr) = state_to_val (Updating l_descr l_m m1 n1 n2 p) *)
              (* There are two pieces of per-[descr]-protocol ghost state:
              - [γ_t] is a token owned by whoever created this protocol and used
                to get out the [Q] in the end.
-             - [γ_s] reflects whether the protocol is [done] yet or not. *)
+             - [γ_s] reflects whether the protocol is [done] yet or not.
+             - [γ_a] is a token which is used to ensure that only the CmpXchg winner
+               can move from the [accepted] to the [done] state. *)
            (* We own *more than* half of [l_descr], which shows that this cannot
               be the [l_descr] of any [descr] protocol in the [done] state. *)
              ⌜val_is_unboxed m1⌝ ∗
              l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗  
-             inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_winner γ_n γ_t γ_s) ∗
+             inv descrN (descr_inv P Q p n1 l_n l_descr p_ghost_winner γ_n γ_t γ_s γ_a) ∗
              □ pau P Q γ_n l_m m1 n1 n2 ∗ is_gc_loc l_m
        end)%I.
 
@@ -273,8 +285,8 @@ Section rdcss.
 
   (** Once a [descr] protocol is [done] (as reflected by the [γ_s] token here),
       we can at any later point in time extract the [Q]. *)
-  Lemma state_done_extract_Q P Q p n l_n l_descr l_ghost γ_n γ_t γ_s :
-    inv descrN (descr_inv P Q p n l_n l_descr l_ghost γ_n γ_t γ_s) -∗
+  Lemma state_done_extract_Q P Q p n l_n l_descr p_ghost γ_n γ_t γ_s γ_a :
+    inv descrN (descr_inv P Q p n l_n l_descr p_ghost γ_n γ_t γ_s γ_a) -∗
     own γ_s (Cinr (to_agree ())) -∗
     □(own_token γ_t ={⊤}=∗ ▷ (Q n)).
   Proof.
@@ -283,7 +295,7 @@ Section rdcss.
     * (* Moved back to NotDone: contradiction. *)
       iDestruct "NotDone" as "(>Hs' & _ & _)".
       iDestruct (own_valid_2 with "Hs Hs'") as %?. contradiction.
-    * iDestruct "Done" as "(_ & QT & Hghost)".
+    * iDestruct "Done" as "(_ & QT & Hrest)".
       iDestruct "QT" as "[Qn | >T]"; last first.
       { iDestruct (own_valid_2 with "Ht T") as %Contra.
           by inversion Contra. }
@@ -295,30 +307,27 @@ Section rdcss.
   (** ** Proof of [complete] *)
 
   (** The part of [complete] for the succeeding thread that moves from [accepted] to [done] state *)
-  Lemma complete_succeeding_thread_pending (γ_n γ_t γ_s : gname) l_n P Q p
-        (n1 n : val) (l_descr l_ghost : loc) Φ :
+  Lemma complete_succeeding_thread_pending (γ_n γ_t γ_s γ_a: gname) l_n P Q p
+        (n1 n : val) (l_descr : loc) (p_ghost : proph_id) Φ :
     inv rdcssN (rdcss_inv γ_n l_n) -∗
-    inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost γ_n γ_t γ_s) -∗
-    l_ghost ↦{1 / 2} #() -∗
+    inv descrN (descr_inv P Q p n1 l_n l_descr p_ghost γ_n γ_t γ_s γ_a) -∗
+    own_token γ_a -∗
     (□(own_token γ_t ={⊤}=∗ ▷ (Q n1)) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
-    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #p_ghost ;; #() {{ v, Φ v }}.
   Proof.
-    iIntros "#InvC #InvS Hl_ghost HQ Hn●". wp_bind (Resolve _ _ _)%E.
+    iIntros "#InvC #InvS Token_a HQ Hn●". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
     iInv descrN as (vs) "(>Hp & [NotDone | Done])"; last first.
-    { (* We cannot be [done] yet, as we own the "ghost location" that serves
+    { (* We cannot be [done] yet, as we own the [γ_a] token that serves
          as token for that transition. *)
-      iDestruct "Done" as "(_ & _ & Hlghost & _)".
-      iDestruct "Hlghost" as (v') ">Hlghost".
-        by iDestruct (mapsto_valid_2 with "Hl_ghost Hlghost") as %?.
+      iDestruct "Done" as "(_ & _ & _ & _ & >Token_a')".
+      by iDestruct (own_valid_2 with "Token_a Token_a'") as %?.
     }
     iDestruct "NotDone" as "(>Hs & >Hln' & [Pending | Accepted])".
-    { (* We also cannot be [Pending] any more we have [own γ_n] showing that this
-       transition has happened   *)
-       iDestruct "Pending" as "[_ >[_ Hn●']]".
-       iCombine "Hn●" "Hn●'" as "Contra".
-       iDestruct (own_valid with "Contra") as %Contra. by inversion Contra.
+    { (* We also cannot be [Pending] any more because we own the [γ_a] token. *)
+      iDestruct "Pending" as "[_ >(_ & _ & Token_a')]".
+      by iDestruct (own_valid_2 with "Token_a Token_a'") as %?.
     }
     (* So, we are [Accepted]. Now we can show that (InjRV l_descr) = (state_to_val s), because
        while a [descr] protocol is not [done], it owns enough of
@@ -327,20 +336,19 @@ Section rdcss.
     { simpl. iDestruct (mapsto_agree with "Hln Hln'") as %Heq. inversion Heq. }
     iDestruct (mapsto_agree with "Hln Hln'") as %[= ->].
     simpl.
-    iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "(_ & [>Hld >Hld'] & Hrest)".
-    (* We perform the CAS. *)
+    iDestruct "Hrest" as (q P' Q' p_ghost' γ_t' γ_s' γ_a') "(_ & [>Hld >Hld'] & Hrest)".
+    (* We perform the CmpXchg. *)
     iCombine "Hln Hln'" as "Hln".
     wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_suc.
-    iIntros (vs' ->) "Hp'". simpl.
+    iIntros (vs'' ->) "Hp'". simpl.
     (* Update to Done. *)
-    iDestruct "Accepted" as "[Hl_ghost_inv [HEq Q]]".
+    iDestruct "Accepted" as "[Hp_phost_inv [HEq Q]]".
     iMod (own_update with "Hs") as "Hs".
     { apply (cmra_update_exclusive (Cinr (to_agree ()))). done. }
     iDestruct "Hs" as "#Hs'". iModIntro.
-    iSplitL "Hl_ghost_inv Hl_ghost Q Hp' Hld".
+    iSplitL "Hp_phost_inv Token_a Q Hp' Hld".
     (* Update state to Done. *)
-    { iNext. iExists _. iFrame "Hp'". iRight. unfold done_state.
-      iFrame "#∗". iSplitR "Hld"; iExists _; done. }
+    { eauto 12 with iFrame. }
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]".
       iExists (Quiescent n). iFrame. }
@@ -349,57 +357,58 @@ Section rdcss.
   Qed.
 
   (** The part of [complete] for the failing thread *)
-  Lemma complete_failing_thread γ_n γ_t γ_s l_n l_descr P Q p n1 n l_ghost_inv l_ghost Φ :
-    l_ghost_inv ≠ l_ghost →
+  Lemma complete_failing_thread γ_n γ_t γ_s γ_a l_n l_descr P Q p n1 n p_ghost_inv p_ghost Φ :
+    p_ghost_inv ≠ p_ghost →
     inv rdcssN (rdcss_inv γ_n l_n) -∗
-    inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_inv γ_n γ_t γ_s) -∗
+    inv descrN (descr_inv P Q p n1 l_n l_descr p_ghost_inv γ_n γ_t γ_s γ_a) -∗
     (□(own_token γ_t ={⊤}=∗ ▷ (Q n1)) -∗ Φ #()) -∗
-    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #l_ghost ;; #() {{ v, Φ v }}.
+    WP Resolve (CmpXchg #l_n (InjRV #l_descr) (InjLV n)) #p #p_ghost ;; #() {{ v, Φ v }}.
   Proof.
     iIntros (Hnl) "#InvC #InvS HQ". wp_bind (Resolve _ _ _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
     iInv descrN as (vs) "(>Hp & [NotDone | [#Hs Done]])".
-    { (* If the [descr] protocol is not done yet, we can show that it
-         is the active protocol still (l = l').  But then the CAS would
+    { (* [descr] protocol is not done yet: we can show that it
+         is the active protocol still (l = l').  But then the CmpXchg would
          succeed, and our prophecy would have told us that.
          So here we can prove that the prophecy was wrong. *)
         iDestruct "NotDone" as "(_ & >Hln' & State)".
         iDestruct (mapsto_agree with "Hln Hln'") as %[=->].
         iCombine "Hln Hln'" as "Hln".
         wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
-        iIntros (vs' ->). simpl.
+        iIntros (vs'' ->). simpl.
         iDestruct "State" as "[Pending | Accepted]".
         + iDestruct "Pending" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
-        + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs. }
+        + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
+    }
     (* So, we know our protocol is [Done]. *)
-    (* It must be that (state_to_val s) ≠ l because we are in the failing thread. *)
+    (* It must be that (state_to_val s) ≠ (InjRV l_descr) because we are in the failing thread. *)
     destruct s as [n' | l_descr' l_m' m1' n1' n2' p'].
-    { (* (injL n) is the current value, hence the CAS fails *)
+    - (* (injL n) is the current value, hence the CmpXchg fails *)
       (* FIXME: proof duplication *)
       wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
-      iIntros (vs' ->) "Hp". iModIntro.
-      iSplitL "Done Hp". { by eauto 12 with iFrame. } iModIntro.
+      iIntros (vs'' ->) "Hp". iModIntro.
+      iSplitL "Done Hp". { by eauto 12 with iFrame. }
+      iModIntro.
       iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
       wp_seq. iApply "HQ".
       iApply state_done_extract_Q; done.
-    }
-    (* (injR l_descr') is the current value *)
-    destruct (decide (l_descr' = l_descr)) as [->|Hn]. {
-      (* The [descr] protocol is [done] while still being the active protocol
+    - (* (injR l_descr') is the current value *)
+      destruct (decide (l_descr' = l_descr)) as [->|Hn].
+      + (* The [descr] protocol is [done] while still being the active protocol
          of the [rdcss] instance?  Impossible, now we will own more than the whole descriptor location! *)
-      iDestruct "Done" as "(_ & _ & >Hld)".
-      iDestruct "Hld" as (v') "Hld".
-      iDestruct "Hrest" as (q P' Q' l_ghost' γ_t' γ_s') "(_ & >[Hld' Hld''] & Hrest)".
-      iDestruct (mapsto_combine with "Hld Hld'") as "[Hld _]".
-      rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
-    }
-    (* The CAS fails. *)
-    wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
-    iIntros (vs' ->) "Hp". iModIntro.
-    iSplitL "Done Hp". { by eauto 12 with iFrame. } iModIntro.
-    iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
-    wp_seq. iApply "HQ".
-    iApply state_done_extract_Q; done.
+        iDestruct "Done" as "(_ & _ & >Hld & _)".
+        iDestruct "Hld" as (v') "Hld".
+        iDestruct "Hrest" as (q P' Q' p_ghost' γ_t' γ_s' γ_a') "(_ & >[Hld' Hld''] & Hrest)".
+        iDestruct (mapsto_combine with "Hld Hld'") as "[Hld _]".
+        rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
+      + (* l_descr' ≠ l_descr: The CmpXchg fails. *)
+        wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
+        iIntros (vs'' ->) "Hp". iModIntro.
+        iSplitL "Done Hp". { by eauto 12 with iFrame. }
+        iModIntro.
+        iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
+        wp_seq. iApply "HQ".
+        iApply state_done_extract_Q; done.
   Qed.
 
   (** ** Proof of [complete] *)
@@ -407,11 +416,11 @@ Section rdcss.
      this request, then you get [Q].  But we also try to complete other
      thread's requests, which is why we cannot ask for the token
      as a precondition. *)
-  Lemma complete_spec (l_n l_m l_descr : loc) (m1 n1 n2 : val) (p : proph_id) γ_n γ_t γ_s l_ghost_inv P Q q:
+  Lemma complete_spec (l_n l_m l_descr : loc) (m1 n1 n2 : val) (p : proph_id) γ_n γ_t γ_s γ_a p_ghost_inv P Q q:
     val_is_unboxed m1 →
     N ## gcN → 
     inv rdcssN (rdcss_inv γ_n l_n) -∗
-    inv descrN (descr_inv P Q p n1 l_n l_descr l_ghost_inv γ_n γ_t γ_s) -∗
+    inv descrN (descr_inv P Q p n1 l_n l_descr p_ghost_inv γ_n γ_t γ_s γ_a) -∗
     □ pau P Q γ_n l_m m1 n1 n2 -∗
     is_gc_loc l_m -∗
     gc_inv -∗
@@ -422,17 +431,18 @@ Section rdcss.
     iIntros (Hm_unbox Hdisj) "#InvC #InvS #PAU #isGC #InvGC".
     iModIntro. iIntros (Φ) "Hld HQ".  wp_lam. wp_let.
     wp_bind (! _)%E. wp_load. iClear "Hld". wp_pures.
-    wp_alloc l_ghost as "[Hl_ghost' Hl_ghost'2]". wp_pures.
+    wp_apply wp_new_proph; first done.
+    iIntros (vs_ghost p_ghost) "Hp_ghost". wp_pures.
     wp_bind (! _)%E. 
     (* open outer invariant *)
     iInv rdcssN as (s) "(>Hln & Hrest)"=>//.
     (* two different proofs depending on whether we are succeeding thread *)
-    destruct (decide (l_ghost_inv = l_ghost)) as [-> | Hnl].
+    destruct (decide (p_ghost_inv = p_ghost)) as [-> | Hnl].
     - (* we are the succeeding thread *)
       (* we need to move from [pending] to [accepted]. *)
       iInv descrN as (vs) "(>Hp & [(>Hs & >Hln' & [Pending | Accepted]) | [#Hs Done]])".
       + (* Pending: update to accepted *)
-        iDestruct "Pending" as "[P >[Hvs Hn●]]".
+        iDestruct "Pending" as "[P >(Hvs & Hn● & Token_a)]".
         iDestruct ("PAU" with "P") as ">AU".
         iMod (gc_access with "InvGC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync B location l_n and A location l_m *)
@@ -452,12 +462,12 @@ Section rdcss.
         iMod ("Hclose" with "[Hn◯ Hgc_lm]") as "Q"; first by iFrame.
         iModIntro. iMod "Hgc_close" as "_".
         (* close descr inv *)
-        iModIntro. iSplitL "Q Hl_ghost' Hp Hvs Hs Hln'".
+        iModIntro. iSplitL "Q Hp_ghost Hp Hvs Hs Hln'".
         { iModIntro. iNext. iExists _. iFrame "Hp". iLeft. iFrame.
-          iRight. iSplitL "Hl_ghost'"; first by iExists _.
-          destruct (val_to_some_loc vs) eqn:Hvts; iFrame. }
+          iRight. iSplitL "Hp_ghost"; first by iExists _.
+          destruct (proph_extract_winner vs) eqn:Hvts; iFrame. }
         (* close outer inv *)
-        iModIntro. iSplitR "Hl_ghost'2 HQ Hn●".
+        iModIntro. iSplitR "Token_a HQ Hn●".
         { by eauto 12 with iFrame. }
         iModIntro.
         destruct (decide (m' = m1)) as [-> | ?];
@@ -465,17 +475,15 @@ Section rdcss.
         case_bool_decide; simplify_eq; wp_if; wp_pures;
            [rewrite decide_True; last done | rewrite decide_False; last tauto];
           iApply (complete_succeeding_thread_pending
-                    with "InvC InvS Hl_ghost'2 HQ Hn●").
+                    with "InvC InvS Token_a HQ Hn●").
       + (* Accepted: contradiction *)
-        iDestruct "Accepted" as "[>Hl_ghost_inv _]".
-        iDestruct "Hl_ghost_inv" as (v') "Hlghost".
-        iCombine "Hl_ghost'" "Hl_ghost'2" as "Hl_ghost'".
-        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %?.
+        iDestruct "Accepted" as "[>Hp_ghost_inv _]".
+        iDestruct "Hp_ghost_inv" as (p') "Hp_ghost_inv".
+        by iDestruct (proph_exclusive with "Hp_ghost Hp_ghost_inv") as %?.
       + (* Done: contradiction *)
-        iDestruct "Done" as "[QT >[Hlghost _]]".
-        iDestruct "Hlghost" as (v') "Hlghost".
-        iCombine "Hl_ghost'" "Hl_ghost'2" as "Hl_ghost'".
-        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %?.
+        iDestruct "Done" as "[QT >[Hp_ghost_inv _]]".
+        iDestruct "Hp_ghost_inv" as (p') "Hp_ghost_inv".
+        by iDestruct (proph_exclusive with "Hp_ghost Hp_ghost_inv") as %?.
     - (* we are the failing thread *)
       (* close invariant *)
       iMod (is_gc_access with "InvGC isGC") as (v) "[Hlm Hclose]"; first solve_ndisj.
@@ -483,7 +491,7 @@ Section rdcss.
       iMod ("Hclose" with "Hlm") as "_". iModIntro.
       iModIntro.
       iSplitL "Hln Hrest".
-      { iExists _. iFrame. iFrame. }
+      { eauto with iFrame. }
       (* two equal proofs depending on value of m1 *)
       wp_op.
       destruct (decide (v = m1)) as [-> | ];
@@ -512,14 +520,14 @@ Section rdcss.
     (* invoke inner recursive function [rdcss_inner] *)
     iLöb as "IH".
     wp_bind (CmpXchg _ _ _)%E.
-    (* open outer invariant for the CAS *)
+    (* open outer invariant for the CmpXchg *)
     iInv rdcssN as (s) "(>Hln & Hrest)".
     destruct s as [n | l_descr' l_m' m1' n1' n2' p'].
     - (* l_n ↦ injL n *)
       (* a non-value descriptor n is currently stored at l_n *)
       iDestruct "Hrest" as ">[Hln' Hn●]".
       destruct (decide (n1 = n)) as [-> | Hneq].
-      + (* values match -> CAS is successful *)
+      + (* values match -> CmpXchg is successful *)
         iCombine "Hln Hln'" as "Hln".
         wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
@@ -528,25 +536,26 @@ Section rdcss.
         iMod ("Hclose" with "[Hf CC]") as "AU"; first by iFrame.
         (* Initialize new [descr] protocol .*)
         iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
-        iMod (own_alloc (Excl ())) as (γ_t) "Token"; first done.
+        iMod (own_alloc (Excl ())) as (γ_t) "Token_t"; first done.
+        iMod (own_alloc (Excl ())) as (γ_a) "Token_a"; first done.
         iMod (own_alloc (Cinl $ Excl ())) as (γ_s) "Hs"; first done.
         iDestruct "Hln" as "[Hln Hln']".
-        set (winner := default l_descr (val_to_some_loc proph_values)).
-        iMod (inv_alloc descrN _ (descr_inv AU_later _ _ _ _ _ winner _ _ _)
-              with "[AU Hs Hp Hln' Hn●]") as "#Hinv".
+        set (winner := default p (proph_extract_winner proph_values)).
+        iMod (inv_alloc descrN _ (descr_inv AU_later _ _ _ _ _ winner _ _ _ _)
+              with "[AU Hs Hp Hln' Hn● Token_a]") as "#Hinv".
         {
           iNext. iExists _. iFrame "Hp". iLeft. iFrame. iLeft.
-          iFrame. destruct (val_to_some_loc proph_values); simpl; done.
+          iFrame. destruct (proph_extract_winner proph_values); simpl; done.
         }
-        iModIntro. iDestruct "Hld" as "[Hld1 [Hld2 Hld3]]". iSplitR "Hld2 Token".
+        iModIntro. iDestruct "Hld" as "[Hld1 [Hld2 Hld3]]". iSplitR "Hld2 Token_t".
         { (* close outer invariant *)
           iNext. iCombine "Hld1 Hld3" as "Hld1". iExists (Updating l_descr l_m m1 n n2 p).
-          eauto 12 with iFrame. 
+          eauto 15 with iFrame. 
         }
         wp_pures.
         wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]");[ done..|].
-        iIntros "Ht". iMod ("Ht" with "Token") as "Φ". by wp_seq.
-      + (* values do not match -> CAS fails 
+        iIntros "Ht". iMod ("Ht" with "Token_t") as "Φ". by wp_seq.
+      + (* values do not match -> CmpXchg fails 
            we can commit here *)
         wp_cmpxchg_fail.
         iMod "AU" as (m'' n'') "[[Hm◯ Hn◯] [_ Hclose]]"; simpl.
@@ -558,16 +567,16 @@ Section rdcss.
         { iModIntro. iExists (Quiescent n''). iFrame. }
         wp_pures. iFrame.
     - (* l_n ↦ injR l_ndescr' *)
-      (* a descriptor l_descr' is currently stored at l_n -> CAS fails
+      (* a descriptor l_descr' is currently stored at l_n -> CmpXchg fails
          try to help the on-going operation *)
       wp_cmpxchg_fail. 
       iModIntro.
       (* extract descr invariant *)
-      iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1'_unbox & [Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
+      iDestruct "Hrest" as (q P Q p_ghost γ_t γ_s γ_a) "(#Hm1'_unbox & [Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
       iDestruct "Hm1'_unbox" as %Hm1'_unbox.
       iSplitR "AU Hld2 Hld Hp".
       (* close invariant, retain some permission to l_descr', so it can be read later *)
-      { iModIntro. iExists (Updating l_descr' l_m' m1' n1' n2' p'). iFrame. eauto 12 with iFrame. }
+      { iModIntro. iExists (Updating l_descr' l_m' m1' n1' n2' p'). eauto 15 with iFrame. }
       wp_pures.
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]"); [done..|].
       iIntros "_". wp_seq. wp_pures.
@@ -590,7 +599,6 @@ Section rdcss.
       with "[Hln Hn●]") as "#InvR".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]".
       iExists (Quiescent n). iFrame. }
-    wp_let.
     iModIntro.
     iApply ("HΦ" $! l_n γ_n).
     iSplitR; last by iFrame. by iFrame "#". 
@@ -617,10 +625,10 @@ Section rdcss.
         iNext. iExists (Quiescent au_n). iFrame.
       }
       wp_match. iApply "HΦ".
-    - iDestruct "Hrest" as (q P Q l_ghost γ_t γ_s) "(#Hm1_unbox & [Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
+    - iDestruct "Hrest" as (q P Q p_ghost γ_t γ_s γ_a) "(#Hm1_unbox & [Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
       iDestruct "Hm1_unbox" as %Hm1_unbox.
       iModIntro. iSplitR "AU Hld'". {
-        iNext. iExists (Updating l_descr l_m m1 n1 n2 p). eauto 12 with iFrame. 
+        iNext. iExists (Updating l_descr l_m m1 n1 n2 p). eauto 15 with iFrame. 
       }
       wp_match. 
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld']"); [done..|].
