@@ -1,7 +1,7 @@
 opam-version: "1.2"
 name: "coq-iris-examples"
 maintainer: "Ralf Jung <jung@mpi-sws.org>"
-authors: "The Iris Team"
+authors: "The Iris Team and Contributors"
 homepage: "http://iris-project.org/"
 bug-reports: "https://gitlab.mpi-sws.org/FP/iris-examples/issues"
 dev-repo: "https://gitlab.mpi-sws.org/FP/iris-examples.git"
