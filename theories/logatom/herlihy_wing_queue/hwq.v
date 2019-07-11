@@ -2700,7 +2700,6 @@ Proof.
     - iDestruct (contra_agree with "Hinit_cont Hcont") as %[-> ->].
       iPureIntro. split; first done. destruct Hcont as (((H1 & H2) & H3) & _). done.
     - by iDestruct (contra_not_no_contra with "Hcont Hinit_cont") as "False". }
-  SearchAbout "snap".
   (* We resolve. *)
   iDestruct "Hproph" as (rs) "[Hp Hpvs]". iDestruct "Hpvs" as %Hpvs.
   wp_apply (wp_resolve with "Hp"); first done.
