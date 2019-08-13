@@ -1,5 +1,6 @@
 From iris.algebra Require Import excl auth list gset gmap agree csum.
 From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang.lib Require Import arith diverge.
 From iris.base_logic.lib Require Export invariants proph_map saved_prop.
 From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
@@ -13,101 +14,6 @@ Set Default Proof Using "Type".
 Lemma replicate_S_end {A} (n : nat) (x : A) :
   replicate (S n) x = replicate n x ++ [x].
 Proof. induction n as [|n IH]; [ done | by rewrite /= -IH ]. Qed.
-
-(* TODO move the following lemmas to std++. *)
-
-Lemma map_imap_id {A} (m : gmap nat A) :
-  map_imap (λ _ e, Some e) m = m.
-Proof.
-  apply map_eq. intros i. rewrite map_lookup_imap. by destruct (m !! i).
-Qed.
-
-Lemma map_imap_insert {A B} (f : nat → A → option B) (i : nat) (v : A) (m : gmap nat A) :
-  map_imap f (<[i:=v]> m) = match f i v with
-                            | None => delete i (map_imap f m)
-                            | Some w => <[i:=w]> (map_imap f m)
-                            end.
-Proof.
-  destruct (f i v) as [w|] eqn:Hw.
-  - apply map_eq. intros k. rewrite map_lookup_imap.
-    destruct (decide (k = i)) as [->|Hk_not_i].
-    + by rewrite lookup_insert lookup_insert /=.
-    + rewrite lookup_insert_ne; last done.
-      rewrite lookup_insert_ne; last done.
-      by rewrite map_lookup_imap.
-  - apply map_eq. intros k. rewrite map_lookup_imap.
-    destruct (decide (k = i)) as [->|Hk_not_i].
-    + by rewrite lookup_insert lookup_delete /=.
-    + rewrite lookup_insert_ne; last done.
-      rewrite lookup_delete_ne; last done.
-      by rewrite map_lookup_imap.
-Qed.
-
-Lemma map_imap_ext {A B} (f1 f2 : nat → A → option B) (m1 m2 : gmap nat A) :
-  dom (gset nat) m2 ⊆ dom (gset nat) m1 →
-  (∀ k v, m1 !! k = Some v → Some (f1 k v) = f2 k <$> (m2 !! k)) →
-  map_imap f1 m1 = map_imap f2 m2.
-Proof.
-  intros Hdom HExt. apply map_eq. intros i.
-  rewrite map_lookup_imap map_lookup_imap.
-  destruct (m1 !! i) as [v1|] eqn:Hi1.
-  + specialize (HExt i v1 Hi1).
-    destruct (m2 !! i); by inversion HExt.
-  + destruct (m2 !! i) as [v2|] eqn:Hi2; [ exfalso | done ].
-    assert (i ∈ dom (gset nat) m2) as Hm2.
-    { apply elem_of_dom. by exists v2. }
-    assert (i ∉ dom (gset nat) m1) as Hm1.
-    { by apply not_elem_of_dom. }
-    set_solver.
-Qed.
-
-(** * Implementation and specification of a simple minimum function *********)
-
-Definition minimum : val :=
-  λ: "m" "n",
-    if: "m" < "n" then "m" else "n".
-
-Section minimum.
-
-Context `{!heapG Σ}.
-Notation iProp := (iProp Σ).
-
-Lemma min_spec (m n : nat) :
-  {{{ True }}} minimum #m #n {{{ RET #(m `min` n)%nat; True }}}.
-Proof.
-  iIntros (Φ) "_ HΦ". rewrite /minimum. wp_pures.
-  destruct (decide (m < n)) as [H | H].
-  - rewrite bool_decide_true; last done. wp_pures.
-    rewrite min_l; last omega. by iApply "HΦ".
-  - rewrite bool_decide_false; last done. wp_pures.
-    rewrite min_r; last omega. by iApply "HΦ".
-Qed.
-
-End minimum.
-
-(** * Implementation and specification of a diverging computation ***********)
-
-Definition loop : val :=
-  rec: "loop" "v" := "loop" "v".
-
-Section loop.
-
-Context `{!heapG Σ}.
-Notation iProp := (iProp Σ).
-
-Lemma loop_spec (P : iProp) (v : val) :
-  {{{ True }}} loop v {{{ RET #(); P }}}.
-Proof.
-  iIntros (Φ) "_ HΦ". rewrite /loop. iLöb as "IH". wp_pures.
-  iApply "IH". iApply "HΦ".
-Qed.
-
-Lemma wp_loop (Φ : val -> iProp) : (WP loop #() {{ v, Φ v }})%I.
-Proof.
-  iIntros "". iLöb as "IH". rewrite /loop. wp_pures. iApply "IH".
-Qed.
-
-End loop.
 
 (** * Some array-related notations ******************************************)
 
@@ -149,7 +55,7 @@ Definition enqueue : val :=
     let: "i" := FAA "q_back" #1 in
     (* Check not full, and actually insert. *)
     if: "i" < "q_size" then "q_ar"<[["i"]]> <- SOME "x" ;; Skip
-    else loop #().
+    else diverge #().
 
 (** dequeue(q : queue){
       let range = min(!q.back, q.size) in
@@ -1651,8 +1557,7 @@ Proof.
       destruct cont as [i1 i2|bs]; last done.
       destruct Hcont as ((H1 & H2) & H3 & H4).
       by repeat (split; first lia).
-    - wp_pures. rewrite (bool_decide_false _ Hback_sz).
-      wp_pures. wp_apply (wp_loop Φ). }
+    - wp_pures. rewrite (bool_decide_false _ Hback_sz). wp_apply wp_diverge. }
   (* We now have a reserved slot [i], which is still free. *)
   pose (i := back). pose (elts := map (get_value slots deqs) pref ++ rest).
   assert (slots !! back = None) as Hi_free.
@@ -2612,8 +2517,7 @@ Proof.
   { iNext. repeat iExists _. eauto with iFrame. }
   clear pref rest slots deqs pvs.
   (* The range is the min between [q.back - 1] and [q.size - 1]. *)
-  wp_bind (minimum _ _)%E.
-  wp_apply min_spec; [done | iIntros "_"]. wp_pures.
+  wp_bind (minimum _ _)%E. wp_apply minimum_spec_nat. wp_pures.
   (* We now prove the inner loop part by induction in the index. *)
   assert (back `min` sz ≤ back `min` sz)%nat as Hn by done.
   assert (match cont with
