@@ -109,7 +109,7 @@ Section proof.
   Proof.
     rewrite /bag_contents. apply bi.wand_intro_r.
     rewrite -own_op own_valid uPred.discrete_valid.
-    f_equiv=> /=. rewrite pair_op.
+    f_equiv=> /=. rewrite -pair_op.
     by intros [_ ?%agree_op_invL'].
   Qed.
 
@@ -119,7 +119,7 @@ Section proof.
     iIntros "[Hb1 Hb2]".
     iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
     iMod (own_update_2 with "Hb1 Hb2") as "Hb".
-    { rewrite pair_op frac_op'.
+    { rewrite -pair_op frac_op'.
       assert ((1 / 2 + 1 / 2)%Qp = 1%Qp) as -> by apply Qp_div_2.
       by apply (cmra_update_exclusive (1%Qp, to_agree Y)). }
     iDestruct "Hb" as "[Hb1 Hb2]".

@@ -49,7 +49,7 @@ Section atomic_sync.
   Proof.
     iIntros (Hsync g0 ϕ ret) "Hϕ Hret".
     iMod (own_alloc (((1 / 2)%Qp, to_agree g0) ⋅ ((1 / 2)%Qp, to_agree g0))) as (γ) "[Hg1 Hg2]".
-    { by rewrite pair_op agree_idemp. }
+    { by rewrite -pair_op agree_idemp. }
     iApply (Hsync (∃ g: A, ϕ g ∗ gHalf γ g)%I with "[Hg1 Hϕ]")=>//.
     { iExists g0. by iFrame. }
     iNext. iIntros (s) "#Hsyncer". iApply "Hret".
@@ -77,7 +77,7 @@ Section atomic_sync.
       iAssert (|==> own γ (((1 / 2)%Qp, to_agree g') ⋅ ((1 / 2)%Qp, to_agree g')))%I
               with "[Hg]" as ">[Hg1 Hg2]".
       { iApply own_update; last by iAssumption.
-        apply cmra_update_exclusive. by rewrite pair_op agree_idemp. }
+        apply cmra_update_exclusive. by rewrite -pair_op agree_idemp. }
       iMod ("Hvs2" with "[Hg1 Hβ]").
       { iExists g'. iFrame. }
       iModIntro. iSplitL "Hg2 Hϕ'"; last done.

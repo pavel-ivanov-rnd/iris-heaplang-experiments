@@ -32,7 +32,7 @@ Qed.
 Global Instance SET_RES_fractional `{saG Σ} γ v : Fractional (fun q => SET_RES γ q v)%I.
 Proof.
   intros p q. rewrite /SET_RES.
-  rewrite -own_op Cinr_op Cinl_op pair_op agree_idemp. f_equiv.
+  rewrite -own_op -Cinr_op -Cinl_op -pair_op agree_idemp. f_equiv.
 Qed.
 Global Instance SET_RES_as_fractional `{saG Σ} γ q v:
   AsFractional (SET_RES γ q v) (fun q => SET_RES γ q v)%I q.
@@ -65,7 +65,7 @@ Lemma SET_RES_agree `{saG Σ} (γ: gname) (q q': Qp) (v w: val) :
 Proof.
   iIntros "Hs1 Hs2".
   iDestruct (own_valid_2 with "Hs1 Hs2") as %Hfoo.
-  iPureIntro. rewrite Cinr_op Cinl_op pair_op in Hfoo.
+  iPureIntro. rewrite -Cinr_op -Cinl_op -pair_op in Hfoo.
   by destruct Hfoo as [_ ?%agree_op_invL'].
 Qed.
 Lemma FIN_agree `{saG Σ} (γ: gname) (v w: val) :
@@ -73,7 +73,7 @@ Lemma FIN_agree `{saG Σ} (γ: gname) (v w: val) :
 Proof.
   iIntros "Hs1 Hs2".
   iDestruct (own_valid_2 with "Hs1 Hs2") as %Hfoo.
-  iPureIntro. rewrite Cinr_op Cinr_op in Hfoo.
+  iPureIntro. rewrite -Cinr_op -Cinr_op in Hfoo.
   by apply agree_op_invL'.
 Qed.
 Lemma INIT_SET_RES `{saG Σ} (v: val) γ :

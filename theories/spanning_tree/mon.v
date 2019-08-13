@@ -123,7 +123,7 @@ Definition of_graph_empty (g : graph loc) :
   of_graph g ∅ = fmap (λ x, (false, x)) g.
 Proof.
   apply: map_eq => i.
-  rewrite lookup_imap /of_graph_elem lookup_fmap lookup_omap //.
+  rewrite map_lookup_imap /of_graph_elem lookup_fmap lookup_omap //.
 Qed.
 
 Lemma of_graph_dom_eq g G :
@@ -133,7 +133,7 @@ Proof.
   intros HGvl. rewrite Gmon_graph_dom // => Hd. apply map_eq => i.
   assert (Hd' : i ∈ dom (gset _) g ↔ i ∈ dom (gset _) G) by (by rewrite Hd).
   revert Hd'; clear Hd. specialize (HGvl i); revert HGvl.
-  rewrite /of_graph /of_graph_elem /Gmon_graph lookup_imap lookup_fmap
+  rewrite /of_graph /of_graph_elem /Gmon_graph map_lookup_imap lookup_fmap
     lookup_omap ?elem_of_dom.
   case _ : (g !! i); case _ : (G !! i) => [[]|] /=; inversion 1; eauto;
     intros [? ?];
@@ -231,7 +231,7 @@ Proof. intros H. by rewrite lookup_op lookup_singleton_ne //= left_id_L. Qed.
 Lemma of_graph_dom g G : dom (gset loc) (of_graph g G) = dom (gset _) g.
 Proof.
   apply elem_of_equiv_L=>i.
-  rewrite ?elem_of_dom lookup_imap /of_graph_elem lookup_omap.
+  rewrite ?elem_of_dom map_lookup_imap /of_graph_elem lookup_omap.
   case _ : (g !! i) => [x|]; case _ : (G !! i) => [[]|] //=; split;
   intros [? Hcn]; inversion Hcn; eauto.
 Qed.
@@ -239,7 +239,7 @@ Qed.
 Lemma in_dom_of_graph (g : graph loc) (G : Gmon) x (b : bool) v :
   ✓ G → of_graph g G !! x = Some (b, v) → b ↔ x ∈ dom (gset _) G.
 Proof.
-  rewrite /of_graph /of_graph_elem lookup_imap lookup_omap elem_of_dom.
+  rewrite /of_graph /of_graph_elem map_lookup_imap lookup_omap elem_of_dom.
   intros Hvl; specialize (Hvl x); revert Hvl;
   case _ : (g !! x) => [?|]; case _ : (G !! x) => [[] ?|] //=;
     intros Hvl; inversion Hvl; try (inversion 1; subst); split;
@@ -256,14 +256,14 @@ Lemma mark_update_lookup (g : graph loc) (G : Gmon) x v :
   ✓ ((x [↦] v) ⋅ G) → of_graph g ((x [↦] v) ⋅ G) !! x = Some (true, v).
 Proof.
   rewrite elem_of_dom /is_Some. intros [w H1] H2.
-  rewrite /of_graph /of_graph_elem lookup_imap H1 lookup_omap; simpl.
+  rewrite /of_graph /of_graph_elem map_lookup_imap H1 lookup_omap; simpl.
   rewrite mark_update_lookup_base; trivial.
 Qed.
 
 Lemma mark_update_lookup_ne (g : graph loc) (G : Gmon) x i v :
   i ≠ x → of_graph g ((x [↦] v) ⋅ G) !! i = (of_graph g G) !! i.
 Proof.
-  intros H. rewrite /of_graph /of_graph_elem ?lookup_imap ?lookup_omap; simpl.
+  intros H. rewrite /of_graph /of_graph_elem ?map_lookup_imap ?lookup_omap; simpl.
   rewrite mark_update_lookup_ne_base //=.
 Qed.
 
@@ -419,7 +419,7 @@ Lemma delete_marked g G x w :
 Proof.
   apply: map_eq => i. destruct (decide (i = x)).
   - subst; by rewrite ?lookup_delete.
-  - rewrite ?lookup_delete_ne //= /of_graph /of_graph_elem ?lookup_imap
+  - rewrite ?lookup_delete_ne //= /of_graph /of_graph_elem ?map_lookup_imap
       ?lookup_omap; case _ : (g !! i) => [v|] //=.
     by rewrite lookup_op lookup_singleton_ne //= left_id_L.
 Qed.
@@ -705,7 +705,7 @@ Qed.
 Lemma of_graph_unmarked (g : graph loc) (G : Gmon) x v :
   of_graph g G !! x = Some (false, v) → g !! x = Some v.
 Proof.
-  rewrite lookup_imap /of_graph_elem lookup_omap.
+  rewrite map_lookup_imap /of_graph_elem lookup_omap.
   case _ : (g !! x); case _ : (G !! x) => [[]|]; by inversion 1.
 Qed.
 Lemma get_lr_disj (G G' : Gmon) i : ✓ (G ⋅ G') →

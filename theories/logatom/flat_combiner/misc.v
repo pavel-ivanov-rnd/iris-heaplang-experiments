@@ -11,11 +11,11 @@ Import uPred.
 Section lemmas.
   Lemma pair_l_frac_op' (p q: Qp) (g g': val):
      ((p + q)%Qp, to_agree g') ~~> (((p, to_agree g') ⋅ (q, to_agree g'))).
-  Proof. by rewrite pair_op agree_idemp frac_op'. Qed.
+  Proof. by rewrite -pair_op agree_idemp frac_op'. Qed.
 
   Lemma pair_l_frac_op_1' (g g': val):
      (1%Qp, to_agree g') ~~> (((1/2)%Qp, to_agree g') ⋅ ((1/2)%Qp, to_agree g')).
-  Proof. by rewrite pair_op agree_idemp frac_op' Qp_div_2. Qed.
+  Proof. by rewrite -pair_op agree_idemp frac_op' Qp_div_2. Qed.
   
 End lemmas.
 

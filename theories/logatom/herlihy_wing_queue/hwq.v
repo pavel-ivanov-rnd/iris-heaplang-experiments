@@ -19,7 +19,7 @@ Proof. induction n as [|n IH]; [ done | by rewrite /= -IH ]. Qed.
 Lemma map_imap_id {A} (m : gmap nat A) :
   map_imap (λ _ e, Some e) m = m.
 Proof.
-  apply map_eq. intros i. rewrite lookup_imap. by destruct (m !! i).
+  apply map_eq. intros i. rewrite map_lookup_imap. by destruct (m !! i).
 Qed.
 
 Lemma map_imap_insert {A B} (f : nat → A → option B) (i : nat) (v : A) (m : gmap nat A) :
@@ -29,18 +29,18 @@ Lemma map_imap_insert {A B} (f : nat → A → option B) (i : nat) (v : A) (m : 
                             end.
 Proof.
   destruct (f i v) as [w|] eqn:Hw.
-  - apply map_eq. intros k. rewrite lookup_imap.
+  - apply map_eq. intros k. rewrite map_lookup_imap.
     destruct (decide (k = i)) as [->|Hk_not_i].
     + by rewrite lookup_insert lookup_insert /=.
     + rewrite lookup_insert_ne; last done.
       rewrite lookup_insert_ne; last done.
-      by rewrite lookup_imap.
-  - apply map_eq. intros k. rewrite lookup_imap.
+      by rewrite map_lookup_imap.
+  - apply map_eq. intros k. rewrite map_lookup_imap.
     destruct (decide (k = i)) as [->|Hk_not_i].
     + by rewrite lookup_insert lookup_delete /=.
     + rewrite lookup_insert_ne; last done.
       rewrite lookup_delete_ne; last done.
-      by rewrite lookup_imap.
+      by rewrite map_lookup_imap.
 Qed.
 
 Lemma map_imap_ext {A B} (f1 f2 : nat → A → option B) (m1 m2 : gmap nat A) :
@@ -49,7 +49,7 @@ Lemma map_imap_ext {A B} (f1 f2 : nat → A → option B) (m1 m2 : gmap nat A) :
   map_imap f1 m1 = map_imap f2 m2.
 Proof.
   intros Hdom HExt. apply map_eq. intros i.
-  rewrite lookup_imap lookup_imap.
+  rewrite map_lookup_imap map_lookup_imap.
   destruct (m1 !! i) as [v1|] eqn:Hi1.
   + specialize (HExt i v1 Hi1).
     destruct (m2 !! i); by inversion HExt.
@@ -606,7 +606,7 @@ Lemma shot_not_equiv_not_shot' e : shot ≢ not_shot ⋅ e.
 Proof.
   intros H. rewrite /shot /not_shot in H.
   destruct e as [e|]; first destruct e.
-  - rewrite -Some_op Cinl_op in H.
+  - rewrite -Some_op -Cinl_op in H.
     inversion H as [x y Habsurd|]; inversion Habsurd.
   - rewrite -Some_op in H. compute in H.
     inversion H as [x y HAbsurd|]. inversion HAbsurd.
@@ -1421,7 +1421,7 @@ Qed.
 
 Lemma map_imap_helped_nil slots : map_imap (helped []) slots = slots.
 Proof.
-  apply map_eq. intros i. rewrite lookup_imap.
+  apply map_eq. intros i. rewrite map_lookup_imap.
   destruct (slots !! i) as [d|] eqn:HEq.
   - rewrite /helped /= HEq. by destruct (state_of d).
   - by rewrite /= HEq.
@@ -1445,7 +1445,7 @@ Proof.
   { simpl in HND. apply NoDup_cons in HND as (HND & _).
     apply not_elem_of_app in HND as (_ & HND).
     by apply not_elem_of_cons in HND as (HND & _). }
-  rewrite /get_value lookup_imap lookup_insert_ne; last done.
+  rewrite /get_value map_lookup_imap lookup_insert_ne; last done.
   destruct (slots !! pref_hd) as [[[lp sp] wp]|]; last done.
   destruct sp; try done. rewrite /= /helped /=.
   rewrite decide_False; first done.
@@ -1470,7 +1470,7 @@ Proof.
   destruct (slots !! p)
     as [[[lp sp] wp]|] eqn:Hslots_p; [ f_equal | by inversion Hcomm ].
   - rewrite /= map_imap_insert /helped /= /get_value.
-    rewrite lookup_insert_ne; last done. rewrite lookup_imap Hslots_p /=.
+    rewrite lookup_insert_ne; last done. rewrite map_lookup_imap Hslots_p /=.
     destruct sp; try done. rewrite decide_True; [ done | by set_solver ].
   - rewrite -IH; first last; try done.
     { apply NoDup_app in HND as (HND1 & HND2 & HND3).
@@ -1482,7 +1482,7 @@ Proof.
         apply NoDup_cons in HND3_2 as (HND3_2_1 & HND3_2_2). done. }
     { intros k Hk. by apply Hvalid_2, elem_of_list_further, Hk. }
     apply map_ext_in. intros k Hk.
-    rewrite /get_value lookup_imap lookup_imap.
+    rewrite /get_value map_lookup_imap map_lookup_imap.
     assert (i ≠ k) as Hi_not_k.
     { intros ->. apply NoDup_app in HND as (_ & _ & HND).
       apply NoDup_cons in HND as (HND & _).
@@ -1547,9 +1547,9 @@ Proof.
     assert (map_imap (helped ps) (<[n:=(l, Help γ, w)]> slots)
             = map_imap (helped (n :: ps)) slots) as ->.
     { apply map_eq. intros i. destruct (decide (i = n)) as [->|Hi_not_n].
-      - rewrite lookup_imap lookup_imap /= lookup_insert Hn /=.
+      - rewrite map_lookup_imap map_lookup_imap /= lookup_insert Hn /=.
         rewrite /helped /=. rewrite decide_True; first done. set_solver.
-      - rewrite lookup_imap lookup_imap /= lookup_insert_ne; last done.
+      - rewrite map_lookup_imap map_lookup_imap /= lookup_insert_ne; last done.
         destruct (slots !! i) as [[[li si] wi]|]; last done. simpl.
         rewrite /helped /=. destruct si; try done.
         destruct (decide (i ∈ n :: ps)).
@@ -2012,7 +2012,7 @@ Proof.
       iFrame. iSplitL "Hℓ_ar".
       { assert (array_content sz slots deqs = array_content sz new_slots deqs) as ->; last done.
         apply array_content_ext. intros k Hk. rewrite /new_slots /array_get.
-        rewrite lookup_imap. destruct (decide (k = i)) as [->|Hk_not_i].
+        rewrite map_lookup_imap. destruct (decide (k = i)) as [->|Hk_not_i].
         - by rewrite lookup_insert Hb_valid1 /helped /= decide_False.
         - rewrite lookup_insert_ne; last done.
           destruct (slots !! k) as [[[dl ds] dw]|]; last done.
@@ -2024,7 +2024,7 @@ Proof.
       { rewrite -app_nil_end /new_pref /elts map_app map_cons.
         rewrite [in get_value new_slots deqs i]/get_value.
         rewrite [in new_slots !! i]/new_slots.
-        rewrite lookup_imap lookup_insert /= -app_assoc cons_middle.
+        rewrite map_lookup_imap lookup_insert /= -app_assoc cons_middle.
         assert (NoDup (pref ++ i :: b_pendings)) as HND.
         { apply NoDup_app in Hpvs_ND as (HND & _ & _).
           rewrite cons_middle app_assoc.
@@ -2038,7 +2038,7 @@ Proof.
         - done.
         - intros k Hk. by apply Hpref in Hk as (H1 & H2 & _).  }
       iPureIntro. repeat split_and; try done.
-      - intros k. rewrite /new_slots lookup_imap. split; intros Hk.
+      - intros k. rewrite /new_slots map_lookup_imap. split; intros Hk.
         + destruct (decide (k = i)) as [->|Hk_not_i].
           * rewrite lookup_insert /helped /=. by eexists.
           * rewrite lookup_insert_ne; last done.
@@ -2049,7 +2049,7 @@ Proof.
           assert (k < back `min` sz)%nat as H; last by lia.
           apply Hslots. destruct (slots !! k) as [d|]; first by exists d.
           by inversion Hk.
-      - intros k. rewrite /new_slots lookup_imap.
+      - intros k. rewrite /new_slots map_lookup_imap.
         destruct (decide (k = i)) as [->|Hk_not_i];
           first by rewrite lookup_insert /helped /=.
         rewrite lookup_insert_ne; last done. split; intros Hk.
@@ -2069,19 +2069,19 @@ Proof.
         { apply Hpref in Hk as (H1 & H2). split; last done.
           rewrite map_imap_insert /=. destruct (decide (k = i)) as [->|Hk_not_i].
           - by rewrite lookup_insert.
-          - rewrite lookup_insert_ne; last done. rewrite lookup_imap.
+          - rewrite lookup_insert_ne; last done. rewrite map_lookup_imap.
             destruct (slots !! k) as [[[dl ds] dw]|]; last by inversion H1.
             rewrite /= /helped. destruct ds as [dγ|dγ|]; try done. }
         apply elem_of_cons in Hk as [Hk|Hk].
         { subst k. split; last done. by rewrite map_imap_insert /= lookup_insert. }
         apply Hb_valid2 in Hk as Hb_valid2_k. split.
-        + rewrite lookup_imap. destruct (decide (k = i)) as [->|Hk_not_i].
+        + rewrite map_lookup_imap. destruct (decide (k = i)) as [->|Hk_not_i].
           * by rewrite lookup_insert /=.
           * rewrite lookup_insert_ne; last done.
             destruct (slots !! k) as [[[kl ks] kw]|]; last by inversion Hb_valid2_k.
             rewrite /= /helped. destruct ks; try done. by rewrite /= decide_True.
         + apply Hstate in Hb_valid2_k. apply Hstate in Hb_valid2_k. done.
-      - intros k Hk. subst new_slots. rewrite /array_get lookup_imap.
+      - intros k Hk. subst new_slots. rewrite /array_get map_lookup_imap.
         assert (k ≠ i) as Hk_not_i. { intros ->. apply Hi_not_in_deq, Hk. }
         rewrite lookup_insert_ne; last done. apply Hdeqs in Hk as (H1 & H2 & H3).
         destruct (slots !! k) as [[[lk sk] wk]|] eqn:HEq; last by inversion H1.
@@ -2103,12 +2103,12 @@ Proof.
         + assert (b.1 ≠ i) as Hb1_not_i.
           { intros HEq. apply NoDup_cons in HND as [HND1 HND2]. apply HND1.
             rewrite -HEq. apply elem_of_app. by right. }
-          rewrite lookup_insert_ne; last done. by rewrite lookup_imap H1.
+          rewrite lookup_insert_ne; last done. by rewrite map_lookup_imap H1.
         + intros j Hj. assert (j ≠ i) as Hj_not_i.
           { intros HEq. apply NoDup_cons in HND as [HND1 HND2]. apply HND1.
             rewrite -HEq. apply elem_of_app. right.
             apply (flatten_blocks_mem2 _ _ Hk _ Hj). }
-          rewrite lookup_insert_ne; last done. rewrite lookup_imap.
+          rewrite lookup_insert_ne; last done. rewrite map_lookup_imap.
           apply H2 in Hj as Hcomm.
           destruct (slots !! j) as [[[lj sj] wj]|]; last by inversion Hj.
           rewrite /= /helped. destruct sj; try done. simpl.
