@@ -9,12 +9,6 @@ From iris.bi.lib Require Import fractional.
 From iris_examples.logatom.herlihy_wing_queue Require Import spec.
 Set Default Proof Using "Type".
 
-(** * Some library lemmas ***************************************************)
-
-Lemma replicate_S_end {A} (n : nat) (x : A) :
-  replicate (S n) x = replicate n x ++ [x].
-Proof. induction n as [|n IH]; [ done | by rewrite /= -IH ]. Qed.
-
 (** * Some array-related notations ******************************************)
 
 Notation "new_array: sz" :=
