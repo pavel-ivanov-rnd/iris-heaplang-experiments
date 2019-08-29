@@ -55,7 +55,7 @@ This repository contains the following case studies:
 * [logatom](theories/logrel_heaplang): Proofs of various logically atomic specifications:
   - Elimination Stack (by Ralf Jung)
   - Conditional increment (inspired by [this paper](https://people.mpi-sws.org/~dreyer/papers/relcon/paper.pdf)) and RDCSS (as in [this paper](https://timharris.uk/papers/2002-disc.pdf)) (by Marianna Rapoport, Rodolphe Lepigre and Gaurav Parthasarathy)
-  - [Herlihy-Wing-Queue](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf)
+  - [Herlihy-Wing-Queue](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf) (by Rodolphe Lepigre)
   - Atomic Snapshot (by Marianna Rapoport)
   - Treiber Stack (by Zhen Zhang, and another version by Rodolphe Lepigre)
   - Flat Combiner (by Zhen Zhang, also see [this archived documentation](https://gitlab.mpi-sws.org/FP/iris-atomic/tree/master/docs))
