@@ -17,7 +17,7 @@ Notation "l ↦ˢᵗᵏ v" := (stack_mapsto l v) (at level 20) : bi_scope.
 
 Section Rules.
   Context `{stackG Σ}.
-  Notation D := (prodO valO valO -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iPropO Σ).
 
   Global Instance stack_mapsto_persistent l v : Persistent (l ↦ˢᵗᵏ v).
   Proof. apply _. Qed.

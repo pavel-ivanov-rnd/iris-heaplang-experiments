@@ -7,9 +7,9 @@ From iris_examples.barrier Require Import proof specification.
 Set Default Proof Using "Type".
 
 Definition one_shotR (Σ : gFunctors) (F : oFunctor) :=
-  csumR (exclR unitO) (agreeR $ laterO $ F (iPreProp Σ) _).
+  csumR (exclR unitO) (agreeR $ laterO $ F (iPrePropO Σ) _).
 Definition Pending {Σ F} : one_shotR Σ F := Cinl (Excl ()).
-Definition Shot {Σ} {F : oFunctor} (x : F (iProp Σ) _) : one_shotR Σ F :=
+Definition Shot {Σ} {F : oFunctor} (x : F (iPropO Σ) _) : one_shotR Σ F :=
   Cinr $ to_agree $ Next $ oFunctor_map F (iProp_fold, iProp_unfold) x.
 
 Class oneShotG (Σ : gFunctors) (F : oFunctor) :=
@@ -28,7 +28,7 @@ Section proof.
 Local Set Default Proof Using "Type*".
 Context `{!heapG Σ, !barrierG Σ, !spawnG Σ, !oneShotG Σ F}.
 Context (N : namespace).
-Local Notation X := (F (iProp Σ) _).
+Local Notation X := (F (iPropO Σ) _).
 
 Definition barrier_res γ (Φ : X → iProp Σ) : iProp Σ :=
   (∃ x, own γ (Shot x) ∗ Φ x)%I.
@@ -43,7 +43,7 @@ Proof.
   iIntros (v) "?"; iExists x; by iSplit.
 Qed.
 
-Context (P : iProp Σ) (Φ Φ1 Φ2 Ψ Ψ1 Ψ2 : X -n> iProp Σ).
+Context (P : iProp Σ) (Φ Φ1 Φ2 Ψ Ψ1 Ψ2 : X -n> iPropO Σ).
 Context {Φ_split : ∀ x, Φ x -∗ (Φ1 x ∗ Φ2 x)}.
 Context {Ψ_join  : ∀ x, Ψ1 x -∗ Ψ2 x -∗ Ψ x}.
 

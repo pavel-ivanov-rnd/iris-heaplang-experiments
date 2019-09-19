@@ -7,7 +7,7 @@ Import uPred.
 (** interp : is a unary logical relation. *)
 Section logrel.
   Context `{irisG F_mu_lang Σ}.
-  Notation D := (valO -n> iProp Σ).
+  Notation D := (valO -n> iPropO Σ).
   Implicit Types τi : D.
   Implicit Types Δ : listO D.
   Implicit Types interp : listO D → D.

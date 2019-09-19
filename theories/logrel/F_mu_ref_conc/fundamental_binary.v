@@ -19,7 +19,7 @@ Notation "Γ ⊨ e '≤log≤' e' : τ" :=
 
 Section fundamental.
   Context `{heapIG Σ, cfgSG Σ}.
-  Notation D := (prodO valO valO -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iPropO Σ).
   Implicit Types e : expr.
   Implicit Types Δ : listO D.
   Hint Resolve to_of_val.

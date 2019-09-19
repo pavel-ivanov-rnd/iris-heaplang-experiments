@@ -10,7 +10,7 @@ Local Set Default Proof Using "Type*".
 Context `{!heapG Σ, !barrierG Σ}.
 
 Lemma barrier_spec (N : namespace) :
-  ∃ recv send : loc → iProp Σ -n> iProp Σ,
+  ∃ recv send : loc → iPropO Σ -n> iPropO Σ,
     (∀ P, {{ True }} newbarrier #()
                      {{ v, ∃ l : loc, ⌜v = #l⌝ ∗ recv l P ∗ send l P }}) ∧
     (∀ l P, {{ send l P ∗ P }} signal #l {{ _, True }}) ∧

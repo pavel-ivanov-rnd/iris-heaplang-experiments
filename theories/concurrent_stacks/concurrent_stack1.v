@@ -44,8 +44,8 @@ Section stacks.
   Local Instance oloc_to_val_inj : Inj (=) (=) oloc_to_val.
   Proof. intros [|][|]; simpl; congruence. Qed.
 
-  Definition is_list_pre (P : val → iProp Σ) (F : option loc -d> iProp Σ) :
-     option loc -d> iProp Σ := λ v, match v with
+  Definition is_list_pre (P : val → iProp Σ) (F : option loc -d> iPropO Σ) :
+     option loc -d> iPropO Σ := λ v, match v with
      | None => True
      | Some l => ∃ (h : val) (t : option loc), l ↦{-} (h, oloc_to_val t)%V ∗ P h ∗ ▷ F t
      end%I.

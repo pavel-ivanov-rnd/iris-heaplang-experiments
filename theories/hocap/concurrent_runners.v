@@ -189,7 +189,7 @@ Section contents.
   Ltac solve_proper ::= solve_proper_core ltac:(fun _ => simpl; auto_equiv).
 
   Program Definition pre_runner (γ : name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
-    (valO -n> iProp Σ) -n> (valO -n> iProp Σ) := λne R r,
+    (valO -n> iPropO Σ) -n> (valO -n> iPropO Σ) := λne R r,
     (∃ (body bag : val), ⌜r = (body, bag)%V⌝
      ∗ bagS b (N.@"bag") (λ x y, ∃ γ γ', isTask (body,x) γ γ' y P Q) γ bag
      ∗ ▷ ∀ r a: val, □ (R r ∗ P a -∗ WP body r a {{ v, Q a v }}))%I.
@@ -200,7 +200,7 @@ Section contents.
   Proof. unfold pre_runner. solve_contractive. Qed.
 
   Definition runner (γ: name Σ b) (P: val → iProp Σ) (Q: val → val → iProp Σ) :
-    valO -n> iProp Σ :=
+    valO -n> iPropO Σ :=
     (fixpoint (pre_runner γ P Q))%I.
 
   Lemma runner_unfold γ r P Q :

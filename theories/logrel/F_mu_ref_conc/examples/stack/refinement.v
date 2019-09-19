@@ -10,7 +10,7 @@ Definition stackN : namespace := nroot .@ "stack".
 
 Section Stack_refinement.
   Context `{heapIG Σ, cfgSG Σ, inG Σ (authR stackUR)}.
-  Notation D := (prodO valO valO -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iPropO Σ).
   Implicit Types Δ : listO D.
 
   Lemma FG_CG_counter_refinement :

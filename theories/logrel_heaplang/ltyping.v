@@ -24,7 +24,7 @@ Section lty_ofe.
   Canonical Structure ltyC := OfeT (lty Σ) lty_ofe_mixin.
   Global Instance lty_cofe : Cofe ltyC.
   Proof.
-    apply (iso_cofe_subtype' (λ A : val -d> iProp Σ, ∀ w, Persistent (A w))
+    apply (iso_cofe_subtype' (λ A : val -d> iPropO Σ, ∀ w, Persistent (A w))
       (@Lty _) lty_car)=> //.
     - apply _.
     - apply limit_preserving_forall=> w.

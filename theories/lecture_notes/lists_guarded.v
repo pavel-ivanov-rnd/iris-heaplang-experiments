@@ -42,7 +42,7 @@ Implicit Types l : loc.
    of Iris propositions (written Prop in the lecture notes) depends on this Σ.
    But since Σ is the same throughout the development we shall define
    shorthand notation which hides it. *)
-Notation iProp := (iProp Σ).
+Notation iProp := (iPropO Σ).
   
 (* First we define the is_list representation predicate via a guarded fixed
    point of the functional is_list_pre. Note the use of the later modality. The

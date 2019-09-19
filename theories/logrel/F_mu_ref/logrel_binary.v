@@ -25,7 +25,7 @@ Definition logN : namespace := nroot .@ "logN".
 (** interp : is a unary logical relation. *)
 Section logrel.
   Context `{heapG Σ, cfgSG Σ}.
-  Notation D := (prodO valO valO -n> iProp Σ).
+  Notation D := (prodO valO valO -n> iPropO Σ).
   Implicit Types τi : D.
   Implicit Types Δ : listO D.
   Implicit Types interp : listO D → D.
@@ -94,7 +94,7 @@ Section logrel.
     intros interp n Δ1 Δ2 HΔ; apply fixpoint_ne => τi ww. solve_proper.
   Qed.
 
-  Program Definition interp_ref_inv (ll : loc * loc) : D -n> iProp Σ := λne τi,
+  Program Definition interp_ref_inv (ll : loc * loc) : D -n> iPropO Σ := λne τi,
     (∃ vv, ll.1 ↦ vv.1 ∗ ll.2 ↦ₛ vv.2 ∗ τi vv)%I.
   Solve Obligations with repeat intros ?; simpl; auto_equiv.
 
