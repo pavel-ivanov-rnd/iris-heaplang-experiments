@@ -29,7 +29,7 @@ Fixpoint erase_expr (e : expr) : expr :=
   | Store e1 e2 => Store (erase_expr e1) (erase_expr e2)
   | CmpXchg e0 e1 e2 => CmpXchg (erase_expr e0) (erase_expr e1) (erase_expr e2)
   | FAA e1 e2 => FAA (erase_expr e1) (erase_expr e2)
-  | NewProph => ((λ: <>, #LitErased)%V #())
+  | NewProph => ((λ: <>, #LitPoison)%V #())
   | Resolve e0 e1 e2 => Fst (Fst (erase_expr e0, erase_expr e1, erase_expr e2))
   end
 with
@@ -38,7 +38,7 @@ erase_val (v : val) : val :=
   | LitV l =>
     LitV
       match l with
-      | LitProphecy p => LitErased
+      | LitProphecy p => LitPoison
       | _ => l
       end
   | RecV f x e => RecV f x (erase_expr e)
