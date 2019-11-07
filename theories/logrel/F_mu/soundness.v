@@ -4,10 +4,11 @@ From iris.program_logic Require Import adequacy.
 
 Theorem soundness Σ `{invPreG Σ} e τ e' thp σ σ' :
   (∀ `{irisG F_mu_lang Σ}, [] ⊨ e : τ) →
-  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp →
-  is_Some (to_val e') ∨ reducible e' σ'.
+  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp → not_stuck e' σ'.
 Proof.
-  intros Hlog ??. cut (adequate NotStuck e σ (λ _ _, True)); first (intros [_ ?]; eauto).
+  intros Hlog ??.
+  cut (adequate NotStuck e σ (λ _ _, True));
+    first by intros [_ Hsafe]; eapply Hsafe; eauto.
   eapply (wp_adequacy Σ); eauto.
   iIntros (Hinv ?). iModIntro. iExists (λ _ _, True%I), (λ _, True%I). iSplit=> //.
   replace e with e.[env_subst[]] by by asimpl.
@@ -17,8 +18,7 @@ Qed.
 
 Corollary type_soundness e τ e' thp σ σ' :
   [] ⊢ₜ e : τ →
-  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp →
-  is_Some (to_val e') ∨ reducible e' σ'.
+  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp → not_stuck e' σ'.
 Proof.
   intros ??. set (Σ := invΣ).
   eapply (soundness Σ); eauto using fundamental.
