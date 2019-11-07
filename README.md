@@ -74,6 +74,8 @@ This repository contains the following case studies:
 * Wait for CI to publish a new Iris version on the opam archive, then run
   `opam update iris-dev`.
 * In iris-examples, change the `opam` file to depend on the new version.
+  (In case you do not use opam yourself, you can see recently published versions
+  [in this repository](https://gitlab.mpi-sws.org/iris/opam/commits/master).)
 * Run `make build-dep` (in iris-examples) to install the new version of Iris.
   You may have to do `make clean` as Coq will likely complain about .vo file
   mismatches.
