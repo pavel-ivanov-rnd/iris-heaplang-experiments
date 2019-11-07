@@ -10,11 +10,11 @@ Proof.
 Qed.
 
 Theorem soundness e τ e' thp :
-  [] ⊢ₜ e : τ → rtc erased_step ([e], ()) (thp, ()) → e' ∈ thp →
-  is_Some (to_val e') ∨ reducible e' ().
+  [] ⊢ₜ e : τ → rtc erased_step ([e], ()) (thp, ()) → e' ∈ thp → not_stuck e' ().
 Proof.
   set (Σ := invΣ). intros.
-  cut (adequate NotStuck e () (λ _ _, True)); first (intros [_ Hsafe]; eauto).
+  cut (adequate NotStuck e () (λ _ _, True));
+    first by intros [_ Hsafe]; eapply Hsafe; eauto.
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
   iModIntro. iExists (λ _ _, True%I), (λ _, True%I). iSplit=>//.
   set (HΣ := IrisG _ _ Hinv (λ _ _ _, True)%I (λ _, True)%I).

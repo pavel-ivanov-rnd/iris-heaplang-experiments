@@ -11,9 +11,11 @@ Class heapPreIG Σ := HeapPreIG {
 Theorem soundness Σ `{heapPreIG Σ} e τ e' thp σ σ' :
   (∀ `{heapIG Σ}, [] ⊨ e : τ) →
   rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp →
-  is_Some (to_val e') ∨ reducible e' σ'.
+  not_stuck e' σ'.
 Proof.
-  intros Hlog ??. cut (adequate NotStuck e σ (λ _ _, True)); first (intros [_ ?]; eauto).
+  intros Hlog ??.
+  cut (adequate NotStuck e σ (λ _ _, True));
+    first by intros [_ Hsafe]; eapply Hsafe; eauto.
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
   iMod (gen_heap_init σ) as (Hheap) "Hh".
   iModIntro. iExists (λ σ _, gen_heap_ctx σ), (λ _, True%I); iFrame.
@@ -26,8 +28,7 @@ Qed.
 
 Corollary type_soundness e τ e' thp σ σ' :
   [] ⊢ₜ e : τ →
-  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp →
-  is_Some (to_val e') ∨ reducible e' σ'.
+  rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp → not_stuck e' σ'.
 Proof.
   intros ??. set (Σ := #[invΣ ; gen_heapΣ loc F_mu_ref_conc.val]).
   set (HG := HeapPreIG Σ _ _).
