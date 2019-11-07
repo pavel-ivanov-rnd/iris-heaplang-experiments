@@ -30,6 +30,7 @@ variables:
 build-coq.8.10.1:
   <<: *template
   variables:
+    OCAML: "ocaml-base-compiler.4.07.0"
     OPAM_PINS: "coq version 8.10.1"
     TIMING_CONF: "coq-8.10.1"
   tags:
