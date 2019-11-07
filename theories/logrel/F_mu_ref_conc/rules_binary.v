@@ -80,7 +80,7 @@ Section conversions.
   Qed.
   Lemma tpool_lookup_Some tp j e : to_tpool tp !! j = Excl' e → tp !! j = Some e.
   Proof. rewrite tpool_lookup fmap_Some. naive_solver. Qed.
-  Hint Resolve tpool_lookup_Some.
+  Hint Resolve tpool_lookup_Some : core.
 
   Lemma to_tpool_insert tp j e :
     j < length tp →
@@ -130,11 +130,35 @@ Section cfg.
   Implicit Types e : expr.
   Implicit Types v : val.
 
-  Local Hint Resolve tpool_lookup.
-  Local Hint Resolve tpool_lookup_Some.
-  Local Hint Resolve to_tpool_insert.
-  Local Hint Resolve to_tpool_insert'.
-  Local Hint Resolve tpool_singleton_included.
+  Local Hint Resolve tpool_lookup : core.
+  Local Hint Resolve tpool_lookup_Some : core.
+  Local Hint Resolve to_tpool_insert : core.
+  Local Hint Resolve to_tpool_insert' : core.
+  Local Hint Resolve tpool_singleton_included : core.
+
+  Lemma mapstoS_agree l q1 q2 v1 v2 : l ↦ₛ{q1} v1 -∗ l ↦ₛ{q2} v2 -∗ ⌜v1 = v2⌝.
+  Proof.
+    apply wand_intro_r.
+    rewrite /heapS_mapsto -own_op -auth_frag_op own_valid discrete_valid.
+    f_equiv=> -[_] /=. rewrite op_singleton singleton_valid -pair_op.
+    by intros [_ ?%agree_op_invL'].
+  Qed.
+  Lemma mapstoS_combine l q1 q2 v1 v2 :
+    l ↦ₛ{q1} v1 -∗ l ↦ₛ{q2} v2 -∗ l ↦ₛ{q1 + q2} v1 ∗ ⌜v1 = v2⌝.
+  Proof.
+    iIntros "Hl1 Hl2". iDestruct (mapstoS_agree with "Hl1 Hl2") as %->.
+    rewrite /heapS_mapsto. iCombine "Hl1 Hl2" as "Hl". eauto with iFrame.
+  Qed.
+  Lemma mapstoS_valid l q v : l ↦ₛ{q} v -∗ ✓ q.
+  Proof.
+    rewrite /heapS_mapsto own_valid !discrete_valid -auth_frag_valid.
+    by apply pure_mono=> -[_] /singleton_valid [??].
+  Qed.
+  Lemma mapstoS_valid_2 l q1 q2 v1 v2 : l ↦ₛ{q1} v1 -∗ l ↦ₛ{q2} v2 -∗ ✓ (q1 + q2)%Qp.
+  Proof.
+    iIntros "H1 H2". iDestruct (mapstoS_combine with "H1 H2") as "[? ->]".
+    by iApply (mapstoS_valid l _ v2).
+  Qed.
 
   Lemma step_insert K tp j e σ κ e' σ' efs :
     tp !! j = Some (fill K e) → head_step e σ κ e' σ' efs →

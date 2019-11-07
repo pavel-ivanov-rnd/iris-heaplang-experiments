@@ -265,13 +265,8 @@ Section logrel.
     destruct (decide (l = l2)); subst; last auto.
     iIntros "Hl1"; simpl; iDestruct 1 as ((l5, l6)) "[% Hl2]"; simplify_eq.
     iInv (logN.@(l5, l6)) as "Hi" "Hcl"; simpl.
-    iDestruct "Hi" as ((v1, v2))  "(Hl3 & Hl2' & ?)".
-    iMod "Hl2'"; simpl.
-    unfold heapS_mapsto.
-    iDestruct (@own_valid_2 _ _ _ cfg_name with "Hl1 Hl2'") as %[_ Hvl].
-    exfalso.
-    specialize (Hvl l6); revert Hvl. simpl.
-    rewrite /= gmap.lookup_op !lookup_singleton -Some_op. by intros [? _].
+    iDestruct "Hi" as ((v1, v2)) "(Hl3 & >Hl2' & ?)".
+    by iDestruct (mapstoS_valid_2 with "Hl1 Hl2'") as %[].
   Qed.
 
   Lemma interp_ref_open' Δ τ l l' :
@@ -368,18 +363,11 @@ Section logrel.
                    by iDestruct (@mapsto_valid_2 with "Hlx1' Hl1''") as %?.
                + iInv (logN.@(l2, l3')) as "Hib1" "Hcl1".
                  iInv (logN.@(l3, l3')) as "Hib2" "Hcl2".
-                 iDestruct "Hib1" as ((v11, v12)) "(Hl1 & Hl2' & Hr1)".
-                 iDestruct "Hib2" as ((v11', v12')) "(Hl1' & Hl2'' & Hr2)".
-                 simpl.
-                 iMod "Hl2'"; iMod "Hl2''".
-                 unfold heapS_mapsto.
-                 iDestruct (@own_valid_2 _ _ _ cfg_name with "Hl2' Hl2''") as %[_ Hvl].
-                 exfalso.
-                 specialize (Hvl l3'); revert Hvl.
-                 rewrite /= gmap.lookup_op !lookup_singleton -Some_op. by intros [? _].
+                 iDestruct "Hib1" as ((v11, v12)) "(>Hl1 & >Hl2' & Hr1)".
+                 iDestruct "Hib2" as ((v11', v12')) "(>Hl1' & >Hl2'' & Hr2) /=".
+                 by iDestruct (mapstoS_valid_2 with "Hl2' Hl2''") as %[].
                + iModIntro; iPureIntro; split; intros; simplify_eq. }
   Qed.
-
 End logrel.
 
 Typeclasses Opaque interp_env.

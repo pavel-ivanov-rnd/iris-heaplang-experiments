@@ -35,14 +35,15 @@ Section monotone_counter.
   *)
 
   (* The carrier of our resource algebra is the set ℕ_{⊥,⊤} × ℕ. NBT (Natural
-     numbers with Top and Bottom) is the first component of this product. *)
+     numbers with Top and Bottom) is the first component of this product. We
+     wrap the project into a record to avoid ambiguous type class search. *)
   Inductive NBT :=
     Bot : NBT (* Bottom *)
   | Top : NBT (* Top *)
   | NBT_incl : nat → NBT. (* Inclusion of natural numbers into our new type. *)
 
   (* The carrier of our RA. *)
-  Definition mcounterRAT : Type := NBT * nat.
+  Record mcounterRAT := MCounter { mcounter_auth : NBT; mcounter_flag : nat }.
 
   (* The notion of a resource algebra as used in Iris is more general than the one
      currently described. It is called a cmra (standing roughly for complete
@@ -71,14 +72,12 @@ Section monotone_counter.
      a lot of the notation mechanism (we can write x ⋅ y for the operation), and
      some other infrastucture and generic lemmas. *)
   Instance mcounterRAop : Op mcounterRAT :=
-    λ p₁ p₂,
-    let (x, n) := p₁ in 
-    let (y, m) := p₂ in
+    λ '(MCounter x n) '(MCounter y m),
     match x with
-      Bot => (y, max n m)
+      Bot => MCounter y (max n m)
     | _ => match y with
-             Bot => (x, max n m)
-           | _ => (Top, max n m)
+             Bot => MCounter x (max n m)
+           | _ => MCounter Top (max n m)
            end
     end.
 
@@ -89,8 +88,8 @@ Section monotone_counter.
      deal with many boring use cases. *)
   Instance mcounterRAValid : Valid mcounterRAT :=
     λ x, match x with
-           (Bot, _) => True
-         | (NBT_incl x, m) => x ≥ m
+           MCounter Bot _ => True
+         | MCounter (NBT_incl x) m => x ≥ m
          | _ => False
          end.
 
@@ -99,19 +98,21 @@ Section monotone_counter.
      option A. Again, PCore is a typeclass for better automation support, and
      thus our definition is an instance. *)
   Instance mcounterRACore : PCore mcounterRAT :=
-    λ x, let (_, n) := x in Some (Bot, n).
+    λ '(MCounter _ n), Some (MCounter Bot n).
 
   (* We can then package these definitions up into an RA structure, used by the
      Iris library. *)
 
   (* We need these auxiliary lemmas in the proof below. 
      We need the type  annotation to guide the type inference. *)
-  Lemma mcounterRA_op_second (x y : NBT) n m: ∃ z, ((x, n) : mcounterRAT) ⋅ (y, m) = (z, max n m).
+  Lemma mcounterRA_op_second (x y : NBT) n m :
+    ∃ z, MCounter x n ⋅ MCounter y m = MCounter z (max n m).
   Proof.
     destruct x as [], y as []; eexists; unfold op, mcounterRAop; simpl; auto.
   Qed.
-  
-  Lemma mcounterRA_included_aux x y (n m : nat): ((x, n) : mcounterRAT) ≼ (y, m) → (n ≤ m)%nat.
+
+  Lemma mcounterRA_included_aux x y (n m : nat) :
+    MCounter x n ≼ MCounter y m → (n ≤ m)%nat.
   Proof.
     intros [[z k] [=H]].
     revert H.
@@ -119,14 +120,15 @@ Section monotone_counter.
     inversion 1; subst; auto with arith.
   Qed.
 
-  Lemma mcounterRA_included_frag (n m : nat): ((Bot, n) : mcounterRAT) ≼ (Bot, m) ↔ (n ≤ m)%nat.
+  Lemma mcounterRA_included_frag (n m : nat) :
+    MCounter Bot n ≼ MCounter Bot m ↔ (n ≤ m)%nat.
   Proof.
     split.
     - apply mcounterRA_included_aux.
-    - intros H%Max.max_r; exists (Bot, m); unfold op, mcounterRAop; rewrite H; auto.
+    - intros H%Max.max_r; exists (MCounter Bot m); unfold op, mcounterRAop; rewrite H; auto.
   Qed.
 
-  Lemma mcounterRA_valid x (n : nat): ✓ ((NBT_incl x, n) : mcounterRAT) ↔ (n ≤ x)%nat.
+  Lemma mcounterRA_valid x (n : nat): ✓ (MCounter (NBT_incl x) n) ↔ (n ≤ x)%nat.
   Proof.
     split; auto.
   Qed.
@@ -147,7 +149,7 @@ Section monotone_counter.
     - unfold pcore, mcounterRACore, op, mcounterRAop; intros [[]] [[]] [=->]; auto.
     - unfold pcore, mcounterRACore, op, mcounterRAop. 
       intros [x n] [y m] cx Hleq%mcounterRA_included_aux [=<-].
-      exists (Bot, m); split; first auto.
+      exists (MCounter Bot m); split; first auto.
       by apply mcounterRA_included_frag.
     - (* Validity axiom: validity is down-closed with respect to the extension order. *)
       intros [[]].
@@ -182,8 +184,8 @@ Section monotone_counter.
      since the same notation is already defined for the general authoritative RA
      construction in the Iris Coq library. 
    *)
-  Local Notation "◯ n" := ((Bot, n%nat) : mcounterRA) (at level 20).
-  Local Notation "● m" := ((NBT_incl m%nat, 0%nat) : mcounterRA) (at level 20).
+  Local Notation "◯ n" := (MCounter Bot n%nat) (at level 20).
+  Local Notation "● m" := (MCounter (NBT_incl m%nat) 0%nat) (at level 20).
 
   (* We now prove the three properties we claim were required from the resource
      algebra in Section 7.7. 
@@ -293,7 +295,7 @@ Section monotone_counter.
     wp_load.
     (* NOTE: We use the validity property of the RA we have constructed. From the fact that we own 
              ◯ n and ● m to conclude that n ≤ m. *)
-    iDestruct (@own_valid_2 _ _ _ γ with "HOwnAuth HOwnFrag") as %H%mcounterRA_valid_auth_frag. 
+    iDestruct (own_valid_2 with "HOwnAuth HOwnFrag") as %H%mcounterRA_valid_auth_frag. 
     iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
     { iNext; iExists m; iFrame. }
     iModIntro.
