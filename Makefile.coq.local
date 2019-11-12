@@ -25,3 +25,6 @@ hocap: $(filter theories/hocap/%,$(VOFILES))
 
 logatom: $(filter theories/logatom/%,$(VOFILES))
 .PHONY: logatom
+
+proph: $(filter theories/proph/%,$(VOFILES))
+.PHONY: proph

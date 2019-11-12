@@ -98,8 +98,6 @@ theories/hocap/parfib.v
 theories/logatom/treiber.v
 theories/logatom/treiber2.v
 theories/logatom/lib/gc.v
-theories/logatom/lib/one_shot_proph.v
-theories/logatom/lib/typed_proph.v
 theories/logatom/elimination_stack/hocap_spec.v
 theories/logatom/elimination_stack/stack.v
 theories/logatom/elimination_stack/spec.v
@@ -115,6 +113,17 @@ theories/logatom/conditional_increment/spec.v
 theories/logatom/conditional_increment/cinc.v
 theories/logatom/rdcss/rdcss.v
 theories/logatom/rdcss/spec.v
-theories/logatom/proph_erasure.v
 theories/logatom/herlihy_wing_queue/spec.v
 theories/logatom/herlihy_wing_queue/hwq.v
+
+theories/proph/proph_erasure.v
+theories/proph/lib/one_shot_proph.v
+theories/proph/lib/typed_proph.v
+theories/proph/eager_coin_spec.v
+theories/proph/eager_coin.v
+theories/proph/lazy_coin.v
+theories/proph/lazy_coin_one_shot.v
+theories/proph/lazy_coin_one_shot_typed.v
+theories/proph/clairvoyant_coin_spec.v
+theories/proph/clairvoyant_coin.v
+theories/proph/clairvoyant_coin_typed.v

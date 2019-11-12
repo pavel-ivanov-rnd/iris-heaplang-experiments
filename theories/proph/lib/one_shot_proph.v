@@ -18,6 +18,15 @@ Section one_shot.
   Definition proph1 (p : proph_id) (v : val) :=
     (∃ vs, proph p vs ∗ ⌜match vs with [] => True | (_,w) :: _ => v = w end⌝)%I.
 
+  Lemma proph1_exclusive (p : proph_id) (v1 v2 : val) :
+    proph1 p v1 -∗ proph1 p v2 -∗ False.
+  Proof.
+    iIntros "H1 H2".
+    iDestruct "H1" as (vs1) "[Hp1 _]".
+    iDestruct "H2" as (vs2) "[Hp2 _]".
+    iApply (proph_exclusive with "Hp1 Hp2").
+  Qed.
+
   Lemma wp_new_proph1 s E :
     {{{ True }}}
       NewProph @ s; E
@@ -49,6 +58,15 @@ Section one_shot'.
 
   Definition proph1' (p : proph_id) (v : val) :=
     (∃ vs, proph p vs ∗ ⌜val_of_list vs = v⌝)%I.
+
+  Lemma proph1'_exclusive (p : proph_id) (v1 v2 : val) :
+    proph1' p v1 -∗ proph1' p v2 -∗ False.
+  Proof.
+    iIntros "H1 H2".
+    iDestruct "H1" as (vs1) "[Hp1 _]".
+    iDestruct "H2" as (vs2) "[Hp2 _]".
+    iApply (proph_exclusive with "Hp1 Hp2").
+  Qed.
 
   Lemma wp_new_proph1' s E :
     {{{ True }}}
