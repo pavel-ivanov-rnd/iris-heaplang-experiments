@@ -5,7 +5,7 @@ From iris_examples.logatom.lib Require Export gc.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for RDCSS.
-    See [rdcss.v] for references and more details about this data structure. *)
+    See [rdcss.v] for references and more details about this data structure.
 
 _Note on the use of GC locations_:  the specification of the [rdcss] operation
 as given by [rdcss_spec] relies on the [gc_mapsto l_m m] assertion. It roughly
