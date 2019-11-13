@@ -7,64 +7,97 @@ From iris_examples.logatom.rdcss Require Import spec.
 Import uPred bi List Decidable.
 Set Default Proof Using "Type".
 
-(** Using prophecy variables with helping: implementing a simplified version of
-   the restricted double-compare single-swap from "A Practical Multi-Word Compare-and-Swap Operation" by Harris et al. (DISC 2002)
- *)
+(** We consider here an implementation of the RDCSS (Restricted Double-Compare
+    Single-Swap) data structure of Harris et al., as described in "A Practical
+    Multi-Word Compare-and-Swap Operation" (DISC 2002).
 
-(** * Implementation of the functions. *)
+    Our goal is to prove logical atomicity for the operations of RDCSS, and to
+    do so we will need to use prophecy variables! This Coq file is part of the
+    artifact accompanying the paper "The Future is Ours: Prophecy Variables in
+    Separation Logic" (POPL 2020). Proving logical atomicity for RDCSS appears
+    as a major case study in the paper, so it makes sense to read the relevant
+    sections first (§4 to §6) to better understand the Coq proof. The paper is
+    available online at: <https://plv.mpi-sws.org/prophecies/>. *)
 
-(* 1) The M location l_m can differ when helping another thread in the same RDCSS instance
-      (Harris et al. refer to it as a location in the control section.)
-   2) The N location l_n identifies a single RDCSS instance.
-      (Harris et al. refer to it as a location in the data section.)
-   3) There are two kinds of values stored at N locations
+(** * Implementation of the RDCSS operations *)
 
-      3.1) The value is injL n for some n: no operation is on-going and the logical state is n.
-      3.2) The value is injR l_descr for some location l_descr (which we call a descriptor):
-           l_descr must point to a tuple (l_m, m1, n1, n2, p) for some M location l_m, values m1, n1, n2 and prophecy p.
-           In this case an operation is on-going with corresponding M location l_m.
-*)
+(** The RDCSS data structure manipulates two kinds of locations:
+    - N-locations (a.k.a. RDCSS locations) denoted [l_n] identify a particular
+      instance of RDCSS. (Harris et al. refer to them as locations in the data
+      section.) They are the locations that may be updated by a call to RDCSS.
+    - M-locations denoted [l_m] are not tied to a particular RDCSS instance.
+      (Harris et al. refer to them as locations in the control section.)  They
+      are never directly modified by the RDCSS operation, but they are subject
+      to arbitrary interference by other heap operations.
 
-(*
+    An N-location can contain values of two forms.
+    - A value of the form [injL n] indicates that there is currently no active
+      RDCSS operation on the N-location, and that the location has the logical
+      value [n]. In that case, the N-location is in a "quiescent" state.
+    - A value of the form [injR descr] indicates that the RDCSS operation that
+      is identified by descriptor [descr] is ongoing. In that case, descriptor
+      [descr] must point to a tuple [(l_m, m1, n1, n2, p)] for some M-location
+      [l_m], integers [m1], [n1], [n2] and prophecy [p]. An N-location holding
+      a value of the form [injR descr] is in an "updating" state. *)
+
+(** As mentioned in the paper, there are minor differences between our version
+    of RDCSS and the original one (by Harris et al.):
+    - In the original version, the RDCSS operation takes as input a descriptor
+      for the operation,  whereas in our version the RDCSS operation allocates
+      the descriptor itself.
+    - In the original version, values (inactive state) and descriptors (active
+      state) are distinguished by looking at their least significant bits. Our
+      version rather relies on injections to avoid bit-level manipulations. *)
+
+(** The [new_rdcss] operation creates a new RDCSS location.  It corresponds to
+    the following pseudo-code:
+<<
   new_rdcss(n) := ref (injL n)
- *)
+>>
+*)
 Definition new_rdcss : val := λ: "n", ref (InjL "n").
 
-(*
+(** The [complete] function is used internally by the RDCSS operations. It can
+    be expressed using the following pseudo-code:
+<<
   complete(l_descr, l_n) :=
-    let (l_m, m1, n1, n2, p) := !l_descr in
+    let (l_m, m1, n1, n2, p) := !l_descr;
     (* data = (l_m, m1, n1, n2, p) *)
-    let tid_ghost = NewProph in
-    let n_new = (if !l_m = m1 then n1 else n2) in
-      Resolve (CmpXchg l_n (InjR l_descr) (ref (InjL n_new))) p tid_ghost ; #().
- *)
+    let tid_ghost = NewProph;
+    let n_new = (if !l_m = m1 then n1 else n2);
+    Resolve (CmpXchg l_n (InjR l_descr) (ref (InjL n_new))) p tid_ghost;
+    #().
+>>
+
+    In this function, we rely on a prophecy variable to emulate a ghost thread
+    identifier. In particular, the corresponding prophecy variable [tid_ghost]
+    is never resolved.  Here, the main reason for using a prophecy variable is
+    that we can use erasure to argue that it has no effect on the code. *)
 Definition complete : val :=
   λ: "l_descr" "l_n",
-    let: "data" := !"l_descr" in
-    (* data = (l_m, m1, n1, n2, p) *)
+    let: "data" := !"l_descr" in (* data = (l_m, m1, n1, n2, p) *)
     let: "l_m" := Fst (Fst (Fst (Fst ("data")))) in
     let: "m1"  := Snd (Fst (Fst (Fst ("data")))) in
     let: "n1"  := Snd (Fst (Fst ("data"))) in
     let: "n2"  := Snd (Fst ("data")) in
     let: "p"   := Snd ("data") in
-    (* Create a thread identifier using NewProph.
-       tid_ghost is not used as a traditional prophecy, i.e. it is never resolved.
-       The reason we use NewProph is so that we can use the erasure theorem to argue that
-       it has no effect on the code. 
-    *)
+    (* Create a thread identifier using NewProph. *)
     let: "tid_ghost" := NewProph in
     let: "n_new" := (if: !"l_m" = "m1" then "n2" else "n1") in
-    Resolve (CmpXchg "l_n" (InjR "l_descr") (InjL "n_new")) "p" "tid_ghost" ;; #().
+    Resolve (CmpXchg "l_n" (InjR "l_descr") (InjL "n_new")) "p" "tid_ghost";;
+    #().
 
-(*
-  get(l_n) :=
-    match: !l_n with
-    | injL n    => n
-    | injR (l_descr) =>
-        complete(l_descr, l_n);
-        get(l_n)
-    end.
- *)
+(** The [get] operation reads the value stored in an RDCSS location previously
+    created using [new_rdcss]. In pseudo-code, it corresponds to:
+<<
+  rec get(l_n) :=
+    match !l_n with
+    | injL n       => n
+    | injR l_descr => complete(l_descr, l_n);
+                      get(l_n)
+    end
+>>
+*)
 Definition get : val :=
   rec: "get" "l_n" :=
     match: !"l_n" with
@@ -74,30 +107,32 @@ Definition get : val :=
         "get" "l_n"
     end.
 
-(*
+(** Finally, the [rdcss] operation corresponds to the following pseudo-code:
+<<
   rdcss(l_m, l_n, m1, n1, n2) :=
-    let p := NewProph in
-    let l_descr := ref (l_m, m1, n1, n2, p) in
-    (rec: rdcss_inner()
-       let (r, b) := CmpXchg(l_n, InjL n1, InjR l_descr) in
-       match r with
-         InjL n => 
-           if b then
-             complete(l_descr, l_n) ; n1
-           else
-             n
-       | InjR l_descr_other =>
-           complete(l_descr_other, l_n) ;
+    let p := NewProph;
+    let l_descr := ref (l_m, m1, n1, n2, p);
+    rec rdcss_inner() =
+      let (r, b) := CmpXchg(l_n, InjL n1, InjR l_descr) in
+      match r with
+      | InjL n             =>
+          if b then
+            complete(l_descr, l_n); n1
+          else
+            n
+      | InjR l_descr_other =>
+           complete(l_descr_other, l_n);
            rdcss_inner()
-       end
-     )()
+      end;
+    rdcss_inner()
+>>
 *)
 Definition rdcss: val :=
   λ: "l_m" "l_n" "m1" "n1" "n2",
-    (* allocate fresh descriptor *)
+    (* Allocate the descriptor for the operation. *)
     let: "p" := NewProph in
     let: "l_descr" := ref ("l_m", "m1", "n1", "n2", "p") in
-    (* start rdcss computation with allocated descriptor *)
+    (* Attempt to establish the descriptor to make the operation "active". *)
     ( rec: "rdcss_inner" "_" :=
         let: "r" := CmpXchg "l_n" (InjL "n1") (InjR "l_descr") in
         match: Fst "r" with
@@ -110,8 +145,9 @@ Definition rdcss: val :=
               (* CmpXchg failed, hence we could linearize at the CmpXchg *)
               "n"
         | InjR "l_descr_other" =>
-            (* a descriptor from a different operation was read, try to help and then restart *)
-            complete "l_descr_other" "l_n" ;;
+            (* A descriptor from a concurrent operation was read, try to help
+               and then restart. *)
+            complete "l_descr_other" "l_n";;
             "rdcss_inner" #()
         end
     ) #().
@@ -138,7 +174,7 @@ Section rdcss.
   Context {Σ} `{!heapG Σ, !rdcssG Σ, !gcG Σ }.
   Context (N : namespace).
 
-  Local Definition descrN   := N .@ "descr".
+  Local Definition descrN := N .@ "descr".
   Local Definition rdcssN := N .@ "rdcss".
 
   (** Updating and synchronizing the value RAs *)
@@ -165,12 +201,12 @@ Section rdcss.
   Fixpoint proph_extract_winner (pvs : list (val * val)) : option proph_id :=
     match pvs with
     | (_, LitV (LitProphecy tid)) :: _  => Some tid
-    | _                               => None
+    | _                                 => None
     end.
 
   Inductive abstract_state : Set :=
-  | Quiescent : val → abstract_state
-  | Updating : loc → loc → val → val → val → proph_id → abstract_state.
+    | Quiescent : val → abstract_state
+    | Updating : loc → loc → val → val → val → proph_id → abstract_state.
 
   Definition state_to_val (s : abstract_state) : val :=
     match s with
@@ -181,17 +217,14 @@ Section rdcss.
   Definition own_token γ := (own γ (Excl ()))%I.
 
   Definition pending_state P (n1 : val) (proph_winner : option proph_id) tid_ghost_winner (γ_n γ_a: gname) :=
-    (P ∗
-     ⌜match proph_winner with None => True | Some p => p = tid_ghost_winner end⌝ ∗
-     own γ_n (● Excl' n1) ∗
-     own_token γ_a)%I.
+    (P ∗ ⌜from_option (λ p, p = tid_ghost_winner) True proph_winner⌝ ∗
+     own γ_n (● Excl' n1) ∗ own_token γ_a)%I.
 
   (* After the prophecy said we are going to win the race, we commit and run the AU,
      switching from [pending] to [accepted]. *)
   Definition accepted_state Q (proph_winner : option proph_id) (tid_ghost_winner : proph_id) :=
     ((∃ vs, proph tid_ghost_winner vs) ∗
-     Q ∗
-     ⌜match proph_winner with None => True | Some tid => tid = tid_ghost_winner end⌝)%I.
+     Q ∗ ⌜from_option (λ p, p = tid_ghost_winner) True proph_winner⌝)%I.
 
   (* The same thread then wins the CmpXchg and moves from [accepted] to [done].
      Then, the [γ_t] token guards the transition to take out [Q].
@@ -203,7 +236,8 @@ Section rdcss.
      owns *more than* half of its [l_descr] in the Updating state,
      which means we know that the [l_descr] there and here cannot be the same. *)
   Definition done_state Qn (l_descr : loc) (tid_ghost_winner : proph_id) (γ_t γ_a: gname) :=
-    ((Qn ∨ own_token γ_t) ∗ (∃ vs, proph tid_ghost_winner vs) ∗ (l_descr ↦{1/2} -) ∗ own_token γ_a)%I.
+    ((Qn ∨ own_token γ_t) ∗ (∃ vs, proph tid_ghost_winner vs) ∗
+     l_descr ↦{1/2} - ∗ own_token γ_a)%I.
 
   (* Invariant expressing the descriptor protocol.
      - We always need the [proph] in here so that failing threads coming late can
@@ -252,7 +286,7 @@ Section rdcss.
            (* We own *more than* half of [l_descr], which shows that this cannot
               be the [l_descr] of any [descr] protocol in the [done] state. *)
              ⌜val_is_unboxed m1⌝ ∗
-             l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗  
+             l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗
              inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_winner γ_n γ_t γ_s γ_a) ∗
              □ pau P Q γ_n l_m m1 n1 n2 ∗ is_gc_loc l_m
        end)%I.
@@ -265,7 +299,7 @@ Section rdcss.
   Global Instance is_rdcss_persistent γ_n l_n: Persistent (is_rdcss γ_n l_n) := _.
 
   Global Instance rdcss_content_timeless γ_n n : Timeless (rdcss_content γ_n n) := _.
-  
+
   Global Instance abstract_state_inhabited: Inhabited abstract_state := populate (Quiescent #0).
 
   Lemma rdcss_content_exclusive γ_n l_n_1 l_n_2 :
@@ -419,7 +453,7 @@ Section rdcss.
      as a precondition. *)
   Lemma complete_spec (l_n l_m l_descr : loc) (m1 n1 n2 : val) (p : proph_id) γ_n γ_t γ_s γ_a tid_ghost_inv P Q q:
     val_is_unboxed m1 →
-    N ## gcN → 
+    N ## gcN →
     inv rdcssN (rdcss_inv γ_n l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_inv γ_n γ_t γ_s γ_a) -∗
     □ pau P Q γ_n l_m m1 n1 n2 -∗
@@ -434,7 +468,7 @@ Section rdcss.
     wp_bind (! _)%E. wp_load. iClear "Hld". wp_pures.
     wp_apply wp_new_proph; first done.
     iIntros (vs_ghost tid_ghost) "Htid_ghost". wp_pures.
-    wp_bind (! _)%E. 
+    wp_bind (! _)%E.
     (* open outer invariant *)
     iInv rdcssN as (s) "(>Hln & Hrest)"=>//.
     (* two different proofs depending on whether we are succeeding thread *)
@@ -448,7 +482,7 @@ Section rdcss.
         iMod (gc_access with "InvGC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync B location l_n and A location l_m *)
         iMod "AU" as (m' n') "[CC [_ Hclose]]".
-        iDestruct "CC" as "[Hgc_lm Hn◯]". 
+        iDestruct "CC" as "[Hgc_lm Hn◯]".
         (* sync B location and update it if required *)
         iDestruct (sync_values with "Hn● Hn◯") as %->.
         iMod (update_value _ _ _ (if decide (m' = m1 ∧ n' = n') then n2 else n') with "Hn● Hn◯")
@@ -509,9 +543,9 @@ Section rdcss.
     <<< gc_mapsto l_m m ∗ rdcss_content γ_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>.
   Proof.
     iIntros (Hm1_unbox Hn1_unbox) "Hrdcss". iDestruct "Hrdcss" as "(#InvR & #InvGC & Hdisj)".
-    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
+    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU".
     (* allocate fresh descriptor *)
-    wp_lam. wp_pures. 
+    wp_lam. wp_pures.
     wp_apply wp_new_proph; first done.
     iIntros (proph_values p) "Hp".
     wp_let. wp_alloc l_descr as "Hld".
@@ -549,12 +583,12 @@ Section rdcss.
         iModIntro. iDestruct "Hld" as "[Hld1 [Hld2 Hld3]]". iSplitR "Hld2 Token_t".
         { (* close outer invariant *)
           iNext. iCombine "Hld1 Hld3" as "Hld1". iExists (Updating l_descr l_m m1 n n2 p).
-          eauto 15 with iFrame. 
+          eauto 15 with iFrame.
         }
         wp_pures.
         wp_apply (complete_spec with "[] [] [] [] [] [$Hld2]");[ done..|].
         iIntros "Ht". iMod ("Ht" with "Token_t") as "Φ". by wp_seq.
-      + (* values do not match -> CmpXchg fails 
+      + (* values do not match -> CmpXchg fails
            we can commit here *)
         wp_cmpxchg_fail.
         iMod "AU" as (m'' n'') "[[Hm◯ Hn◯] [_ Hclose]]"; simpl.
@@ -568,7 +602,7 @@ Section rdcss.
     - (* l_n ↦ injR l_ndescr' *)
       (* a descriptor l_descr' is currently stored at l_n -> CmpXchg fails
          try to help the on-going operation *)
-      wp_cmpxchg_fail. 
+      wp_cmpxchg_fail.
       iModIntro.
       (* extract descr invariant *)
       iDestruct "Hrest" as (q P Q tid_ghost γ_t γ_s γ_a) "(#Hm1'_unbox & [Hld1 [Hld2 Hld3]] & #InvS & #P_AU & #P_GC)".
@@ -600,7 +634,7 @@ Section rdcss.
       iExists (Quiescent n). iFrame. }
     iModIntro.
     iApply ("HΦ" $! l_n γ_n).
-    iSplitR; last by iFrame. by iFrame "#". 
+    iSplitR; last by iFrame. by iFrame "#".
   Qed.
 
   (** ** Proof of [get] *)
@@ -611,7 +645,7 @@ Section rdcss.
     <<< rdcss_content γ_n n, RET n >>>.
   Proof.
     iIntros "Hrdcss". iDestruct "Hrdcss" as "(#InvR & #InvGC & Hdisj)".
-    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU". 
+    iDestruct "Hdisj" as %Hdisj. iIntros (Φ) "AU".
     iLöb as "IH". wp_lam. repeat (wp_proj; wp_let). wp_bind (! _)%E.
     iInv rdcssN as (s) "(>Hln & Hrest)".
     wp_load.
@@ -619,7 +653,7 @@ Section rdcss.
     - iMod "AU" as (au_n) "[Hn◯ [_ Hclose]]"; simpl.
       iDestruct "Hrest" as "[Hln' Hn●]".
       iDestruct (sync_values with "Hn● Hn◯") as %->.
-      iMod ("Hclose" with "Hn◯") as "HΦ". 
+      iMod ("Hclose" with "Hn◯") as "HΦ".
       iModIntro. iSplitR "HΦ". {
         iNext. iExists (Quiescent au_n). iFrame.
       }
@@ -627,9 +661,9 @@ Section rdcss.
     - iDestruct "Hrest" as (q P Q tid_ghost γ_t γ_s γ_a) "(#Hm1_unbox & [Hld [Hld' Hld'']] & #InvS & #PAU & #GC)".
       iDestruct "Hm1_unbox" as %Hm1_unbox.
       iModIntro. iSplitR "AU Hld'". {
-        iNext. iExists (Updating l_descr l_m m1 n1 n2 p). eauto 15 with iFrame. 
+        iNext. iExists (Updating l_descr l_m m1 n1 n2 p). eauto 15 with iFrame.
       }
-      wp_match. 
+      wp_match.
       wp_apply (complete_spec with "[] [] [] [] [] [$Hld']"); [done..|].
       iIntros "Ht". wp_seq. iApply "IH". iApply "AU".
   Qed.

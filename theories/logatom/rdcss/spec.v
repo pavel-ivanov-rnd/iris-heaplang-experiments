@@ -4,7 +4,14 @@ From iris.program_logic Require Export atomic.
 From iris_examples.logatom.lib Require Export gc.
 Set Default Proof Using "Type".
 
-(** A general logically atomic interface for conditional increment. *)
+(** A general logically atomic interface for RDCSS.
+    See [rdcss.v] for references and more details about this data structure. *)
+
+_Note on the use of GC locations_:  the specification of the [rdcss] operation
+as given by [rdcss_spec] relies on the [gc_mapsto l_m m] assertion. It roughly
+corresponds to the usual [l_m ↦ m] but with an additional guarantee that [l_m]
+will not be deallocated. This guarantees that unique immutable descriptors can
+be associated to each operation, and that they cannot be "reused". *)
 Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
   (* -- operations -- *)
   new_rdcss : val;
@@ -41,7 +48,6 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
     <<< rdcss_content γ n, RET n >>>;
 }.
 Arguments atomic_rdcss _ {_} {_}.
-
 
 Existing Instances
   is_rdcss_persistent rdcss_content_timeless
