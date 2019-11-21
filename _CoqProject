@@ -116,7 +116,6 @@ theories/logatom/rdcss/spec.v
 theories/logatom/herlihy_wing_queue/spec.v
 theories/logatom/herlihy_wing_queue/hwq.v
 
-theories/proph/proph_erasure.v
 theories/proph/lib/one_shot_proph.v
 theories/proph/lib/typed_proph.v
 theories/proph/eager_coin_spec.v
