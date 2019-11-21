@@ -101,7 +101,7 @@ Section hocap_logatom.
   Proof.
     iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (push_spec with "Hstack").
-    iApply (make_laterable_intro with "[%] [] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
+    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
     iDestruct (stack_content_agree with "Hfrag Hauth") as %->.
     iMod (stack_content_update with "Hfrag Hauth") as "[Hfrag $]".
@@ -117,7 +117,7 @@ Section hocap_logatom.
   Proof.
     iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (pop_spec with "Hstack").
-    iApply (make_laterable_intro with "[%] [] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
+    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
     iDestruct (stack_content_agree with "Hfrag Hauth") as %->.
     destruct l;

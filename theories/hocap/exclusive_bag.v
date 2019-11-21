@@ -36,7 +36,7 @@ Section proof.
     {{{ RET #(); bagE γ x ({[v]} ⊎ X) }}}.
   Proof.
     iIntros (Φ) "Hbag HΦ".
-    iApply (pushBag_spec b N (bagE γ x X)%I (bagE γ x ({[v]} ⊎ X))%I with "[] [Hbag]"); eauto.
+    iApply (pushBag_spec b N (bagE γ x X)%I (bagE γ x ({[v]} ⊎ X))%I γ with "[] [Hbag]"); eauto.
     { iAlways. iIntros (Y) "[Hb1 Hb2]".
       iDestruct "Hb2" as "[#Hbag Hb2]".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.

@@ -336,20 +336,14 @@ Section Helpers.
     destruct u as [u1 u2]. iApply (par_spec with "[Hx11 K1] [Hx12 K2]").
     (* symbolically executing the left part of the par. *)
     wp_lam; repeat wp_proj.
-    assert ((child_to_val u1) = NONEV
-            ∨ (∃ l : loc,
-                  (child_to_val u1) = SOMEV #l ∧ l ∈ dom (gset _) g)) as Hlf.
+    iApply ("IH" $! (child_to_val u1) with "[%] K1 Hx11").
     { destruct u1 as [l1|]; [right |by left].
       exists l1; split; trivial. eapply (Hgmx l); rewrite // /get_left Hgl; auto. }
-    iApply ("IH" with "[#] [K1] [Hx11]"); auto.
     (* symbolically executing the left part of the par. *)
     wp_lam; repeat wp_proj.
-    assert ((child_to_val u2) = NONEV
-                ∨ (∃ l : loc,
-                      (child_to_val u2) = SOMEV #l ∧ l ∈ dom (gset _) g)) as Hrh.
+    iApply ("IH" with "[%] K2 Hx12"); auto.
     { destruct u2 as [l2|]; [right |by left].
       exists l2; split; trivial. eapply (Hgmx l); rewrite // /get_right Hgl; auto. }
-    iApply ("IH" with "[#] [K2] [Hx12]"); auto.
     (* continuing after both children are processed *)
     iNext.
     iIntros (vl vr) "([Hvl K1] & Hvr & K2 & K2')".

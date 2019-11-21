@@ -307,7 +307,6 @@ Section logrel.
         destruct (decide (l2 = l3)); destruct (decide (l2' = l3')); subst.
         * iMod (interp_ref_pointsto_neq with "Hl1 []")
                as "[Hl1 %]"; simpl; eauto.
-             { by iExists (_, _); iFrame "#". }
              by iFrame.
         * iMod (interp_ref_pointsto_neq with "Hl1 []")
                as "[Hl1 %]"; simpl; eauto.
@@ -323,7 +322,6 @@ Section logrel.
         * destruct (decide (l2 = l3)); destruct (decide (l2' = l3')); subst.
           -- iMod (interp_ref_pointsto_neq with "Hl1 []")
               as "[Hl1 %]"; simpl; eauto.
-             { by iExists (_, _); iFrame "#". }
              by iFrame.
           -- iMod (interp_ref_pointsto_neq with "Hl1 []")
                as "[Hl1 %]"; simpl; eauto.
@@ -339,8 +337,7 @@ Section logrel.
           -- destruct (decide (l1 = l3)); destruct (decide (l1' = l3')); subst.
              ++ iMod (interp_ref_pointsto_neq with "Hl1 []")
                  as "[Hl1 %]"; simpl; eauto.
-                { by iExists (_, _); iFrame "#". }
-                  by iFrame.
+                by iFrame.
              ++ iMod (interp_ref_pointsto_neq with "Hl1 []")
                as "[Hl1 %]"; simpl; eauto.
                 { by iExists (_, _); iFrame "#". }

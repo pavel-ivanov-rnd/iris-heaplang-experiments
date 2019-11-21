@@ -138,14 +138,14 @@ Section types_properties.
     Γ !! x = Some A →
     env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∧ A v.
   Proof.
-    iIntros (HΓx) "HΓ".
-    iDestruct (big_sepM2_lookup_1 with "HΓ") as (v ?) "H"; eauto.
+    iIntros (HΓx) "HΓ". rewrite /env_ltyped.
+    by iApply (big_sepM2_lookup_1 with "HΓ").
   Qed.
   Lemma env_ltyped_insert Γ vs x A v :
     A v -∗ env_ltyped Γ vs -∗
     env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
   Proof.
-    destruct x as [|x]=> /=; first by auto.
+    destruct x as [|x]=> /=; first by auto. rewrite /env_ltyped.
     iIntros "#HA #HΓ". by iApply (big_sepM2_insert_2 with "[] HΓ").
   Qed.
 
