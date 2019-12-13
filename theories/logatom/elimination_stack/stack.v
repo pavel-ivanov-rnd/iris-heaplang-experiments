@@ -1,9 +1,9 @@
 From iris.algebra Require Import excl auth list.
+From iris.bi.lib Require Import fractional.
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Import atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode atomic_heap.
-From iris.bi.lib Require Import fractional.
 From iris_examples.logatom.elimination_stack Require Import spec.
 Set Default Proof Using "Type".
 
@@ -113,7 +113,7 @@ Section stack.
                               ℓ ↦{q} (v, stack_elem_to_val rep') ∗ list_inv l rep'
     end%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (list_inv (_::_) _)) => simpl.
+  Local Hint Extern 0 (environments.envs_entails _ (list_inv (_::_) _)) => simpl : core.
 
   Inductive offer_state := OfferPending | OfferRevoked | OfferAccepted | OfferAcked.
 
@@ -135,7 +135,7 @@ Section stack.
       | _ => own γo (Excl ())
       end)%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (offer_inv _ _ _ _)) => unfold offer_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (offer_inv _ _ _ _)) => unfold offer_inv : core.
 
   Definition is_offer (γs : gname) (offer_rep : option (val * loc)) :=
     match offer_rep with
@@ -161,7 +161,7 @@ Section stack.
        head ↦ stack_elem_to_val stack_rep ∗ list_inv l stack_rep ∗
        offer ↦ offer_to_val offer_rep ∗ is_offer γs offer_rep)%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (stack_inv _ _ _)) => unfold stack_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (stack_inv _ _ _)) => unfold stack_inv : core.
 
   Definition is_stack (γs : gname) (s : val) : iProp :=
     (∃ head offer : loc, ⌜s = (#head, #offer)%V⌝ ∗ inv stackN (stack_inv γs head offer))%I.

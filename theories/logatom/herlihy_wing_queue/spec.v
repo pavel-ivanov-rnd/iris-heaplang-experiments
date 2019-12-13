@@ -1,5 +1,5 @@
-From iris.heap_lang Require Export lifting notation.
-From iris.program_logic Require Export atomic.
+From iris.program_logic Require Import atomic.
+From iris.heap_lang Require Import lifting notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for Herlihy-Wing queues. *)

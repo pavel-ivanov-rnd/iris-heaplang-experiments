@@ -1,10 +1,10 @@
 (* Flat Combiner *)
+From iris.algebra Require Import auth frac agree excl agree gset gmap.
+From iris.base_logic Require Import saved_prop.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import auth frac agree excl agree gset gmap.
-From iris.base_logic Require Import saved_prop.
 From iris_examples.logatom.flat_combiner Require Import misc peritem sync.
 
 Definition doOp : val :=
@@ -18,7 +18,7 @@ Definition try_srv : val :=
   λ: "lk" "s",
     if: try_acquire "lk"
       then let: "hd" := !"s" in
-           iter "hd" doOp;;
+           treiber.iter "hd" doOp;;
            release "lk"
       else #().
 
@@ -186,7 +186,7 @@ Section proof.
   Lemma loop_iter_doOp_spec R (γm γr: gname) xs:
   ∀ (hd: loc),
     {{{ is_list_R N (p_inv' R γm γr) hd xs ∗ own γr (Excl ()) ∗ R }}}
-      iter #hd doOp
+      treiber.iter #hd doOp
     {{{ RET #(); own γr (Excl ()) ∗ R }}}.
   Proof.
     induction xs as [|x xs' IHxs].
@@ -225,7 +225,7 @@ Section proof.
     wp_load. iDestruct (dup_is_list_R with "[Hxs]") as ">[Hxs1 Hxs2]"; first by iFrame.
     iMod ("Hclose" with "[Hs Hxs1]").
     { iNext. iFrame. iExists xs', hd'. by iFrame. }
-    iModIntro. wp_let. wp_bind (iter _ _).
+    iModIntro. wp_let. wp_bind (treiber.iter _ _).
     iApply wp_wand_r. iSplitL "HR Ho2 Hxs2".
     { iApply (loop_iter_doOp_spec R _ _ _ _ (λ _, own γr (Excl ()) ∗ R)%I with "[-]")=>//.
       iFrame "#". iFrame. eauto. }

@@ -181,22 +181,22 @@ Qed.
     with a reasonable choice of head constructor. *)
 
 Local Hint Extern 0 (environments.envs_entails _
-  (phys_stack _ [])) => iExists None.
+  (phys_stack _ [])) => iExists None : core.
 
 Local Hint Extern 0 (environments.envs_entails _
-  (phys_stack _ (_ :: _))) => iExists (Some _).
+  (phys_stack _ (_ :: _))) => iExists (Some _) : core.
 
 Local Hint Extern 10 (environments.envs_entails _
-  (phys_stack _ _)) => unfold phys_stack.
+  (phys_stack _ _)) => unfold phys_stack : core.
 
 Local Hint Extern 0 (environments.envs_entails _
-  (stack_inv _ _)) => unfold stack_inv.
+  (stack_inv _ _)) => unfold stack_inv : core.
 
 Local Hint Extern 0 (environments.envs_entails _
-  (phys_list None [])) => simpl.
+  (phys_list None [])) => simpl : core.
 
 Local Hint Extern 0 (environments.envs_entails _
-  (phys_list (Some _) (_ :: _))) => simpl.
+  (phys_list (Some _) (_ :: _))) => simpl : core.
 
 
 (** * Specification *********************************************************)

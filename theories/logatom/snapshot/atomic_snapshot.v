@@ -1,10 +1,9 @@
 From iris.algebra Require Import excl auth gmap agree.
-From iris.heap_lang Require Export lifting notation.
+From iris.proofmode Require Import tactics.
+From iris.bi.lib Require Import fractional.
 From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.
-From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation par.
-From iris.bi.lib Require Import fractional.
 From iris_examples.logatom.snapshot Require Import spec.
 Set Default Proof Using "Type".
 

@@ -3,8 +3,8 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import frac auth gmap csum.
-From iris_examples.logatom Require Export treiber.
 From iris.base_logic.lib Require Import invariants.
+From iris_examples.logatom Require Export treiber.
 
 (** The flat combiner uses a bag, this is where we prove the spec for that.
     We re-use the code but not the spec of the treiber stack. *)
