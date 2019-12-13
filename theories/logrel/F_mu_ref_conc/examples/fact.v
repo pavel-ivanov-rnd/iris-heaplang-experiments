@@ -1,7 +1,7 @@
 From iris.proofmode Require Import tactics.
+From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc Require Import
      soundness_binary rules rules_binary.
-From iris.program_logic Require Import adequacy.
 
 Definition fact : expr :=
   Rec (If (BinOp Eq (Var 1) (#n 0))

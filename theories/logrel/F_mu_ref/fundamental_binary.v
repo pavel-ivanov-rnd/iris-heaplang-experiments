@@ -22,7 +22,7 @@ Section fundamental.
   Notation D := (prodO valO valO -n> iPropO Σ).
   Implicit Types e : expr.
   Implicit Types Δ : listO D.
-  Hint Resolve to_of_val.
+  Local Hint Resolve to_of_val : core.
 
   Local Tactic Notation "smart_wp_bind" uconstr(ctx) ident(v) ident(w)
         constr(Hv) uconstr(Hp) :=

@@ -1,7 +1,7 @@
-From iris.program_logic Require Import lifting.
 From iris.algebra Require Import excl auth frac agree gmap list.
-From iris_examples.logrel.F_mu_ref Require Export rules.
+From iris.program_logic Require Import lifting.
 From iris.proofmode Require Import tactics.
+From iris_examples.logrel.F_mu_ref Require Export rules.
 Import uPred.
 
 Definition specN := nroot .@ "spec".
@@ -47,7 +47,7 @@ Section cfg.
   Implicit Types e : expr.
   Implicit Types v : val.
 
-  Local Hint Resolve to_of_val.
+  Local Hint Resolve to_of_val : core.
 
   (** Conversion to tpools and back *)
   Lemma step_insert_no_fork K e σ κ e' σ' :

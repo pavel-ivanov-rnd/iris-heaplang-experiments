@@ -1,8 +1,8 @@
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import auth list.
+From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc Require Export examples.lock.
 From iris_examples.logrel.F_mu_ref_conc Require Import soundness_binary.
-From iris.program_logic Require Import adequacy.
 
 Definition CG_increment (x : expr) : expr :=
   Lam (Store x.[ren (+ 1)] (BinOp Add (#n 1) (Load x.[ren (+ 1)]))).

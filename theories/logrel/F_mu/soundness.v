@@ -1,6 +1,6 @@
-From iris_examples.logrel.F_mu Require Export fundamental.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
+From iris_examples.logrel.F_mu Require Export fundamental.
 
 Theorem soundness Σ `{invPreG Σ} e τ e' thp σ σ' :
   (∀ `{irisG F_mu_lang Σ}, [] ⊨ e : τ) →

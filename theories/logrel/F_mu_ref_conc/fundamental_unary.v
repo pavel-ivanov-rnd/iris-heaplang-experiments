@@ -1,8 +1,8 @@
+From iris.base_logic Require Import invariants.
+From iris.program_logic Require Import lifting.
+From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu_ref_conc Require Export logrel_unary.
 From iris_examples.logrel.F_mu_ref_conc Require Import rules.
-From iris.base_logic Require Export invariants.
-From iris.program_logic Require Export lifting.
-From iris.proofmode Require Import tactics.
 
 Definition log_typed `{heapIG Σ} (Γ : list type) (e : expr) (τ : type) := ∀ Δ vs,
   env_Persistent Δ →

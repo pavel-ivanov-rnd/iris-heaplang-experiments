@@ -1,8 +1,8 @@
 From iris.algebra Require Import list.
-From iris_examples.logrel.F_mu_ref_conc Require Export logrel_binary.
 From iris.proofmode Require Import tactics.
-From iris_examples.logrel.F_mu_ref_conc Require Import rules_binary.
 From iris.program_logic Require Export lifting.
+From iris_examples.logrel.F_mu_ref_conc Require Export logrel_binary.
+From iris_examples.logrel.F_mu_ref_conc Require Import rules_binary.
 
 Section bin_log_def.
   Context `{heapIG Σ, cfgSG Σ}.
@@ -22,7 +22,7 @@ Section fundamental.
   Notation D := (prodO valO valO -n> iPropO Σ).
   Implicit Types e : expr.
   Implicit Types Δ : listO D.
-  Hint Resolve to_of_val : core.
+  Local Hint Resolve to_of_val : core.
 
   Local Tactic Notation "smart_wp_bind" uconstr(ctx) ident(v) ident(w)
         constr(Hv) uconstr(Hp) :=

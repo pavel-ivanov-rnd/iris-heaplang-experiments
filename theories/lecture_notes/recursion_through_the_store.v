@@ -3,6 +3,10 @@
    for Sequential Programs.
  *)
 
+(* Definition of invariants and their rules (expressed using the fancy update
+   modality). *)
+From iris.base_logic.lib Require Export invariants.
+
 (* Contains definitions of the weakest precondition assertion, and its basic rules. *)
 From iris.program_logic Require Export weakestpre.
 
@@ -17,10 +21,6 @@ From iris.heap_lang Require Export notation lang.
    language. *)
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
-
-(* Definition of invariants and their rules (expressed using the fancy update
-   modality). *)
-From iris.base_logic.lib Require Export invariants.
 
 
 (* The following line makes Coq check that we do not use any admitted facts /

@@ -1,7 +1,7 @@
-From iris_examples.logrel.F_mu_ref Require Export fundamental.
 From iris.proofmode Require Import tactics.
-From iris.program_logic Require Import adequacy.
 From iris.base_logic Require Import auth.
+From iris.program_logic Require Import adequacy.
+From iris_examples.logrel.F_mu_ref Require Export fundamental.
 
 Class heapPreG Σ := HeapPreG {
   heap_preG_iris :> invPreG Σ;
