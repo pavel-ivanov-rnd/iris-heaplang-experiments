@@ -1,9 +1,8 @@
-From iris.program_logic Require Export weakestpre.
-From iris.program_logic Require Import ectx_lifting.
-From iris.base_logic Require Export invariants.
 From iris.algebra Require Import auth frac agree gmap.
 From iris.proofmode Require Import tactics.
-From iris.base_logic Require Export gen_heap.
+From iris.base_logic Require Import invariants gen_heap.
+From iris.program_logic Require Import weakestpre.
+From iris.program_logic Require Import ectx_lifting.
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
 Import uPred.
 
@@ -45,12 +44,12 @@ Section lang_rules.
      inversion H; subst; clear H
   end.
 
-  Local Hint Extern 0 (atomic _) => solve_atomic.
-  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _, _; simpl.
+  Local Hint Extern 0 (atomic _) => solve_atomic : core.
+  Local Hint Extern 0 (head_reducible _ _) => eexists _, _, _, _; simpl : core.
 
-  Local Hint Constructors head_step.
-  Local Hint Resolve alloc_fresh.
-  Local Hint Resolve to_of_val.
+  Local Hint Constructors head_step : core.
+  Local Hint Resolve alloc_fresh : core.
+  Local Hint Resolve to_of_val : core.
 
   (** Base axioms for core primitives of the language: Stateful reductions. *)
   Lemma wp_alloc E e v :

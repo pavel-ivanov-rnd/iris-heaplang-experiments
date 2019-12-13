@@ -1,6 +1,6 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
-From iris.base_logic Require Export invariants.
+From iris.base_logic Require Export invariants gen_heap.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules_binary typing.
 From iris.algebra Require Import list.
 From stdpp Require Import tactics.

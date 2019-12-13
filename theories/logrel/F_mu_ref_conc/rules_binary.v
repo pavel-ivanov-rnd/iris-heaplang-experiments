@@ -1,6 +1,7 @@
 From iris.algebra Require Import excl auth frac agree gmap list.
 From iris.proofmode Require Import tactics.
-From iris.program_logic Require Export language ectx_language ectxi_language.
+From iris.base_logic Require Import invariants gen_heap.
+From iris.program_logic Require Import language ectx_language ectxi_language.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules.
 Import uPred.
