@@ -1,5 +1,4 @@
 From iris.proofmode Require Import tactics.
-From iris.base_logic Require Import invariants.
 From iris_examples.logrel.F_mu_ref_conc Require Import examples.lock.
 Import uPred.
 

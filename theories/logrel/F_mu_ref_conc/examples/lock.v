@@ -1,4 +1,3 @@
-From iris.base_logic Require Import invariants.
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules_binary typing.
 

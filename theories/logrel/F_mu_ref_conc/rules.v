@@ -1,8 +1,9 @@
+From iris.program_logic Require Export weakestpre.
+From iris.program_logic Require Import ectx_lifting.
+From iris.base_logic Require Export invariants.
 From iris.algebra Require Import auth frac agree gmap.
 From iris.proofmode Require Import tactics.
-From iris.base_logic Require Import invariants gen_heap.
-From iris.program_logic Require Import weakestpre.
-From iris.program_logic Require Import ectx_lifting.
+From iris.base_logic Require Export gen_heap.
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
 Import uPred.
 
