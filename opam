@@ -1,14 +1,17 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "coq-iris-examples"
 maintainer: "Ralf Jung <jung@mpi-sws.org>"
 authors: "The Iris Team and Contributors"
 homepage: "http://iris-project.org/"
 bug-reports: "https://gitlab.mpi-sws.org/FP/iris-examples/issues"
-dev-repo: "https://gitlab.mpi-sws.org/FP/iris-examples.git"
-build: [make "-j%{jobs}%"]
-install: [make "install"]
-remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/iris_examples"]
+dev-repo: "git+https://gitlab.mpi-sws.org/FP/iris-examples.git"
+
+synopsis: "A collection of case studies for Iris"
+
 depends: [
   "coq-iris" { (= "dev.2019-12-06.0.05e5b389") | (= "dev") }
   "coq-autosubst" { = "dev.coq86" }
 ]
+
+build: [make "-j%{jobs}%"]
+install: [make "install"]
