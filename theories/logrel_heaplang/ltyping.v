@@ -14,7 +14,7 @@ Delimit Scope lty_scope with lty.
 Existing Instance lty_persistent.
 
 (* The COFE structure on semantic types *)
-Section lty_ofe.
+Section lty_cofe.
   Context `{Σ : gFunctors}.
 
   Instance lty_equiv : Equiv (lty Σ) := λ A B, ∀ w, A w ≡ B w.
@@ -37,7 +37,7 @@ Section lty_ofe.
   Proof. by intros A A' ? w ? <-. Qed.
   Global Instance lty_car_proper : Proper ((≡) ==> (=) ==> (≡)) lty_car.
   Proof. by intros A A' ? w ? <-. Qed.
-End lty_ofe.
+End lty_cofe.
 
 Arguments ltyC : clear implicits.
 
@@ -55,7 +55,7 @@ Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
 Section types.
   Context `{heapG Σ}.
 
-  Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
+  Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝)%I.
   Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
   Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
 
@@ -205,7 +205,7 @@ Section types_properties.
   Proof. iIntros (vs) "!# _ /=". by iApply wp_value. Qed.
   Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
   Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
-  Lemma ltyped_nat Γ (n : Z) : Γ ⊨ #n : lty_int.
+  Lemma ltyped_int Γ (n : Z) : Γ ⊨ #n : lty_int.
   Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
 
   Lemma ltyped_rec Γ f x e A1 A2 :
