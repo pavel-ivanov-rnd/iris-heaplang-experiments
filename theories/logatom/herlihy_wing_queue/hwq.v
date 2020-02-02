@@ -1541,7 +1541,7 @@ Proof.
                               end)%I as "Hup".
   { destruct cont as [i1 i2|bs]; iIntros "Hi●"; first done.
     iMod (i2_lower_bound_update with "Hi●") as "$"; [ lia | done ]. }
-  iMod ("Hup" with "Hi●") as "Hi●".
+  iMod ("Hup" with "Hi●") as "Hi● {Hup}".
   (* We first handle the case where there is no more space in the queue. *)
   destruct (decide (back < sz)) as [Hback_sz|Hback_sz]; last first.
   { iModIntro. iClear "AU". iSplitL.
