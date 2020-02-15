@@ -145,7 +145,7 @@ Section gc.
   Lemma make_gc l v E: ↑gcN ⊆ E → gc_inv -∗ l ↦ v ={E}=∗ gc_mapsto l v.
   Proof.
     iIntros (HN) "#Hinv Hl".
-    iMod (inv_open_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
+    iMod (inv_acc_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
     iDestruct "P" as (gcm) "[H● HsepM]".
     destruct (gcm !! l) as [v' | ] eqn: Hlookup.
     - (* auth map contains l --> contradiction *)
@@ -205,7 +205,7 @@ Section gc.
       (l ↦ v ∗ (∀ w, l ↦ w ==∗ gc_mapsto l w ∗ |={E ∖ ↑gcN, E}=> True)).
   Proof.
     iIntros (HN) "#Hinv".
-    iMod (inv_open_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
+    iMod (inv_acc_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
     iIntros "!>" (l v) "Hgc_l".
     iDestruct "P" as (gcm) "[H● HsepM]".
     iDestruct (gc_mapsto_lookup_Some with "Hgc_l H●") as %Hsome.
@@ -227,7 +227,7 @@ Section gc.
   Lemma is_gc_access l E: ↑gcN ⊆ E → gc_inv -∗ is_gc_loc l ={E, E ∖ ↑gcN}=∗ ∃ v, l ↦ v ∗ (l ↦ v ={E ∖ ↑gcN, E}=∗ ⌜True⌝).
   Proof.
     iIntros (HN) "#Hinv Hgc_l".
-    iMod (inv_open_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
+    iMod (inv_acc_timeless _ gcN _ with "Hinv") as "[P Hclose]"=>//.
     iModIntro.
     iDestruct "P" as (gcm) "[H● HsepM]".
     iDestruct (is_gc_lookup_Some with "Hgc_l H●") as %Hsome.

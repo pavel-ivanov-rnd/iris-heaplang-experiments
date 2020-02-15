@@ -47,7 +47,7 @@ Section Helpers.
   Proof.
     iIntros (Hgx) "(#Hgr & Hx & key)".
     wp_lam; wp_bind (! _)%E. unfold graph_ctx.
-    iMod (cinv_open with "Hgr key") as "(>Hinv & key & Hcl)"; first done.
+    iMod (cinv_acc with "Hgr key") as "(>Hinv & key & Hcl)"; first done.
     unfold graph_inv at 2.
     iDestruct "Hinv" as (G) "(Hi1 & Hi2 & Hi3 & Hi4)".
     iDestruct (graph_open with "[Hi1 Hi3]") as
@@ -63,7 +63,7 @@ Section Helpers.
     iModIntro. wp_proj. wp_let.
     destruct u as [u1 u2]; simpl.
     wp_bind (CmpXchg _ _ _).
-    iMod (cinv_open _ graphN with "Hgr key")
+    iMod (cinv_acc _ graphN with "Hgr key")
       as "(>Hinv & key & Hclose)"; first done.
     unfold graph_inv at 2.
     iDestruct "Hinv" as (G') "(Hi1 & Hi2 & Hi3 & Hi4)".
@@ -128,7 +128,7 @@ Section Helpers.
     assert (Hgx' : x ∈ dom (gset _) g).
     { rewrite elem_of_dom Hgx; eauto. }
     unfold graph_ctx.
-    iMod (cinv_open _ graphN with "Hgr key")
+    iMod (cinv_acc _ graphN with "Hgr key")
       as "(>Hinv & key & Hclose)"; first done.
     unfold graph_inv at 2.
     iDestruct "Hinv" as (G) "(Hi1 & Hi2 & Hi3 & Hi4)".
@@ -165,7 +165,7 @@ Section Helpers.
     assert (Hgx' : x ∈ dom (gset _) g).
     { rewrite elem_of_dom Hgx; eauto. }
     unfold graph_ctx. wp_pures.
-    iMod (cinv_open _ graphN with "Hgr key")
+    iMod (cinv_acc _ graphN with "Hgr key")
       as "(>Hinv & key & Hclose)"; first done.
     unfold graph_inv at 2.
     iDestruct "Hinv" as (G) "(Hi1 & Hi2 & Hi3 & Hi4)".
