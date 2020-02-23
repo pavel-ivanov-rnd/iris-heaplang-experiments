@@ -2537,7 +2537,7 @@ Proof.
   pose (i := ((back `min` sz) - S n)%nat).
   assert ((back `min` sz)%nat - S n = i) as -> by by rewrite Nat2Z.inj_sub.
   (* We can now load. *)
-  wp_apply (wp_load_offset _ _ ℓ_ar i _ (array_get slots deqs i) with "Hℓ_ar");
+  wp_apply (wp_load_offset _ _ ℓ_ar _ i _ (array_get slots deqs i) with "Hℓ_ar");
     [ apply array_content_lookup; lia | iIntros "Hℓa" ].
   (* If there was an initial contradiction, it is still here. *)
   iAssert ⌜match cont with
@@ -2728,7 +2728,7 @@ Proof.
   * (* The CmpXchg failed, we continue looping. *)
     assert (array_content sz slots deqs !! i = Some NONEV).
     { rewrite array_content_lookup; last by lia. by rewrite Hi. }
-    wp_apply (wp_cmpxchg_fail_offset _ _ _ _ _ (array_get slots deqs i) with "Hℓ_ar");
+    wp_apply (wp_cmpxchg_fail_offset _ _ _ _ _ _ (array_get slots deqs i) with "Hℓ_ar");
       [ by rewrite Hi | by rewrite Hi | by right | iIntros "Hℓa" (rs' ->) "Hp"].
     (* We can close the invariant. *)
     iModIntro. iSplitR "AU Hback_snap Hi2_lower_bound".
