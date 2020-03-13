@@ -37,6 +37,7 @@ Section cnt_model.
   Context `{!cntG Σ}.
 
   Definition makeElem (q : Qp) (m : Z) : cntCmra := (q, to_agree m).
+  Typeclasses Opaque makeElem.
 
   Notation "γ ⤇[ q ] m" := (own γ (makeElem q m))
     (at level 20, q at level 50, format "γ ⤇[ q ]  m") : bi_scope.
@@ -59,7 +60,7 @@ Section cnt_model.
 
   Global Instance makeElem_Exclusive m: Exclusive (makeElem 1 m).
   Proof.
-    intros [y ?] [H _]. apply (exclusive_l _ _ H).
+    rewrite /makeElem. intros [y ?] [H _]. apply (exclusive_l _ _ H).
   Qed.
 
   Lemma makeElem_op p q n:
