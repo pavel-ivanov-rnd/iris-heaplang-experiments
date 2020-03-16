@@ -36,7 +36,7 @@ Notation "⟦ Γ ⟧*" := (interp_env Γ).
 Global Instance interp_env_persistent Γ vs :
   Persistent (⟦ Γ ⟧* vs) := _.
 
-Lemma interp_env_nil : (⟦ [] ⟧* [])%I.
+Lemma interp_env_nil : ⊢ ⟦ [] ⟧* [].
 Proof. iSplit; simpl; auto. Qed.
 Lemma interp_env_cons Γ vs τ v :
     ⟦ τ :: Γ ⟧* (v :: vs) ⊣⊢ ⟦ τ ⟧ v ∗ ⟦ Γ ⟧* vs.

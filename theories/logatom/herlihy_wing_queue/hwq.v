@@ -149,7 +149,7 @@ Implicit Types pvs : list nat.
 
 (** Operations for the CMRA representing the logical contents of the queue. *)
 
-Lemma new_elts l : (|==> ∃ γe, own γe (● Excl' l) ∗ own γe (◯ Excl' l))%I.
+Lemma new_elts l : ⊢ |==> ∃ γe, own γe (● Excl' l) ∗ own γe (◯ Excl' l).
 Proof.
   iMod (own_alloc (● Excl' l ⋅ ◯ Excl' l)) as (γe) "[H● H◯]".
   - by apply auth_both_valid.
@@ -186,7 +186,7 @@ Proof. iIntros "H1 H2". by iDestruct (own_valid_2 with "H1 H2") as %?. Qed.
 Definition back_value γb n := own γb (● (n : mnatUR) : backUR).
 Definition back_lower_bound γb n := own γb (◯ (n : mnatUR) : backUR).
 
-Lemma new_back : (|==> ∃ γb, back_value γb 0%nat)%I.
+Lemma new_back : ⊢ |==> ∃ γb, back_value γb 0%nat.
 Proof.
   iMod (own_alloc (● (0%nat : mnatUR) : backUR)) as (γb) "H●".
   - by rewrite auth_auth_valid.
@@ -194,21 +194,21 @@ Proof.
 Qed.
 
 Lemma back_incr γb n :
-  (back_value γb n ==∗ back_value γb (S n)%nat)%I.
+  back_value γb n ==∗ back_value γb (S n)%nat.
 Proof.
   iIntros "H●". iMod (own_update with "H●") as "[$ _]"; last done.
   apply auth_update_alloc, (mnat_local_update _ _ (S n)). by lia.
 Qed.
 
 Lemma back_snapshot γb n :
-  (back_value γb n ==∗ back_value γb n ∗ back_lower_bound γb n)%I.
+  back_value γb n ==∗ back_value γb n ∗ back_lower_bound γb n.
 Proof.
   iIntros "H●". rewrite -own_op. iApply (own_update with "H●").
   by apply auth_update_alloc, mnat_local_update.
 Qed.
 
 Lemma back_le γb n1 n2 :
-  (back_value γb n1 -∗ back_lower_bound γb n2 -∗ ⌜n2 ≤ n1⌝%nat)%I.
+  back_value γb n1 -∗ back_lower_bound γb n2 -∗ ⌜n2 ≤ n1⌝%nat.
 Proof.
   iIntros "H1 H2". iCombine "H1 H2" as "H".
   iDestruct (own_valid with "H") as %Hvalid. iPureIntro.
@@ -226,14 +226,14 @@ Definition no_contra_wit γi n := back_lower_bound γi n.
 
 Lemma i2_lower_bound_update γi n m :
   (n ≤ m)%nat →
-  (i2_lower_bound γi n ==∗ i2_lower_bound γi m)%I.
+  i2_lower_bound γi n ==∗ i2_lower_bound γi m.
 Proof.
   iIntros (H) "H●". iMod (own_update with "H●") as "[$ _]"; last done.
   apply auth_update_alloc, (mnat_local_update _ _ m). by lia.
 Qed.
 
 Lemma i2_lower_bound_snapshot γi n :
-  (i2_lower_bound γi n ==∗ i2_lower_bound γi n ∗ no_contra_wit γi n)%I.
+  i2_lower_bound γi n ==∗ i2_lower_bound γi n ∗ no_contra_wit γi n.
 Proof.
   iIntros "H●". rewrite -own_op. iApply (own_update with "H●").
   by apply auth_update_alloc, mnat_local_update.
@@ -249,18 +249,18 @@ Definition no_contra γc :=
 Definition contra γc (i1 i2 : nat) :=
   own γc (Cinr (to_agree (i1, i2))).
 
-Lemma new_no_contra : (|==> ∃ γc, no_contra γc)%I.
+Lemma new_no_contra : ⊢ |==> ∃ γc, no_contra γc.
 Proof. by apply own_alloc. Qed.
 
 Lemma to_contra i1 i2 γc : no_contra γc ==∗ contra γc i1 i2.
 Proof. apply own_update. by apply cmra_update_exclusive. Qed.
 
 Lemma contra_not_no_contra i1 i2 γc :
-  (no_contra γc -∗ contra γc i1 i2 -∗ False)%I.
+  no_contra γc -∗ contra γc i1 i2 -∗ False.
 Proof. iIntros "HnoC HC". iDestruct (own_valid_2 with "HnoC HC") as %[]. Qed.
 
 Lemma contra_agree i1 i2 i1' i2' γc :
-  (contra γc i1 i2 -∗ contra γc i1' i2' -∗ ⌜i1' = i1 ∧ i2' = i2⌝)%I.
+  contra γc i1 i2 -∗ contra γc i1' i2' -∗ ⌜i1' = i1 ∧ i2' = i2⌝.
 Proof.
   iIntros "HC HC'". iDestruct (own_valid_2 with "HC HC'") as %H.
   iPureIntro. apply agree_op_invL' in H. by inversion H.
@@ -378,7 +378,7 @@ Definition slot_writing_tok γs i :=
   own γs (◯ {[i := (None, None, None, None, not_shot)]} : slotUR).
 
 (* Initial slot data, with not allocated slots. *)
-Lemma new_slots : (|==> ∃ γs, own γs (● ∅))%I.
+Lemma new_slots : ⊢ |==> ∃ γs, own γs (● ∅).
 Proof.
   iMod (own_alloc (● ∅ ⋅ ◯ ∅)) as (γs) "[H● _]".
   - by apply auth_both_valid.
@@ -431,9 +431,9 @@ Proof.
 Qed.
 
 Lemma use_val_wit γs slots i l :
-  (own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_val_wit γs i l -∗
-  ⌜val_of <$> slots !! i = Some l⌝)%I.
+  ⌜val_of <$> slots !! i = Some l⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
   iPureIntro. apply auth_both_valid in H as [H%singleton_included _].
@@ -461,9 +461,9 @@ Proof.
 Qed.
 
 Lemma use_name_tok γs slots i γ :
-  (own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_name_tok γs i γ -∗
-  ⌜name_of <$> slots !! i = Some (Some γ)⌝)%I.
+  ⌜name_of <$> slots !! i = Some (Some γ)⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
   iPureIntro. apply auth_both_valid in H as [H%singleton_included _].
@@ -527,9 +527,9 @@ Proof.
 Qed.
 
 Lemma use_committed_wit γs slots i :
-  (own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_committed_wit γs i -∗
-  ⌜was_committed <$> slots !! i = Some true⌝)%I.
+  ⌜was_committed <$> slots !! i = Some true⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
   iPureIntro. apply auth_both_valid in H as [H%singleton_included _].
@@ -550,9 +550,9 @@ Proof.
 Qed.
 
 Lemma use_written_wit γs slots i :
-  (own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_written_wit γs i -∗
-  ⌜was_written <$> slots !! i = Some true⌝)%I.
+  ⌜was_written <$> slots !! i = Some true⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
   iPureIntro. apply auth_both_valid in H as [H%singleton_included _].
@@ -1401,12 +1401,12 @@ Qed.
 Lemma big_lemma γe γs (ls : list loc) slots (p : list nat) :
   NoDup p →
   (∀ i, i ∈ p → was_committed <$> slots !! i = Some false) →
-  (own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
    ([∗ map] i ↦ d ∈ slots, per_slot_own γe γs i d) -∗
    own γe (● (Excl' ls)) ={⊤ ∖ ↑N}=∗
     own γs (● (of_slot_data <$> map_imap (helped p) slots) : slotUR) ∗
     ([∗ map] i ↦ d ∈ map_imap (helped p) slots, per_slot_own γe γs i d) ∗
-    own γe (● (Excl' (ls ++ get_values slots p))))%I.
+    own γe (● (Excl' (ls ++ get_values slots p))).
 Proof.
   revert p. iIntros (p).
   iInduction p as [|n ps] "IH" forall (slots ls); iIntros (HNoDup H) "Hs● Hbig He●".

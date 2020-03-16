@@ -40,22 +40,22 @@ Proof.
   split; [done | apply _].
 Qed.
 
-Lemma new_INIT `{saG Σ} : (|==> ∃ γ, INIT γ 1%Qp)%I.
+Lemma new_INIT `{saG Σ} : ⊢ |==> ∃ γ, INIT γ 1%Qp.
 Proof. by apply own_alloc. Qed.
 Lemma INIT_not_SET_RES `{saG Σ} γ q q' v :
-  (INIT γ q -∗ SET_RES γ q' v -∗ False)%I.
+  INIT γ q -∗ SET_RES γ q' v -∗ False.
 Proof.
   iIntros "Hs Hp".
   iDestruct (own_valid_2 with "Hs Hp") as %[].
 Qed.
 Lemma INIT_not_FIN `{saG Σ} γ q v :
-  (INIT γ q -∗ FIN γ v -∗ False)%I.
+  INIT γ q -∗ FIN γ v -∗ False.
 Proof.
   iIntros "Hs Hp".
   iDestruct (own_valid_2 with "Hs Hp") as %[].
 Qed.
 Lemma SET_RES_not_FIN `{saG Σ} γ q v v' :
-  (SET_RES γ q v -∗ FIN γ v' -∗ False)%I.
+  SET_RES γ q v -∗ FIN γ v' -∗ False.
 Proof.
   iIntros "Hs Hp".
   iDestruct (own_valid_2 with "Hs Hp") as %[].

@@ -103,7 +103,7 @@ Definition ltyped  `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (□ ∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
-  (at level 100, e at next level, A at level 200).
+  (at level 100, e at next level, A at level 200) : bi_scope.
 
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
@@ -194,18 +194,18 @@ Section types_properties.
   Qed.
 
   (* The semantic typing rules *)
-  Lemma ltyped_var Γ (x : string) A : Γ !! x = Some A → Γ ⊨ x : A.
+  Lemma ltyped_var Γ (x : string) A : Γ !! x = Some A → ⊢ Γ ⊨ x : A.
   Proof.
     iIntros (HΓx vs) "!# #HΓ /=".
     iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "HA"; first done.
     by iApply wp_value.
   Qed.
 
-  Lemma ltyped_unit Γ : Γ ⊨ #() : ().
+  Lemma ltyped_unit Γ : ⊢ Γ ⊨ #() : ().
   Proof. iIntros (vs) "!# _ /=". by iApply wp_value. Qed.
-  Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
+  Lemma ltyped_bool Γ (b : bool) : ⊢ Γ ⊨ #b : lty_bool.
   Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
-  Lemma ltyped_int Γ (n : Z) : Γ ⊨ #n : lty_int.
+  Lemma ltyped_int Γ (n : Z) : ⊢ Γ ⊨ #n : lty_int.
   Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
 
   Lemma ltyped_rec Γ f x e A1 A2 :

@@ -3,7 +3,7 @@ From iris.heap_lang Require Import adequacy.
 From iris.heap_lang Require Import proofmode.
 
 Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
-  (∀ `{heapG Σ}, ∃ A, ∅ ⊨ e : A) →
+  (∀ `{heapG Σ}, ∃ A, ⊢ ∅ ⊨ e : A) →
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.

@@ -14,7 +14,7 @@ Proof. solve_inG. Qed.
 
 Definition pending `{oneshotG Σ} γ q := own γ (Cinl q%Qp).
 Definition shot `{oneshotG Σ} γ (v: val) := own γ (Cinr (to_agree v)).
-Lemma new_pending `{oneshotG Σ} : (|==> ∃ γ, pending γ 1%Qp)%I.
+Lemma new_pending `{oneshotG Σ} : ⊢ |==> ∃ γ, pending γ 1%Qp.
 Proof. by apply own_alloc. Qed.
 Lemma shoot `{oneshotG Σ} (v: val) γ : pending γ 1%Qp ==∗ shot γ v.
 Proof.

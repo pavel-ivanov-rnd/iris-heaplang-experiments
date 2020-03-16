@@ -133,7 +133,7 @@ Section factorial_client.
       if: "x" = #0 then #0 else "y" + "times" ("x" - #1) "y".
 
   Lemma times_spec_aux (m : Z):
-    (∀ n Φ , ▷ Φ (# (n * m)) -∗ WP times #n #m {{ Φ }})%I.
+    ∀ n Φ , ▷ Φ (# (n * m)) -∗ WP times #n #m {{ Φ }}.
   Proof.
     iLöb as "IH".
     iIntros (n Φ) "ret".
@@ -176,9 +176,9 @@ Section factorial_client.
      really does implement the mathematical factorial function. *)
   Lemma myfac_spec (n: Z):
     (0 ≤ n) →
-    {{{ True}}}
+    {{{ True }}}
       myfac #n
-    {{{v, RET v; ⌜v = #(fac_int n)⌝}}}.
+    {{{ v, RET v; ⌜v = #(fac_int n)⌝ }}}.
   Proof.
     iIntros (Hleq Φ) "_ ret"; simplify_eq. unfold myfac. wp_pures.
     iApply (myrec_spec (fun v => ⌜∃m' : Z, 0 ≤ m' ∧ to_val v = Some #m'⌝%I)

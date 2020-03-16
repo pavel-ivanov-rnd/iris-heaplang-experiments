@@ -11,11 +11,11 @@ Context `{!heapG Σ, !barrierG Σ}.
 
 Lemma barrier_spec (N : namespace) :
   ∃ recv send : loc → iPropO Σ -n> iPropO Σ,
-    (∀ P, {{ True }} newbarrier #()
+    (∀ P, ⊢ {{ True }} newbarrier #()
                      {{ v, ∃ l : loc, ⌜v = #l⌝ ∗ recv l P ∗ send l P }}) ∧
-    (∀ l P, {{ send l P ∗ P }} signal #l {{ _, True }}) ∧
-    (∀ l P, {{ recv l P }} wait #l {{ _, P }}) ∧
-    (∀ l P Q, recv l (P ∗ Q) ={↑N}=> recv l P ∗ recv l Q) ∧
+    (∀ l P, ⊢ {{ send l P ∗ P }} signal #l {{ _, True }}) ∧
+    (∀ l P, ⊢ {{ recv l P }} wait #l {{ _, P }}) ∧
+    (∀ l P Q, recv l (P ∗ Q) ={↑N}=∗ recv l P ∗ recv l Q) ∧
     (∀ l P Q, (P -∗ Q) -∗ recv l P -∗ recv l Q).
 Proof.
   exists (λ l, OfeMor (recv N l)), (λ l, OfeMor (send N l)).
@@ -24,7 +24,7 @@ Proof.
     iNext. eauto.
   - iIntros (l P) "!# [Hl HP]". iApply (signal_spec with "[$Hl $HP]"). by eauto.
   - iIntros (l P) "!# Hl". iApply (wait_spec with "Hl"). eauto.
-  - iIntros (l P Q) "!#". by iApply recv_split.
+  - iIntros (l P Q). by iApply recv_split.
   - apply recv_weaken.
 Qed.
 End spec.

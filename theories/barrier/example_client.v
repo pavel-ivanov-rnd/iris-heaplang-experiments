@@ -37,7 +37,7 @@ Section client.
     iApply (wp_wand with "[]"). iApply "Hf". by iIntros (v) "_".
   Qed.
 
-  Lemma client_safe : WP client {{ _, True }}%I.
+  Lemma client_safe : ⊢ WP client {{ _, True }}.
   Proof.
     iIntros ""; rewrite /client. wp_alloc y as "Hy". wp_let.
     wp_apply (newbarrier_spec N (y_inv 1 y) with "[//]").

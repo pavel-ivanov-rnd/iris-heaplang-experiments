@@ -112,7 +112,7 @@ Section to_gc_map.
 End to_gc_map.
 
 Lemma gc_init `{!invG Σ, !heapG Σ, !gcPreG Σ} E:
-  (|==> ∃ _ : gcG Σ, |={E}=> gc_inv)%I.
+  ⊢ |==> ∃ _ : gcG Σ, |={E}=> gc_inv.
 Proof.
   iMod (own_alloc (● (to_gc_map ∅))) as (γ) "H●".
   { rewrite auth_auth_valid. exact: to_gc_map_valid. }

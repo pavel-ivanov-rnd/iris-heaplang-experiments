@@ -41,11 +41,11 @@ Record TypedProph := mkTypedProph
   ; typed_proph_inj_prop         :
       ∀ x, typed_proph_from_val (typed_proph_to_val x) = Some x
   ; typed_proph_prop             : proph_id → list typed_proph_type → iProp
-  ; typed_proph_prop_excl        : (∀ p l1 l2, typed_proph_prop p l1 ∗ typed_proph_prop p l2 -∗ False)%I
+  ; typed_proph_prop_excl        : ∀ p l1 l2, typed_proph_prop p l1 ∗ typed_proph_prop p l2 -∗ False
   ; typed_proph_wp_new_proph s E :
       {{{ True }}}
         NewProph @ s; E
-      {{{ pvs p, RET (LitV (LitProphecy p)); typed_proph_prop p pvs }}}%I
+      {{{ pvs p, RET (LitV (LitProphecy p)); typed_proph_prop p pvs }}}
   ; typed_proph_wp_resolve s E e Φ p v w pvs :
       Atomic StronglyAtomic e →
       to_val e = None →
@@ -56,11 +56,11 @@ Record TypedProph := mkTypedProph
   ; typed_proph1_prop `{Inhabited typed_proph_type}
                                  : proph_id → typed_proph_type → iProp
   ; typed_proph1_prop_excl `{!Inhabited typed_proph_type}
-                                 : (∀ p o1 o2, typed_proph1_prop p o1 ∗ typed_proph1_prop p o2 -∗ False)%I
+                                 : ∀ p o1 o2, typed_proph1_prop p o1 ∗ typed_proph1_prop p o2 -∗ False
   ; typed_proph_wp_new_proph1 `{!Inhabited typed_proph_type} s E :
       {{{ True }}}
         NewProph @ s; E
-      {{{ v p, RET #p; typed_proph1_prop p v }}}%I
+      {{{ v p, RET #p; typed_proph1_prop p v }}}
   ; typed_proph_wp_resolve1 `{!Inhabited typed_proph_type} s E e Φ p w v1 v2 :
       Atomic StronglyAtomic e →
       to_val e = None →
@@ -89,7 +89,7 @@ Next Obligation.
 Qed.
 Next Obligation.
   intros spec.
-  iIntros (s E Φ). iIntros "!> _ HΦ". wp_apply wp_new_proph; first done.
+  iIntros (s E Φ) "_ HΦ". wp_apply wp_new_proph; first done.
   iIntros (pvs p) "Hp". iApply "HΦ". iExists pvs. by iFrame.
 Qed.
 Next Obligation.
@@ -109,7 +109,7 @@ Next Obligation.
 Qed.
 Next Obligation.
   intros spec ?.
-  iIntros (s E Φ). iIntros "!> _ HΦ". wp_apply wp_new_proph; first done.
+  iIntros (s E Φ) "_ HΦ". wp_apply wp_new_proph; first done.
   iIntros (pvs p) "Hp". iApply "HΦ". iExists pvs. by iFrame.
 Qed.
 Next Obligation.

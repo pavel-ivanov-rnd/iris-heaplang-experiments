@@ -260,7 +260,7 @@ Section example_1.
 
   (* Prove that incr is safe w.r.t. data race. TODO: prove a stronger post-condition *)
   Lemma incr_2_safe:
-    ∀ (x: Z), (WP incr_2 #x {{ _, True }})%I.
+    ∀ (x: Z), ⊢ WP incr_2 #x {{ _, True }}.
   Proof.
     iIntros (x).
     rewrite /incr_2 /=.

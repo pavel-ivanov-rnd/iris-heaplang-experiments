@@ -37,7 +37,7 @@ Section symbol_ghosts.
   Global Instance symbol_persistent γ n : Persistent (symbol γ n).
   Proof. apply _. Qed.
 
-  Lemma counter_alloc n : (|==> ∃ γ, counter γ n)%I.
+  Lemma counter_alloc n : ⊢ |==> ∃ γ, counter γ n.
   Proof.
     iMod (own_alloc (● (n:mnat) ⋅ ◯ (n:mnat))) as (γ) "[Hγ Hγf]";
       first by apply auth_both_valid.
@@ -71,7 +71,7 @@ Section ltyped_symbol_adt.
   Definition lty_symbol (γ : gname) : lty Σ := Lty (λ w,
     ∃ n : nat, ⌜w = #n⌝ ∧ symbol γ n)%I.
 
-  Lemma ltyped_symbol_adt Γ : Γ ⊨ symbol_adt : symbol_adt_ty.
+  Lemma ltyped_symbol_adt Γ : ⊢ Γ ⊨ symbol_adt : symbol_adt_ty.
   Proof.
     iIntros (vs) "!# _ /=". iApply wp_value.
     iIntros "!#" (v ->). wp_lam. wp_alloc l as "Hl"; wp_pures.
