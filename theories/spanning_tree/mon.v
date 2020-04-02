@@ -459,7 +459,7 @@ Lemma in_op_dom' (G G' : Gmon) y : ✓(G ⋅ G') →
   y ∈ dom (gset loc) (Gmon_graph G') → y ∈ dom (gset loc) (Gmon_graph (G ⋅ G')).
 Proof. rewrite comm; apply in_op_dom. Qed.
 
-Local Hint Resolve cmra_valid_op_l cmra_valid_op_r in_op_dom in_op_dom'.
+Local Hint Resolve cmra_valid_op_l cmra_valid_op_r in_op_dom in_op_dom' : core.
 
 Lemma in_op_dom_alt (G G' : Gmon) y : ✓(G ⋅ G') →
   y ∈ dom (gset loc) G → y ∈ dom (gset loc) (G ⋅ G').
@@ -468,14 +468,14 @@ Lemma in_op_dom_alt' (G G' : Gmon) y : ✓(G ⋅ G') →
   y ∈ dom (gset loc) G' → y ∈ dom (gset loc) (G ⋅ G').
 Proof. intros HGG; rewrite -?Gmon_graph_dom; eauto. Qed.
 
-Local Hint Resolve in_op_dom_alt in_op_dom_alt'.
+Local Hint Resolve in_op_dom_alt in_op_dom_alt' : core.
 Local Hint Extern 1 => eapply get_left_conv + eapply get_left_conv' +
-  eapply get_right_conv + eapply get_right_conv'.
+  eapply get_right_conv + eapply get_right_conv' : core.
 
 Local Hint Extern 1 (_ ∈ dom (gset loc) (Gmon_graph _)) =>
-  erewrite Gmon_graph_dom.
+  erewrite Gmon_graph_dom : core.
 
-Local Hint Resolve path_start path_end.
+Local Hint Resolve path_start path_end : core.
 
 Lemma path_conv (G G' : Gmon) x y p :
   ✓ (G ⋅ G') → maximal (Gmon_graph G) → x ∈ dom (gset _) G →
@@ -538,7 +538,7 @@ Lemma in_dom_singleton (x : loc) (w : chlO) :
 Proof. by rewrite dom_singleton elem_of_singleton. Qed.
 
 
-Local Hint Resolve graph_op_path graph_op_path' in_dom_singleton.
+Local Hint Resolve graph_op_path graph_op_path' in_dom_singleton : core.
 
 Lemma maximal_op (G G' : Gmon) : ✓ (G ⋅ G') → maximal (Gmon_graph G)
   → maximal (Gmon_graph G') → maximal (Gmon_graph (G ⋅ G')).
@@ -566,7 +566,7 @@ Proof.
 Qed.
 
 Local Hint Resolve maximal_op_singleton maximal_op get_left_singleton
-  get_right_singleton.
+  get_right_singleton : core.
 
 Lemma maximally_marked_tree_both (G G' : Gmon) x xl xr :
   ✓ ((x [↦] (Some xl, Some xr)) ⋅ (G ⋅ G')) →

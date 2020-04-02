@@ -242,9 +242,9 @@ Definition is_atomic (e : expr) : Prop :=
   | Store e1 e2 => is_Some (to_val e1) ∧ is_Some (to_val e2)
   | _ => False
   end.
-Local Hint Resolve language.val_irreducible.
-Local Hint Resolve to_of_val.
-Local Hint Unfold language.irreducible.
+Local Hint Resolve language.val_irreducible : core.
+Local Hint Resolve to_of_val : core.
+Local Hint Unfold language.irreducible : core.
 Global Instance is_atomic_correct s e : is_atomic e → Atomic s e.
 Proof.
   intros Ha; apply strongly_atomic_atomic,  ectx_language_atomic.
@@ -260,5 +260,5 @@ Ltac solve_atomic :=
   apply is_atomic_correct; simpl; repeat split;
     rewrite ?to_of_val; eapply mk_is_Some; fast_done.
 
-Hint Extern 0 (Atomic _ _) => solve_atomic.
+Hint Extern 0 (Atomic _ _) => solve_atomic : core.
 Hint Extern 0 (Atomic _ _) => solve_atomic : typeclass_instances.

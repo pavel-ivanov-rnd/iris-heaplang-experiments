@@ -283,7 +283,7 @@ Section rdcss.
         ∨ accepted_state (Q n) (proph_extract_winner vs) tid_ghost_winner ))
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q n) l_descr tid_ghost_winner γ_t γ_a))%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv : core.
 
   Definition pau P Q l_n l_m m1 n1 n2 :=
     (▷ P -∗ ◇ AU << ∀ (m n : val), (gc_mapsto l_m m) ∗ rdcss_state l_n n >> @ (⊤∖↑N)∖↑gcN, ∅
@@ -316,7 +316,7 @@ Section rdcss.
              □ pau P Q l_n l_m m1 n1 n2 ∗ is_gc_loc l_m
        end)%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _)) => unfold rdcss_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _)) => unfold rdcss_inv : core.
 
   Definition is_rdcss (l_n : loc) :=
     (inv rdcssN (rdcss_inv l_n) ∧ gc_inv ∧ ⌜N ## gcN⌝)%I.

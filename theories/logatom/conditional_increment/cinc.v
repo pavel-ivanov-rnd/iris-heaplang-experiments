@@ -205,7 +205,7 @@ Section conditional_counter.
              □ pau P Q γ_n f ∗ is_gc_loc f
        end)%I.
 
-  Local Hint Extern 0 (environments.envs_entails _ (counter_inv _ _)) => unfold counter_inv.
+  Local Hint Extern 0 (environments.envs_entails _ (counter_inv _ _)) => unfold counter_inv : core.
 
   Definition is_counter (γ_n : gname) (ctr : val) :=
     (∃ (c : loc), ⌜ctr = #c ∧ N ## gcN⌝ ∗ gc_inv ∗ inv counterN (counter_inv γ_n c))%I.
