@@ -7,9 +7,9 @@ From iris_examples.barrier Require Import proof specification.
 Set Default Proof Using "Type".
 
 Definition one_shotR (Σ : gFunctors) (F : oFunctor) :=
-  csumR (exclR unitO) (agreeR $ laterO $ F (iPrePropO Σ) _).
+  csumR (exclR unitO) (agreeR $ laterO $ oFunctor_apply F (iPrePropO Σ)).
 Definition Pending {Σ F} : one_shotR Σ F := Cinl (Excl ()).
-Definition Shot {Σ} {F : oFunctor} (x : F (iPropO Σ) _) : one_shotR Σ F :=
+Definition Shot {Σ} {F : oFunctor} (x : oFunctor_apply F (iPropO Σ)) : one_shotR Σ F :=
   Cinr $ to_agree $ Next $ oFunctor_map F (iProp_fold, iProp_unfold) x.
 
 Class oneShotG (Σ : gFunctors) (F : oFunctor) :=
@@ -28,7 +28,7 @@ Section proof.
 Local Set Default Proof Using "Type*".
 Context `{!heapG Σ, !barrierG Σ, !spawnG Σ, !oneShotG Σ F}.
 Context (N : namespace).
-Local Notation X := (F (iPropO Σ) _).
+Local Notation X := (oFunctor_apply F (iPropO Σ)).
 
 Definition barrier_res γ (Φ : X → iProp Σ) : iProp Σ :=
   (∃ x, own γ (Shot x) ∗ Φ x)%I.
