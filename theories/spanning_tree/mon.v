@@ -356,7 +356,7 @@ Section graph.
       apply: map_eq => i. apply leibniz_equiv, equiv_dist => n.
       destruct (decide (x = i)); subst;
         rewrite ?lookup_insert ?lookup_insert_ne //.
-      apply singleton_included in H12. destruct H12 as [y [H31 H32]].
+      apply singleton_included_l in H12. destruct H12 as [y [H31 H32]].
       rewrite H31 (Some_included_exclusive _ _ H32); try done.
       destruct H2 as [H21 H22]; simpl in H22.
       specialize (H22 i); revert H22; rewrite H31; done.

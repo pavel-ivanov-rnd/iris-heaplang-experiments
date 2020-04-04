@@ -113,7 +113,7 @@ Section conversions.
   Lemma tpool_singleton_included tp j e :
     {[j := Excl e]} ≼ to_tpool tp → tp !! j = Some e.
   Proof.
-    move=> /singleton_included [ex [/leibniz_equiv_iff]].
+    move=> /singleton_included_l [ex [/leibniz_equiv_iff]].
     rewrite tpool_lookup fmap_Some=> [[e' [-> ->]] /Excl_included ?]. by f_equal.
   Qed.
   Lemma tpool_singleton_included' tp j e :

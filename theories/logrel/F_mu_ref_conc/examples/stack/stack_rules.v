@@ -94,7 +94,7 @@ Section Rules.
   Proof.
     iIntros "[Howns Hls] Hl".
     iDestruct (own_valid_2 with "Howns Hl")
-      as %[[az [Haz Hq]]%singleton_included _]%auth_both_valid.
+      as %[[az [Haz Hq]]%singleton_included_l _]%auth_both_valid.
     rewrite lookup_fmap in Haz.
     assert (∃ z, h !! l = Some z) as Hz.
     { revert Haz; case: (h !! l) => [z|] Hz; first (by eauto); inversion Hz. }
