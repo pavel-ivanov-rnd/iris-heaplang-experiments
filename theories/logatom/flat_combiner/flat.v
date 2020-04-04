@@ -212,7 +212,7 @@ Section proof.
 
   Lemma try_srv_spec R (s: loc) (lk: val) (γr γm γlk: gname) Φ :
     inv N (srv_bag R γm γr s) ∗
-    is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗ Φ #()
+    is_lock γlk lk (own γr (Excl ()) ∗ R) ∗ Φ #()
     ⊢ WP try_srv lk #s {{ Φ }}.
   Proof.
     iIntros "(#? & #? & HΦ)". wp_lam. wp_pures.
@@ -237,7 +237,7 @@ Section proof.
   Lemma loop_spec R (p s: loc) (lk: val)
         (γs γr γm γlk: gname) (ts: toks):
     {{{ inv N (srv_bag R γm γr s) ∗ inv N (p_inv R γm γr ts p) ∗
-        is_lock N γlk lk (own γr (Excl ()) ∗ R) ∗ own_γ3 ts }}}
+        is_lock γlk lk (own γr (Excl ()) ∗ R) ∗ own_γ3 ts }}}
       loop #p #s lk
     {{{ x y, RET y; finished_recp ts x y }}}.
   Proof.
@@ -272,7 +272,7 @@ Section proof.
     iIntros (R Φ) "HR HΦ".
     iMod (own_alloc (Excl ())) as (γr) "Ho2"; first done.
     wp_lam. wp_bind (newlock _).
-    iApply (newlock_spec _ (own γr (Excl ()) ∗ R)%I with "[$Ho2 $HR]")=>//.
+    iApply (newlock_spec (own γr (Excl ()) ∗ R)%I with "[$Ho2 $HR]")=>//.
     iNext. iIntros (lk γlk) "#Hlk".
     wp_let. wp_bind (new_stack _).
     iApply (new_bag_spec N (p_inv' R γm γr))=>//.

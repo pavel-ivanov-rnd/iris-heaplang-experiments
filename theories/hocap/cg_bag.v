@@ -66,7 +66,7 @@ Section proof.
   Definition is_bag (γb : gname) (x : val) :=
 
     (∃ (lk : val) (b : loc) (γ : gname),
-        ⌜x = PairV #b lk⌝ ∗ is_lock N γ lk (bag_inv γb b))%I.
+        ⌜x = PairV #b lk⌝ ∗ is_lock γ lk (bag_inv γb b))%I.
   Definition bag_contents (γb : gname) (X : gmultiset val) : iProp Σ :=
     own γb ((1/2)%Qp, to_agree X).
 
@@ -106,7 +106,7 @@ Section proof.
     unfold newBag. wp_rec.
     wp_alloc r as "Hr". wp_let.
     iMod (own_alloc (1%Qp, to_agree ∅)) as (γb) "[Ha Hf]"; first done.
-    wp_apply (newlock_spec N (bag_inv γb r) with "[Hr Ha]").
+    wp_apply (newlock_spec (bag_inv γb r) with "[Hr Ha]").
     { iExists []. iFrame. }
     iIntros (lk γ) "#Hlk". wp_pures. iApply "HΦ".
     rewrite /is_bag /bag_contents. iFrame.
@@ -176,11 +176,11 @@ End proof.
 Typeclasses Opaque bag_contents is_bag.
 
 Canonical Structure cg_bag `{!heapG Σ, !bagG Σ} : bag Σ :=
-  {| abstract_bag.is_bag := is_bag;
-     abstract_bag.is_bag_persistent := is_bag_persistent;
+  {| abstract_bag.is_bag N := is_bag;
+     abstract_bag.is_bag_persistent N := is_bag_persistent;
      abstract_bag.bag_contents_timeless := bag_contents_timeless;
      abstract_bag.bag_contents_agree := bag_contents_agree;
      abstract_bag.bag_contents_update := bag_contents_update;
-     abstract_bag.newBag_spec := newBag_spec;
+     abstract_bag.newBag_spec N := newBag_spec;
      abstract_bag.pushBag_spec := pushBag_spec;
      abstract_bag.popBag_spec := popBag_spec |}.

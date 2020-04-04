@@ -17,13 +17,13 @@ Definition mk_sync: val :=
           "ret".
 
 Section syncer.
-  Context `{!heapG Σ, !lockG Σ} (N: namespace).
+  Context `{!heapG Σ, !lockG Σ}.
   
   Lemma mk_sync_spec: mk_syncer_spec mk_sync.
   Proof.
     iIntros (R Φ) "HR HΦ".
     wp_lam. wp_bind (newlock _).
-    iApply (newlock_spec N R with "[HR]"); first done. iNext.
+    iApply (newlock_spec R with "[HR]"); first done. iNext.
     iIntros (lk γ) "#Hl". wp_pures. iApply "HΦ". iIntros "!#".
     iIntros (f). wp_pures. iAlways.
     iIntros (P Q x) "#Hf !# HP".

@@ -100,7 +100,7 @@ Section to_gc_map.
   Lemma gc_map_singleton_included gcm l v :
     {[l := Some (Excl v)]} ≼ to_gc_map gcm → gcm !! l = Some v.
   Proof.
-    rewrite singleton_included.
+    rewrite singleton_included_l.
     setoid_rewrite Some_included_total.
     intros (y & Hsome & Hincluded).
     pose proof (lookup_valid_Some _ _ _ (to_gc_map_valid gcm) Hsome) as Hvalid.
@@ -180,7 +180,7 @@ Section gc.
     iDestruct (own_valid with "Hcomb") as %Hvalid.
     iPureIntro.
     apply auth_both_valid in Hvalid as [Hincluded Hvalid]. 
-    setoid_rewrite singleton_included in Hincluded. 
+    setoid_rewrite singleton_included_l in Hincluded.
     destruct Hincluded as (y & Hsome & _).
     eapply lookup_to_gc_map_Some_2.
     by apply leibniz_equiv_iff in Hsome.
