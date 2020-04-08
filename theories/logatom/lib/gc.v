@@ -169,7 +169,7 @@ Section gc.
   Proof.
     iIntros "Hgc_l". rewrite /gc_mapsto.
     assert (Excl' v = (Excl' v) ⋅ None)%I as ->. { done. }
-    rewrite -op_singleton auth_frag_op own_op.
+    rewrite -singleton_op auth_frag_op own_op.
     iDestruct "Hgc_l" as "[_ H◯_none]".
     iFrame.
   Qed.

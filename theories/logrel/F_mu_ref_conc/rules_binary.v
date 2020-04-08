@@ -140,7 +140,7 @@ Section cfg.
   Proof.
     apply wand_intro_r.
     rewrite /heapS_mapsto -own_op -auth_frag_op own_valid discrete_valid.
-    f_equiv=> -[_] /=. rewrite op_singleton singleton_valid -pair_op.
+    f_equiv=> -[_] /=. rewrite singleton_op singleton_valid -pair_op.
     by intros [_ ?%agree_op_invL'].
   Qed.
   Lemma mapstoS_combine l q1 q2 v1 v2 :

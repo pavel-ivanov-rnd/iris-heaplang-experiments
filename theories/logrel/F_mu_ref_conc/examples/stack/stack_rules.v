@@ -24,7 +24,7 @@ Section Rules.
 
   Lemma stack_mapstos_agree l v w : l ↦ˢᵗᵏ v ∗ l ↦ˢᵗᵏ w ⊢ ⌜v = w⌝.
   Proof.
-    rewrite -own_op -auth_frag_op op_singleton own_valid.
+    rewrite -own_op -auth_frag_op singleton_op own_valid.
     by iIntros (->%auth_frag_valid%singleton_valid%agree_op_invL').
   Qed.
 
