@@ -2,6 +2,7 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
+From iris_string_ident Require ltac2_string_ident.
 Set Default Proof Using "Type".
 
 Fixpoint val_of_list (vs : list (val * val)) : val :=
@@ -44,8 +45,8 @@ Section one_shot.
     WP e @ s; E {{ r, ⌜v = w⌝ -∗ Φ r }} -∗
     WP Resolve e (Val $ LitV $ LitProphecy p) (Val w) @ s; E {{ Φ }}.
   Proof.
-    iIntros (A He) "Hp Wpe". iDestruct "Hp" as (vs) "[Hp HEq]".
-    iDestruct "HEq" as %HEq. wp_apply (wp_resolve with "Hp"); try done.
+    iIntros (A He) "Hp Wpe". iDestruct "Hp" as (vs) "[Hp %HEq]".
+    wp_apply (wp_resolve with "Hp"); try done.
     iApply wp_mono; last done. iIntros (v0) "H". iIntros (pvs ->) "Hp".
     by iApply "H".
   Qed.

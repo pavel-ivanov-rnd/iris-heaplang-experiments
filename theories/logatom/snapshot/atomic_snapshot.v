@@ -5,6 +5,7 @@ From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.
 From iris.heap_lang Require Import proofmode notation par.
 From iris_examples.logatom.snapshot Require Import spec.
+From iris_string_ident Require ltac2_string_ident.
 Set Default Proof Using "Type".
 
 (** Specifying snapshots with histories
@@ -341,8 +342,7 @@ Section atomic_snapshot.
       (* duplicate timestamp T_y *)
       iMod (timestamp_dupl with "Ht_y") as "[Ht_y● Ht_y◯]".
       (* show that T_x <= T_y *)
-      iDestruct (timestamp_sub with "[Ht_y● Ht_x1◯]") as "#Hs"; first by iFrame.
-      iDestruct "Hs" as %Hs.
+      iDestruct (timestamp_sub with "[Ht_y● Ht_x1◯]") as "%Hs"; first by iFrame.
       iModIntro. iModIntro.
       (* closing invariant *)
       iSplitR "HΦ Hl1' Ht_x1◯ Ht_y◯ Hpr".
@@ -356,8 +356,7 @@ Section atomic_snapshot.
       iDestruct "Hl1'_x2" as "[Hl1'_x2 Hl1'_x2_frag]".
       wp_load.
       (* show that T_y <= T_x2 *)
-      iDestruct (timestamp_sub with "[Ht_x2 Ht_y◯]") as "#Hs'"; first by iFrame.
-      iDestruct "Hs'" as %Hs'.
+      iDestruct (timestamp_sub with "[Ht_x2 Ht_y◯]") as "%Hs'"; first by iFrame.
       iModIntro. iSplitR "HΦ Hl1'_x2_frag Hpr". {
         iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }

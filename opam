@@ -11,6 +11,7 @@ synopsis: "A collection of case studies for Iris"
 depends: [
   "coq-iris" { (= "dev.2020-04-07.7.64bed0ca") | (= "dev") }
   "coq-autosubst" { = "dev.coq86" }
+  "coq-iris-string-ident"
 ]
 
 build: [make "-j%{jobs}%"]

@@ -4,6 +4,7 @@ From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.rdcss Require Import spec.
+From iris_string_ident Require ltac2_string_ident.
 Import uPred bi List Decidable.
 Set Default Proof Using "Type".
 
@@ -439,8 +440,8 @@ Section rdcss.
         wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
         iIntros (vs'' ->). simpl.
         iDestruct "State" as "[Pending | Accepted]".
-        + iDestruct "Pending" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
-        + iDestruct "Accepted" as "[_ [_ Hvs]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
+        + iDestruct "Pending" as "[_ [%Hvs _]]". by inversion Hvs.
+        + iDestruct "Accepted" as "[_ [_ %Hvs]]". by inversion Hvs.
     }
     (* So, we know our protocol is [Done]. *)
     (* It must be that (state_to_val s) ≠ (InjRV l_descr) because we are in the failing thread. *)
