@@ -172,7 +172,7 @@ Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
 Proof. solve_inG. Qed.
 
 Section rdcss.
-  Context {Σ} `{!heapG Σ, !rdcssG Σ, !gcG Σ }.
+  Context {Σ} `{!heapG Σ, !rdcssG Σ, !inv_heapG loc val  Σ }.
   Context (N : namespace).
 
   Implicit Types γ_n γ_a γ_t γ_s : gname.
@@ -287,8 +287,8 @@ Section rdcss.
   Local Hint Extern 0 (environments.envs_entails _ (descr_inv _ _ _ _ _ _ _ _ _ _)) => unfold descr_inv : core.
 
   Definition pau P Q l_n l_m m1 n1 n2 :=
-    (▷ P -∗ ◇ AU << ∀ (m n : val), (gc_mapsto l_m m) ∗ rdcss_state l_n n >> @ (⊤∖↑N)∖↑gcN, ∅
-                 << (gc_mapsto l_m m) ∗ (rdcss_state l_n (if (decide ((m = m1) ∧ (n = n1))) then n2 else n)),
+    (▷ P -∗ ◇ AU << ∀ (m n : val), (l_m ↦_(λ _, True) m) ∗ rdcss_state l_n n >> @ (⊤∖↑N)∖↑inv_heapN, ∅
+                 << (l_m ↦_(λ _, True) m) ∗ (rdcss_state l_n (if (decide ((m = m1) ∧ (n = n1))) then n2 else n)),
                     COMM Q n >>)%I.
 
   Definition rdcss_inv l_n :=
@@ -314,13 +314,13 @@ Section rdcss.
              ⌜val_is_unboxed m1⌝ ∗
              l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗
              inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_winner γ_t γ_s γ_a) ∗
-             □ pau P Q l_n l_m m1 n1 n2 ∗ is_gc_loc l_m
+             □ pau P Q l_n l_m m1 n1 n2 ∗ l_m ↦□ (λ _, True)
        end)%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _)) => unfold rdcss_inv : core.
 
   Definition is_rdcss (l_n : loc) :=
-    (inv rdcssN (rdcss_inv l_n) ∧ gc_inv ∧ ⌜N ## gcN⌝)%I.
+    (inv rdcssN (rdcss_inv l_n) ∧ inv_heap_inv loc val ∧ ⌜N ## inv_heapN⌝)%I.
 
   Global Instance is_rdcss_persistent l_n : Persistent (is_rdcss l_n) := _.
 
@@ -481,12 +481,12 @@ Section rdcss.
      as a precondition. *)
   Lemma complete_spec l_n l_m l_descr (m1 n1 n2 : val) p γ_t γ_s γ_a tid_ghost_inv P Q q :
     val_is_unboxed m1 →
-    N ## gcN →
+    N ## inv_heapN →
     inv rdcssN (rdcss_inv l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_inv γ_t γ_s γ_a) -∗
     □ pau P Q l_n l_m m1 n1 n2 -∗
-    is_gc_loc l_m -∗
-    gc_inv -∗
+    l_m ↦□ (λ _, True) -∗
+    inv_heap_inv loc val -∗
     {{{ l_descr ↦{q} (#l_m, m1, n1, n2, #p) }}}
        complete #l_descr #l_n
     {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷(Q n1)) }}}.
@@ -505,7 +505,7 @@ Section rdcss.
       + (* Pending: update to accepted *)
         iDestruct "Pending" as "[P >(Hvs & Hn● & Token_a)]".
         iDestruct ("PAU" with "P") as ">AU".
-        iMod (gc_access with "InvGC") as "Hgc"; first solve_ndisj.
+        iMod (inv_mapsto_own_acc_strong with "InvGC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync B location l_n and A location l_m *)
         iMod "AU" as (m' n') "[CC [_ Hclose]]".
         iDestruct "CC" as "[Hgc_lm Hn◯]".
@@ -514,11 +514,11 @@ Section rdcss.
         iMod (update_value _ _ _ (if decide (m' = m1 ∧ n' = n') then n2 else n') with "Hn● Hn◯")
           as "[Hn● Hn◯]".
         (* get access to A location *)
-        iDestruct ("Hgc" with "Hgc_lm") as "[Hl Hgc_close]".
+        iDestruct ("Hgc" with "Hgc_lm") as "(_ & Hl & Hgc_close)".
         (* read A location *)
         wp_load.
         (* sync A location *)
-        iMod ("Hgc_close" with "Hl") as "[Hgc_lm Hgc_close]".
+        iMod ("Hgc_close" with "[//] Hl") as "[Hgc_lm Hgc_close]".
         (* give back access to A location *)
         iMod ("Hclose" with "[Hn◯ $Hgc_lm]") as "Q"; first done.
         iModIntro. iMod "Hgc_close" as "_".
@@ -544,7 +544,7 @@ Section rdcss.
         by iDestruct (proph_exclusive with "Htid_ghost Htid_ghost_inv") as %?.
     - (* we are the failing thread *)
       (* close invariant *)
-      iMod (is_gc_access with "InvGC isGC") as (v) "[Hlm Hclose]"; first solve_ndisj.
+      iMod (inv_mapsto_acc with "InvGC isGC") as (v) "(_ & Hlm & Hclose)"; first solve_ndisj.
       wp_load.
       iMod ("Hclose" with "Hlm") as "_". iModIntro.
       iModIntro.
@@ -562,9 +562,9 @@ Section rdcss.
     val_is_unboxed m1 →
     val_is_unboxed (InjLV n1) →
     is_rdcss l_n -∗
-    <<< ∀ (m n: val), gc_mapsto l_m m ∗ rdcss_state l_n n >>>
-        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑gcN)
-    <<< gc_mapsto l_m m ∗ rdcss_state l_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>.
+    <<< ∀ (m n: val), l_m ↦_(λ _, True) m ∗ rdcss_state l_n n >>>
+        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑inv_heapN)
+    <<< l_m ↦_(λ _, True) m ∗ rdcss_state l_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>.
   Proof.
     iIntros (Hm1_unbox Hn1_unbox) "(#InvR & #InvGC & %)". iIntros (Φ) "AU".
     (* allocate fresh descriptor *)
@@ -586,7 +586,7 @@ Section rdcss.
         wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
         iMod "AU" as (b' n') "[[Hf CC] [Hclose _]]".
-        iDestruct (gc_is_gc with "Hf") as "#Hgc".
+        iDestruct (inv_mapsto_own_inv with "Hf") as "#Hgc".
         iMod ("Hclose" with "[Hf CC]") as "AU"; first by iFrame.
         (* Initialize new [descr] protocol .*)
         iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
@@ -638,7 +638,7 @@ Section rdcss.
 
   (** ** Proof of [new_rdcss] *)
   Lemma new_rdcss_spec (n : val) :
-    N ## gcN → gc_inv -∗
+    N ## inv_heapN → inv_heap_inv loc val -∗
     {{{ True }}}
         new_rdcss n
     {{{ l_n, RET #l_n ; is_rdcss l_n ∗ rdcss_state l_n n }}}.
@@ -685,7 +685,7 @@ Section rdcss.
 
 End rdcss.
 
-Definition atomic_rdcss `{!heapG Σ, !rdcssG Σ, !gcG Σ} :
+Definition atomic_rdcss `{!heapG Σ, !rdcssG Σ, !inv_heapG loc val Σ} :
   spec.atomic_rdcss Σ :=
   {| spec.new_rdcss_spec := new_rdcss_spec;
      spec.rdcss_spec := rdcss_spec;

@@ -1,11 +1,11 @@
 From stdpp Require Import namespaces.
-From iris.heap_lang Require Export lifting notation.
+From iris.base_logic.lib Require Export gen_inv_heap.
 From iris.program_logic Require Export atomic.
-From iris_examples.logatom.lib Require Export gc.
+From iris.heap_lang Require Export lifting notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for conditional increment. *)
-Record atomic_cinc {Σ} `{!heapG Σ, !gcG Σ} := AtomicCinc {
+Record atomic_cinc {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicCinc {
   (* -- operations -- *)
   new_counter : val;
   cinc : val;
@@ -24,20 +24,20 @@ Record atomic_cinc {Σ} `{!heapG Σ, !gcG Σ} := AtomicCinc {
     counter_content γs c1 -∗ counter_content γs c2 -∗ False;
   (* -- operation specs -- *)
   new_counter_spec N :
-    N ## gcN →
-    gc_inv -∗
+    N ## inv_heapN →
+    inv_heap_inv loc val -∗
     {{{ True }}}
         new_counter #()
     {{{ ctr γs, RET ctr ; is_counter N γs ctr ∗ counter_content γs 0 }}};
   cinc_spec N γs v (f : loc) :
     is_counter N γs v -∗
-    <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ gc_mapsto f #b >>>
-        cinc v #f @⊤∖↑N∖↑gcN
-    <<< counter_content γs (if b then n + 1 else n) ∗ gc_mapsto f #b, RET #() >>>;
+    <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >>>
+        cinc v #f @⊤∖↑N∖↑inv_heapN
+    <<< counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, RET #() >>>;
   get_spec N γs v:
     is_counter N γs v -∗
     <<< ∀ (n : Z), counter_content γs n >>>
-        get v @⊤∖↑N∖↑gcN
+        get v @⊤∖↑N∖↑inv_heapN
     <<< counter_content γs n, RET #n >>>;
 }.
 Arguments atomic_cinc _ {_ _}.

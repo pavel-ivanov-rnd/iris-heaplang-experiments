@@ -102,7 +102,7 @@ Instance subG_cincΣ {Σ} : subG cincΣ Σ → cincG Σ.
 Proof. solve_inG. Qed.
 
 Section conditional_counter.
-  Context {Σ} `{!heapG Σ, !gcG Σ, !cincG Σ}.
+  Context {Σ} `{!heapG Σ, !inv_heapG loc val Σ, !cincG Σ}.
   Context (N : namespace).
 
   Local Definition stateN   := N .@ "state".
@@ -185,8 +185,8 @@ Section conditional_counter.
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state Q l l_ghost_winner γ_t))%I.
 
   Definition pau P Q γs f :=
-    (▷ P -∗ ◇ AU << ∀ (b : bool) (n : Z), counter_content γs n ∗ gc_mapsto f #b >> @ ⊤∖↑N∖↑gcN, ∅
-                 << counter_content γs (if b then n + 1 else n) ∗ gc_mapsto f #b, COMM Q >>)%I.
+    (▷ P -∗ ◇ AU << ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >> @ ⊤∖↑N∖↑inv_heapN, ∅
+                 << counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, COMM Q >>)%I.
 
   Definition counter_inv γ_n c :=
     (∃ (l : loc) (q : Qp) (s : abstract_state),
@@ -202,13 +202,13 @@ Section conditional_counter.
                to get out the [Q] in the end.
              - [γ_s] reflects whether the protocol is [done] yet or not. *)
              inv stateN (state_inv P Q p n c l l_ghost_winner γ_n γ_t γ_s) ∗
-             □ pau P Q γ_n f ∗ is_gc_loc f
+             □ pau P Q γ_n f ∗ f ↦□ (λ _, True)
        end)%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (counter_inv _ _)) => unfold counter_inv : core.
 
   Definition is_counter (γ_n : gname) (ctr : val) :=
-    (∃ (c : loc), ⌜ctr = #c ∧ N ## gcN⌝ ∗ gc_inv ∗ inv counterN (counter_inv γ_n c))%I.
+    (∃ (c : loc), ⌜ctr = #c ∧ N ## inv_heapN⌝ ∗ inv_heap_inv loc val ∗ inv counterN (counter_inv γ_n c))%I.
 
   Global Instance is_counter_persistent γs ctr : Persistent (is_counter γs ctr) := _.
 
@@ -354,12 +354,12 @@ Section conditional_counter.
      thread's requests, which is why we cannot ask for the token
      as a precondition. *)
   Lemma complete_spec (c f l : loc) (n : Z) (p : proph_id) γ_n γ_t γ_s l_ghost_inv P Q :
-    N ## gcN →
-    gc_inv -∗
+    N ## inv_heapN →
+    inv_heap_inv loc val -∗
     inv counterN (counter_inv γ_n c) -∗
     inv stateN (state_inv P Q p n c l l_ghost_inv γ_n γ_t γ_s) -∗
     □ pau P Q γ_n f -∗
-    is_gc_loc f -∗
+    f ↦□ (λ _, True) -∗
     {{{ True }}}
        complete #c #f #l #n #p
     {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷Q) }}}.
@@ -378,12 +378,12 @@ Section conditional_counter.
       + (* Pending: update to accepted *)
         iDestruct "Pending" as "[P >[Hvs Hn●]]".
         iDestruct ("PAU" with "P") as ">AU".
-        iMod (gc_access with "GC") as "Hgc"; first solve_ndisj.
+        iMod (inv_mapsto_own_acc_strong with "GC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync flag and counter *)
         iMod "AU" as (b n2) "[[Hn◯ Hf] [_ Hclose]]".
-        iDestruct ("Hgc" with "Hf") as "[Hf Hfclose]".
+        iDestruct ("Hgc" with "Hf") as "(_ & Hf & Hfclose)".
         wp_load.
-        iMod ("Hfclose" with "Hf") as "[Hf Hfclose]".
+        iMod ("Hfclose" with "[//] Hf") as "[Hf Hfclose]".
         iDestruct (sync_counter_values with "Hn● Hn◯") as %->.
         iMod (update_counter_value _ _ _ (if b then n2 + 1 else n2) with "Hn● Hn◯")
           as "[Hn● Hn◯]".
@@ -412,7 +412,7 @@ Section conditional_counter.
         iCombine "Hl_ghost'" "Hl_ghost'2" as "Hl_ghost'".
         by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %?.
     - (* we are the failing thread. exploit that [f] is a GC location. *)
-      iMod (is_gc_access with "GC isGC") as (b) "[H↦ Hclose]"; first solve_ndisj.
+      iMod (inv_mapsto_acc with "GC isGC") as (b) "(_ & H↦ & Hclose)"; first solve_ndisj.
       wp_load.
       iMod ("Hclose" with "H↦") as "_". iModIntro.
       (* close invariant *)
@@ -429,9 +429,9 @@ Section conditional_counter.
 
   Lemma cinc_spec γs v (f: loc) :
     is_counter γs v -∗
-    <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ gc_mapsto f #b >>>
-        cinc v #f @⊤∖↑N∖↑gcN
-    <<< counter_content γs (if b then n + 1 else n) ∗ gc_mapsto f #b, RET #() >>>.
+    <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >>>
+        cinc v #f @⊤∖↑N∖↑inv_heapN
+    <<< counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, RET #() >>>.
   Proof.
     iIntros "#InvC". iDestruct "InvC" as (c_l [-> ?]) "[#GC #InvC]".
     iIntros (Φ) "AU". iLöb as "IH".
@@ -454,7 +454,7 @@ Section conditional_counter.
         wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
         iMod "AU" as (b' n') "[[CC Hf] [Hclose _]]".
-        iDestruct (gc_is_gc with "Hf") as "#Hgc".
+        iDestruct (inv_mapsto_own_inv with "Hf") as "#Hgc".
         iMod ("Hclose" with "[CC Hf]") as "AU"; first by iFrame.
         (* Initialize new [state] protocol .*)
         iDestruct (laterable with "AU") as (AU_later) "[AU #AU_back]".
@@ -490,8 +490,8 @@ Section conditional_counter.
   Qed.
 
   Lemma new_counter_spec :
-    N ## gcN →
-    gc_inv -∗
+    N ## inv_heapN →
+    inv_heap_inv loc val -∗
     {{{ True }}}
         new_counter #()
     {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs 0 }}}.
@@ -514,7 +514,7 @@ Section conditional_counter.
   Lemma get_spec γs v :
     is_counter γs v -∗
     <<< ∀ (n : Z), counter_content γs n >>>
-        get v @⊤∖↑N∖↑gcN
+        get v @⊤∖↑N∖↑inv_heapN
     <<< counter_content γs n, RET #n >>>.
   Proof.
     iIntros "#InvC" (Φ) "AU". iDestruct "InvC" as (c_l [-> ?]) "[GC InvC]".
@@ -541,7 +541,7 @@ Section conditional_counter.
 
 End conditional_counter.
 
-Definition atomic_cinc `{!heapG Σ, !cincG Σ, !gcG Σ} :
+Definition atomic_cinc `{!heapG Σ, !cincG Σ, !inv_heapG loc val Σ} :
   spec.atomic_cinc Σ :=
   {| spec.new_counter_spec := new_counter_spec;
      spec.cinc_spec := cinc_spec;

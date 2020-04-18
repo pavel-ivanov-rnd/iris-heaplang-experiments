@@ -1,7 +1,7 @@
 From stdpp Require Import namespaces.
-From iris.heap_lang Require Export lifting notation.
+From iris.base_logic.lib Require Export gen_inv_heap.
 From iris.program_logic Require Export atomic.
-From iris_examples.logatom.lib Require Export gc.
+From iris.heap_lang Require Export lifting notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for RDCSS.
@@ -12,7 +12,7 @@ as given by [rdcss_spec] relies on the [gc_mapsto l_m m] assertion. It roughly
 corresponds to the usual [l_m ↦ m] but with an additional guarantee that [l_m]
 will not be deallocated. This guarantees that unique immutable descriptors can
 be associated to each operation, and that they cannot be "reused". *)
-Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
+Record atomic_rdcss {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicRdcss {
   (* -- operations -- *)
   new_rdcss : val;
   rdcss: val;
@@ -27,7 +27,7 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
     rdcss_state N l_n n1 -∗ rdcss_state N l_n n2 -∗ False;
   (* -- operation specs -- *)
   new_rdcss_spec N (n : val):
-    N ## gcN → gc_inv -∗
+    N ## inv_heapN → inv_heap_inv loc val -∗
     {{{ True }}}
         new_rdcss n
     {{{ l_n, RET #l_n ; is_rdcss N l_n ∗ rdcss_state N l_n n }}};
@@ -35,9 +35,9 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !gcG Σ} := AtomicRdcss {
     val_is_unboxed m1 →
     val_is_unboxed (InjLV n1) →
     is_rdcss N l_n -∗
-    <<< ∀ (m n: val), gc_mapsto l_m m ∗ rdcss_state N l_n n >>>
-        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑gcN)
-    <<< gc_mapsto l_m m ∗ rdcss_state N l_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>;
+    <<< ∀ (m n: val), l_m ↦_(λ _, True) m ∗ rdcss_state N l_n n >>>
+        rdcss #l_m #l_n m1 n1 n2 @((⊤∖↑N)∖↑inv_heapN)
+    <<< l_m ↦_(λ _, True) m ∗ rdcss_state N l_n (if decide (m = m1 ∧ n = n1) then n2 else n), RET n >>>;
   get_spec N (l_n : loc):
     is_rdcss N l_n -∗
     <<< ∀ (n : val), rdcss_state N l_n n >>>
