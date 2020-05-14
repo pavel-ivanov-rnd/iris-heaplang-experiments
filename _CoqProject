@@ -108,3 +108,5 @@ theories/proph/lazy_coin_one_shot_typed.v
 theories/proph/clairvoyant_coin_spec.v
 theories/proph/clairvoyant_coin.v
 theories/proph/clairvoyant_coin_typed.v
+
+theories/array_based_queuing_lock/abql.v

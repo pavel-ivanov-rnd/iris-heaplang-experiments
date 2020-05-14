@@ -71,6 +71,10 @@ This repository contains the following case studies:
 * [hocap](theories/hocap): Formalizations of the concurrent bag and concurrent
   runners libraries from the [HOCAP paper](https://dl.acm.org/citation.cfm?id=2450283)
   (by Dan Frumin). See the associated [README](theories/hocap/README.md).
+* [array-based_queuing-lock](/theories/array_based_queuing_lock): Proof of
+  safety of an implementation of the array-based queuing lock. This example is
+  also covered in the chapter "Case study: The Array-Based Queueing Lock" in the
+  Iris lecture notes.
 
 ## For Developers: How to update the Iris dependency
 
