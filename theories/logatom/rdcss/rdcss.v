@@ -172,7 +172,7 @@ Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
 Proof. solve_inG. Qed.
 
 Section rdcss.
-  Context {Σ} `{!heapG Σ, !rdcssG Σ, !inv_heapG loc val  Σ }.
+  Context {Σ} `{!heapG Σ, !rdcssG Σ}.
   Context (N : namespace).
 
   Implicit Types γ_n γ_a γ_t γ_s : gname.
@@ -320,7 +320,7 @@ Section rdcss.
   Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _)) => unfold rdcss_inv : core.
 
   Definition is_rdcss (l_n : loc) :=
-    (inv rdcssN (rdcss_inv l_n) ∧ inv_heap_inv loc val ∧ ⌜N ## inv_heapN⌝)%I.
+    (inv rdcssN (rdcss_inv l_n) ∧ inv_heap_inv ∧ ⌜N ## inv_heapN⌝)%I.
 
   Global Instance is_rdcss_persistent l_n : Persistent (is_rdcss l_n) := _.
 
@@ -486,7 +486,7 @@ Section rdcss.
     inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_inv γ_t γ_s γ_a) -∗
     □ pau P Q l_n l_m m1 n1 n2 -∗
     l_m ↦□ (λ _, True) -∗
-    inv_heap_inv loc val -∗
+    inv_heap_inv -∗
     {{{ l_descr ↦{q} (#l_m, m1, n1, n2, #p) }}}
        complete #l_descr #l_n
     {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷(Q n1)) }}}.
@@ -638,7 +638,7 @@ Section rdcss.
 
   (** ** Proof of [new_rdcss] *)
   Lemma new_rdcss_spec (n : val) :
-    N ## inv_heapN → inv_heap_inv loc val -∗
+    N ## inv_heapN → inv_heap_inv -∗
     {{{ True }}}
         new_rdcss n
     {{{ l_n, RET #l_n ; is_rdcss l_n ∗ rdcss_state l_n n }}}.
@@ -685,7 +685,7 @@ Section rdcss.
 
 End rdcss.
 
-Definition atomic_rdcss `{!heapG Σ, !rdcssG Σ, !inv_heapG loc val Σ} :
+Definition atomic_rdcss `{!heapG Σ, !rdcssG Σ} :
   spec.atomic_rdcss Σ :=
   {| spec.new_rdcss_spec := new_rdcss_spec;
      spec.rdcss_spec := rdcss_spec;

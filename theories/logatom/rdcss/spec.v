@@ -12,7 +12,7 @@ as given by [rdcss_spec] relies on the [gc_mapsto l_m m] assertion. It roughly
 corresponds to the usual [l_m ↦ m] but with an additional guarantee that [l_m]
 will not be deallocated. This guarantees that unique immutable descriptors can
 be associated to each operation, and that they cannot be "reused". *)
-Record atomic_rdcss {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicRdcss {
+Record atomic_rdcss {Σ} `{!heapG Σ} := AtomicRdcss {
   (* -- operations -- *)
   new_rdcss : val;
   rdcss: val;
@@ -27,7 +27,7 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicRdcss {
     rdcss_state N l_n n1 -∗ rdcss_state N l_n n2 -∗ False;
   (* -- operation specs -- *)
   new_rdcss_spec N (n : val):
-    N ## inv_heapN → inv_heap_inv loc val -∗
+    N ## inv_heapN → inv_heap_inv -∗
     {{{ True }}}
         new_rdcss n
     {{{ l_n, RET #l_n ; is_rdcss N l_n ∗ rdcss_state N l_n n }}};
@@ -44,6 +44,6 @@ Record atomic_rdcss {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicRdcss {
         get #l_n @(⊤∖↑N)
     <<< rdcss_state N l_n n, RET n >>>;
 }.
-Arguments atomic_rdcss _ {_} {_}.
+Arguments atomic_rdcss _ {_}.
 
 Existing Instances is_rdcss_persistent rdcss_state_timeless.

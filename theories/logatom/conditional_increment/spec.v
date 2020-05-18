@@ -5,7 +5,7 @@ From iris.heap_lang Require Export lifting notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for conditional increment. *)
-Record atomic_cinc {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicCinc {
+Record atomic_cinc {Σ} `{!heapG Σ} := AtomicCinc {
   (* -- operations -- *)
   new_counter : val;
   cinc : val;
@@ -25,7 +25,7 @@ Record atomic_cinc {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicCinc {
   (* -- operation specs -- *)
   new_counter_spec N :
     N ## inv_heapN →
-    inv_heap_inv loc val -∗
+    inv_heap_inv -∗
     {{{ True }}}
         new_counter #()
     {{{ ctr γs, RET ctr ; is_counter N γs ctr ∗ counter_content γs 0 }}};
@@ -40,7 +40,7 @@ Record atomic_cinc {Σ} `{!heapG Σ, !inv_heapG loc val Σ} := AtomicCinc {
         get v @⊤∖↑N∖↑inv_heapN
     <<< counter_content γs n, RET #n >>>;
 }.
-Arguments atomic_cinc _ {_ _}.
+Arguments atomic_cinc _ {_}.
 
 Existing Instances
   is_counter_persistent counter_content_timeless

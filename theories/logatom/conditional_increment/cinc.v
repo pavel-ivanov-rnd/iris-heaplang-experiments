@@ -102,7 +102,7 @@ Instance subG_cincΣ {Σ} : subG cincΣ Σ → cincG Σ.
 Proof. solve_inG. Qed.
 
 Section conditional_counter.
-  Context {Σ} `{!heapG Σ, !inv_heapG loc val Σ, !cincG Σ}.
+  Context {Σ} `{!heapG Σ, !cincG Σ}.
   Context (N : namespace).
 
   Local Definition stateN   := N .@ "state".
@@ -208,7 +208,7 @@ Section conditional_counter.
   Local Hint Extern 0 (environments.envs_entails _ (counter_inv _ _)) => unfold counter_inv : core.
 
   Definition is_counter (γ_n : gname) (ctr : val) :=
-    (∃ (c : loc), ⌜ctr = #c ∧ N ## inv_heapN⌝ ∗ inv_heap_inv loc val ∗ inv counterN (counter_inv γ_n c))%I.
+    (∃ (c : loc), ⌜ctr = #c ∧ N ## inv_heapN⌝ ∗ inv_heap_inv ∗ inv counterN (counter_inv γ_n c))%I.
 
   Global Instance is_counter_persistent γs ctr : Persistent (is_counter γs ctr) := _.
 
@@ -355,7 +355,7 @@ Section conditional_counter.
      as a precondition. *)
   Lemma complete_spec (c f l : loc) (n : Z) (p : proph_id) γ_n γ_t γ_s l_ghost_inv P Q :
     N ## inv_heapN →
-    inv_heap_inv loc val -∗
+    inv_heap_inv -∗
     inv counterN (counter_inv γ_n c) -∗
     inv stateN (state_inv P Q p n c l l_ghost_inv γ_n γ_t γ_s) -∗
     □ pau P Q γ_n f -∗
@@ -491,7 +491,7 @@ Section conditional_counter.
 
   Lemma new_counter_spec :
     N ## inv_heapN →
-    inv_heap_inv loc val -∗
+    inv_heap_inv -∗
     {{{ True }}}
         new_counter #()
     {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs 0 }}}.
@@ -541,7 +541,7 @@ Section conditional_counter.
 
 End conditional_counter.
 
-Definition atomic_cinc `{!heapG Σ, !cincG Σ, !inv_heapG loc val Σ} :
+Definition atomic_cinc `{!heapG Σ, !cincG Σ} :
   spec.atomic_cinc Σ :=
   {| spec.new_counter_spec := new_counter_spec;
      spec.cinc_spec := cinc_spec;
