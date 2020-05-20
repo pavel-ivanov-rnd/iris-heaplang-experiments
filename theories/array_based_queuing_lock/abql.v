@@ -79,14 +79,10 @@ Section algebra.
   (* We need these auxiliary lemmas in the proof below.
      We need the type annotation to guide the type inference. *)
   Lemma sumRA_op_second a b n: ((a, n) : sumRAT) ⋅ ((b, n) : sumRAT) = (((a + b)%nat, n) : sumRAT).
-  Proof.
-    unfold op. unfold sumRAop. rewrite Nat.min_id. reflexivity.
-  Qed.
+  Proof. by rewrite /op /sumRAop Nat.min_id. Qed.
 
   Lemma sumRA_op a b n m: ((a, n) : sumRAT) ⋅ ((b, m) : sumRAT) = ((a + b, n `min` m)%nat : sumRAT).
-  Proof.
-    unfold op. unfold sumRAop. reflexivity.
-  Qed.
+  Proof. by rewrite /op /sumRAop. Qed.
 
   (* If (a, n) is valid ghost state then we can conclude that a ≤ n *)
   Lemma sumRA_valid (a n : nat): ✓((a, n) : sumRAT) ↔ (a ≤ n)%nat.
@@ -110,7 +106,7 @@ Section algebra.
     - rewrite /pcore /sumRACore. intros x y z _ H. inversion H.
     - intros [n c] [n' c'].
       repeat rewrite sumRA_op. intros V%Nat.min_glb_iff.
-      apply sumRA_valid. omega.
+      apply sumRA_valid. lia.
   Qed.
 
   Canonical Structure sumRA := discreteR sumRAT sumRA_mixin.
@@ -139,7 +135,7 @@ Section array_model.
     <[index:=true]> (replicate length false).
 
   Lemma wp_load_offset_len s E l off vs :
-    (off < length vs)%nat ->
+    (off < length vs)%nat →
     {{{ ▷ l ↦∗ vs }}} ! #(l +ₗ off) @ s; E {{{ v, RET v; ⌜vs !! off = Some v⌝ ∗ l ↦∗ vs }}}.
   Proof.
     iIntros (Hlen Φ) "Hl HΦ".
@@ -153,7 +149,7 @@ Section array_model.
   Qed.
 
   Lemma wp_store_offset_len s E l (off : nat) vs (v : val) :
-    (off < length vs)%nat ->
+    (off < length vs)%nat →
     {{{ ▷ l ↦∗ vs }}} #(l +ₗ off) <- v @ s; E {{{ RET #(); l ↦∗ <[off:=v]> vs }}}.
   Proof.
     iIntros (Hlen Φ) ">Hl HΦ".
@@ -171,7 +167,7 @@ Section array_model.
     unfold is_array.
     iApply (wp_store_offset_len with "isArr").
     { rewrite fmap_length. assumption. }
-    rewrite (list_fmap_insert ((λ b : bool, #b) : bool -> val) xs i v).
+    rewrite (list_fmap_insert ((λ b : bool, #b) : bool → val) xs i v).
     iAssumption.
   Qed.
 
@@ -224,11 +220,11 @@ Section abql_model.
 
   Context `{!heapG Σ, !alockG Σ, !sumG Σ, !atokenG Σ}.
 
-  Definition both (κ : gname) : iProp Σ := (own κ (Excl' 1%nat, Excl' 1%nat)).
+  Definition both (κ : gname) : iProp Σ := own κ (Excl' 1%nat, Excl' 1%nat).
 
-  Definition left (κ : gname) : iProp Σ := (own κ (Excl' 1%nat, None)).
+  Definition left (κ : gname) : iProp Σ := own κ (Excl' 1%nat, None).
 
-  Definition right (κ : gname) : iProp Σ := (own κ (None, Excl' 1%nat)).
+  Definition right (κ : gname) : iProp Σ := own κ (None, Excl' 1%nat).
 
   Definition invitation (ι : gname) (x : nat) (cap : nat) : iProp Σ :=
     own ι ((x, cap) : sumRA)%I.
@@ -241,9 +237,9 @@ Section abql_model.
   (* The lock invariant *)
   Definition lock_inv (γ ι κ : gname) (arr : loc) (cap : nat) (nextPtr : loc) (R : iProp Σ) : iProp Σ :=
     (∃ (o i : nat) (xs : list bool), (* o: who may acquire the lock, i: nr of invitations in lock *)
+        ⌜length xs = cap⌝ ∗
         nextPtr ↦ #(o + i)%nat ∗
         is_array arr xs ∗
-        ⌜length xs = cap⌝ ∗
         invitation ι i cap ∗ (* The invitations currently owned by the lock. *)
         own γ (● (Excl' o, GSet (set_seq o i))) ∗
         ((own γ (◯ (Excl' o, GSet ∅)) ∗ R ∗ both κ ∗ ⌜xs = list_with_one cap (Nat.modulo o cap)⌝) ∨
@@ -267,7 +263,7 @@ End abql_model.
 
 Section abql_spec.
 
-  Context `{!heapG Σ, !alockG Σ, !sumG Σ, !atokenG Σ} (N : namespace).
+  Context `{!heapG Σ, !alockG Σ, !sumG Σ, !atokenG Σ}.
 
   Global Instance is_lock_persistent γ ι κ lk n R : Persistent (is_lock γ ι κ lk n R).
   Proof. apply _. Qed.
@@ -344,10 +340,10 @@ Section abql_spec.
   Qed.
 
   Lemma invitation_split γ (i cap : nat) :
-    ⌜0 < i⌝ -∗ invitation γ i cap -∗ invitation γ 1 cap ∗ invitation γ (i - 1) cap.
+    0 < i → invitation γ i cap -∗ invitation γ 1 cap ∗ invitation γ (i - 1) cap.
   Proof.
-    iIntros "% I".
-    iDestruct (own_valid with "I") as %H.
+    iIntros (Hl) "I".
+    iDestruct (own_valid with "I") as %Hv.
     rewrite -own_op (comm op) sumRA_op_second.
     rewrite Nat.sub_add; auto; lia.
   Qed.
@@ -377,22 +373,24 @@ Section abql_spec.
     { iNext. rewrite /lock_inv. iExists 0%nat, 0%nat, (<[0%nat:=true]> (replicate cap false)).
       iFrame. iSplitR.
       - rewrite insert_length. rewrite replicate_length. done.
-      - iLeft. iFrame. rewrite Nat.mod_0_l. done. omega. }
+      - iLeft. iFrame. rewrite Nat.mod_0_l. done. lia. }
     wp_pures.
     iApply "Post".
     rewrite /is_lock. iFrame.
     iExists _, _. auto.
   Qed.
 
-  Lemma rem_mod_eq (x y : nat) : (0 < y)%nat -> x `rem` y = (x `mod` y)%nat.
+  Lemma rem_mod_eq (x y : nat) : (0 < y)%nat → x `rem` y = (x `mod` y)%nat.
   Proof.
-    intros Hpos. rewrite Z2Nat_inj_mod Z.rem_mod_nonneg; omega.
+    intros Hpos.
+    Check Z.rem_mod_nonneg.
+     rewrite Z.rem_mod_nonneg. rewrite mod_Zmod. reflexivity. lia. lia. lia.
   Qed.
 
-  Lemma minus_plus_eq a b c : a - b = c -> a = c + b.
-  Proof. omega. Qed.
+  Lemma minus_plus_eq a b c : a - b = c → a = c + b.
+  Proof. lia. Qed.
 
-  Lemma mod_fact_Z t o cap : 0 < cap -> o <= t -> t < o + cap -> t `mod` cap = o `mod` cap -> t = o.
+  Lemma mod_fact_Z t o cap : 0 < cap → o <= t → t < o + cap → t `mod` cap = o `mod` cap → t = o.
   Proof.
     intros LeqCap SLeqX XLeqSCap ModEq.
     apply Z.lt_eq_cases in SLeqX.
@@ -414,24 +412,24 @@ Section abql_spec.
     rewrite <- Z.add_assoc in XLeqSCap.
     apply Zplus_lt_reg_l in XLeqSCap.
     replace (o `div` cap * cap + cap) with ((1 + o `div` cap) * cap) in XLeqSCap.
-    - apply (Z.mul_lt_mono_pos_r _ _ _ LeqCap) in XLeqSCap. omega.
+    - apply (Z.mul_lt_mono_pos_r _ _ _ LeqCap) in XLeqSCap. lia.
     - by rewrite Z.mul_comm -Zred_factor2 Z.add_comm Z.mul_comm.
   Qed.
 
   Lemma mod_fact (t o i cap : nat) :
-    0%nat < cap -> o <= t -> t < o + i -> i <= cap
-      -> (t `mod` cap = o `mod` cap -> t = o)%nat.
+    0%nat < cap → o <= t → t < o + i → i <= cap
+      → (t `mod` cap = o `mod` cap → t = o)%nat.
   Proof.
     intros LeqCap SLeqX XLeqSi ILeqCap ModEq.
-    assert (XLeqSCap: t < o + cap). omega.
+    assert (XLeqSCap: t < o + cap). lia.
     apply inj_eq in ModEq.
-    do 2 rewrite Z2Nat_inj_mod in ModEq.
+    repeat rewrite mod_Zmod in ModEq; try lia.
     apply Nat2Z.inj.
     apply (mod_fact_Z _ _ cap LeqCap SLeqX XLeqSCap ModEq).
   Qed.
 
   Lemma nth_list_with_one (n a b : nat) :
-    (list_with_one n a) !! b = Some true -> a = b.
+    list_with_one n a !! b = Some true → a = b.
   Proof.
     rewrite /list_with_one.
     by intros [[Eq] | [_ [[=] _]%lookup_replicate_1]]%list_lookup_insert_Some.
@@ -449,10 +447,10 @@ Section abql_spec.
     iDestruct "Lock" as (arr nextPtr) "(-> & %capPos & #LockInv)".
     wp_pures.
     wp_bind (! _)%E.
-    iInv (lockN (#arr, #nextPtr, #(cap))) as (o i xs) "(>nextPts & isArr & >%lenEq & >Inv & Auth & Part)" "Close".
+    iInv (lockN (#arr, #nextPtr, #(cap))) as (o i xs) "(>%lenEq & >nextPts & isArr & >Inv & Auth & Part)" "Close".
     rewrite /is_array rem_mod_eq //.
     wp_apply (wp_load_offset_len _ _ arr _ ((fun b => # (LitBool b)) <$> xs) with "isArr").
-    { rewrite fmap_length. subst. apply Nat.mod_upper_bound. omega. }
+    { rewrite fmap_length. subst. apply Nat.mod_upper_bound. lia. }
     iIntros (v) "[%eqLookup isArr]".
     apply list_lookup_fmap_inv in eqLookup as (x & -> & xsLookup).
     destruct x.
@@ -499,7 +497,7 @@ Section abql_spec.
     iIntros (ϕ) "[#IsLock Invitation] Post".
     iPoseProof "IsLock" as (arr nextPtr) "(-> & % & LockInv)".
     wp_lam. wp_pures. wp_bind (FAA _ _).
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o i xs) "(>nextPts & psPts & >% & >Invs & >Auth & np)" "Close".
+    iInv (lockN (#arr, #nextPtr, #cap)) as (o i xs) "(>% & >nextPts & psPts & >Invs & >Auth & np)" "Close".
     wp_faa.
     iMod (own_update with "Auth") as "[Auth Hofull]".
     { eapply auth_update_alloc, prod_local_update_2.
@@ -507,9 +505,9 @@ Section abql_spec.
       apply (set_seq_S_end_disjoint o). }
     iMod ("Close" with "[-Post Hofull]") as "_".
     { iNext. rewrite /lock_inv. iExists o, (i+1)%nat, xs. iFrame.
+      iSplit; first done.
       iSplitL "nextPts".
       { repeat rewrite Nat2Z.inj_add. by rewrite Z.add_assoc. }
-      iSplit; first done.
       iSplitL "Invitation Invs".
       { rewrite /invitation -sumRA_op_second own_op. iFrame. }
       by rewrite -(set_seq_S_end_union_L) Nat.add_1_r. }
@@ -547,13 +545,13 @@ Section abql_spec.
     wp_lam. wp_pures.
     (* Focus the store such that we can open the invariant. *)
     wp_bind (_ <- _)%E.
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>nextPts & arrPts & >%lenEq & >Invs & >Auth & Part)" "Close".
+    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>%lenEq & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We want to show that o and o' are equal. We know this from the loked γ o ghost state. *)
     iDestruct (own_valid_2 with "Auth Locked") as
       %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
     rewrite rem_mod_eq //.
     iApply (array_store with "[arrPts]").
-    { iFrame. iPureIntro. rewrite lenEq. apply Nat.mod_upper_bound. omega. }
+    { iFrame. iPureIntro. rewrite lenEq. apply Nat.mod_upper_bound. lia. }
     iModIntro. iIntros "psPts".
     iDestruct "Part" as "[(Locked' & _ & Both & _) | [(_ & Right' & _) | (Issued & Left & %xsEq)]]".
     { iDestruct (know_o_exclusive with "Locked Locked'") as %[]. }
@@ -568,7 +566,7 @@ Section abql_spec.
     clear xsEq lenEq xs i.
     iModIntro. wp_pures.
     rewrite -(Nat2Z.inj_add o 1).
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>nextPts & arrPts & >% & >Invs & >Auth & Part)" "Close".
+    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>% & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We destruct the disjunction in the lock invariant. We know that we are in
        the half-locked state so the first and third case results in
        contradictions. *)
@@ -580,7 +578,7 @@ Section abql_spec.
           %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
       rewrite rem_mod_eq //.
       iApply (wp_store_offset_len with "arrPts").
-      { rewrite fmap_length. rewrite H0. apply Nat.mod_upper_bound. omega. }
+      { rewrite fmap_length. rewrite H0. apply Nat.mod_upper_bound. lia. }
       iModIntro. iIntros "isArr".
       (* Combine the left and right we have into a both. *)
       iDestruct (left_right_to_both with "Left Right") as "Both".
@@ -589,13 +587,13 @@ Section abql_spec.
       { apply frame_update_lemma_discard_ticket. }
       { rewrite own_op own_op. iFrame. }
       iDestruct "Hγ" as "[Locked Auth]".
-      iDestruct (invitation_split ι i cap with "[% //] [$Invs]") as "[Inv Invs]".
+      iDestruct (invitation_split ι i cap with "[$Invs]") as "[Inv Invs]"; first done.
       iMod ("Close" with "[nextPts Invs Auth isArr Both R Locked]") as "_".
       { iNext. iExists (o + 1)%nat, (i - 1)%nat, (list_with_one cap ((o + 1) `mod` cap)).
         assert (o + 1 + (i - 1) = o + i)%nat as -> by lia.
         iFrame.
-        iSplitL "isArr". { by rewrite /list_with_one /is_array list_fmap_insert xsEq. }
         iSplit. { by rewrite /list_with_one insert_length replicate_length. }
+        iSplitL "isArr". { by rewrite /list_with_one /is_array list_fmap_insert xsEq. }
         iLeft. iFrame. done. }
       iModIntro. iApply "Post". done.
     * iDestruct (left_left_false with "Left Left'") as "[]".

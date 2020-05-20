@@ -73,8 +73,9 @@ This repository contains the following case studies:
   (by Dan Frumin). See the associated [README](theories/hocap/README.md).
 * [array-based_queuing-lock](/theories/array_based_queuing_lock): Proof of
   safety of an implementation of the array-based queuing lock. This example is
-  also covered in the chapter "Case study: The Array-Based Queueing Lock" in the
-  Iris lecture notes.
+  also covered in the chapter ["Case study: The Array-Based Queueing
+  Lock"](https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf#section.10)
+  in the Iris lecture notes.
 
 ## For Developers: How to update the Iris dependency
 
