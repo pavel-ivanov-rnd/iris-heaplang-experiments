@@ -197,34 +197,21 @@ End array_model.
 
 (** The CMRAs we need. *)
 
-Class alockG Σ :=
-  tlock_G :> inG Σ (authR (prodUR (optionUR (exclR natO)) (gset_disjUR nat))).
-
-Definition alockΣ : gFunctors :=
-  #[ GFunctor (authR (prodUR (optionUR (exclR natO)) (gset_disjUR nat))) ].
-
-Instance subG_alockΣ Σ : subG alockΣ Σ → alockG Σ.
-Proof. solve_inG. Qed.
-
-Class atokenG Σ :=
-  ttoken_G :> inG Σ ((prodR (optionUR (exclR natO)) (optionUR (exclR natO)))).
-
-(* Instead of `natO` we could have just used `unitC` here but that did not make Coq happy. *)
-Definition atokenΣ : gFunctors :=
-  #[ GFunctor ((prodR (optionUR (exclR natO)) (optionUR (exclR natO)))) ].
-
-Instance subG_atokenΣ Σ : subG atokenΣ Σ → atokenG Σ.
-Proof. solve_inG. Qed.
+Class alockG Σ := {
+  tlock_G :> inG Σ (authR (prodUR (optionUR (exclR natO)) (gset_disjUR nat)));
+  tlock_sumG :> sumG Σ;
+  tlock_tokenG :> inG Σ ((prodR (optionUR (exclR unitO)) (optionUR (exclR unitO))));
+}.
 
 Section abql_model.
 
-  Context `{!heapG Σ, !alockG Σ, !sumG Σ, !atokenG Σ}.
+  Context `{!heapG Σ, !alockG Σ}.
 
-  Definition both (κ : gname) : iProp Σ := own κ (Excl' 1%nat, Excl' 1%nat).
+  Definition both (κ : gname) : iProp Σ := own κ (Excl' (), Excl' ()).
 
-  Definition left (κ : gname) : iProp Σ := own κ (Excl' 1%nat, None).
+  Definition left (κ : gname) : iProp Σ := own κ (Excl' (), None).
 
-  Definition right (κ : gname) : iProp Σ := own κ (None, Excl' 1%nat).
+  Definition right (κ : gname) : iProp Σ := own κ (None, Excl' ()).
 
   Definition invitation (ι : gname) (x : nat) (cap : nat) : iProp Σ :=
     own ι ((x, cap) : sumRA)%I.
@@ -263,7 +250,7 @@ End abql_model.
 
 Section abql_spec.
 
-  Context `{!heapG Σ, !alockG Σ, !sumG Σ, !atokenG Σ}.
+  Context `{!heapG Σ, !alockG Σ}.
 
   Global Instance is_lock_persistent γ ι κ lk n R : Persistent (is_lock γ ι κ lk n R).
   Proof. apply _. Qed.
@@ -367,7 +354,7 @@ Section abql_spec.
     iMod (own_alloc (((cap, cap) : sumRA) ⋅ (0%nat, cap))) as (ι) "[Hinvites HNoInvites]".
     { rewrite sumRA_op_second Nat.add_0_r. apply (sumRA_valid cap cap). auto. }
     (* We allocate the ghost state for the lock state indicatior. *)
-    iMod (own_alloc ((Excl' 1%nat, Excl' 1%nat))) as (κ) "Both". { done. }
+    iMod (own_alloc ((Excl' (), Excl' ()))) as (κ) "Both". { done. }
     wp_alloc p as "pts".
     iMod (inv_alloc _ _ (lock_inv γ ι κ arr cap p R) with "[-Post Hinvites]").
     { iNext. rewrite /lock_inv. iExists 0%nat, 0%nat, (<[0%nat:=true]> (replicate cap false)).
