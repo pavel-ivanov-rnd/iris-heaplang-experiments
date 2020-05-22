@@ -134,30 +134,6 @@ Section array_model.
   Definition list_with_one (length index : nat) : list bool :=
     <[index:=true]> (replicate length false).
 
-  Lemma wp_load_offset_len s E l off vs :
-    (off < length vs)%nat →
-    {{{ ▷ l ↦∗ vs }}} ! #(l +ₗ off) @ s; E {{{ v, RET v; ⌜vs !! off = Some v⌝ ∗ l ↦∗ vs }}}.
-  Proof.
-    iIntros (Hlen Φ) "Hl HΦ".
-    apply lookup_lt_is_Some_2 in Hlen.
-    destruct Hlen as (v & Hlookup).
-    iDestruct (update_array with "Hl") as "[Hl1 Hl2]"; first done.
-    iApply (wp_load with "Hl1"). iIntros "!> Hl1". iApply "HΦ".
-    iSplit. { done. }
-    iDestruct ("Hl2" $! v) as "Hl2". rewrite list_insert_id; last done.
-    iApply "Hl2". iApply "Hl1".
-  Qed.
-
-  Lemma wp_store_offset_len s E l (off : nat) vs (v : val) :
-    (off < length vs)%nat →
-    {{{ ▷ l ↦∗ vs }}} #(l +ₗ off) <- v @ s; E {{{ RET #(); l ↦∗ <[off:=v]> vs }}}.
-  Proof.
-    iIntros (Hlen Φ) ">Hl HΦ".
-    iApply (wp_store_offset _ _ _ _ vs _ with "Hl").
-    { apply lookup_lt_is_Some_2. assumption. }
-    iAssumption.
-  Qed.
-
   Lemma array_store E (i : nat) (v : bool) arr (xs : list bool) :
     {{{ ⌜(i < length xs)%nat⌝ ∗ ▷ is_array arr xs }}}
       #(arr +ₗ i) <- #v
@@ -165,8 +141,8 @@ Section array_model.
   Proof.
     iIntros (ϕ) "[% isArr] Post".
     unfold is_array.
-    iApply (wp_store_offset_len with "isArr").
-    { rewrite fmap_length. assumption. }
+    iApply (wp_store_offset with "isArr").
+    { apply lookup_lt_is_Some_2. rewrite fmap_length. done. }
     rewrite (list_fmap_insert ((λ b : bool, #b) : bool → val) xs i v).
     iAssumption.
   Qed.
@@ -431,15 +407,16 @@ Section abql_spec.
     (* Since `wait_loop` invokes itself recursively we use Löb *)
     iLöb as "IH".
     wp_lam. wp_let.
-    iDestruct "Lock" as (arr nextPtr) "(-> & %capPos & #LockInv)".
+    iDestruct "Lock" as (arr nextPtr -> capPos) "#LockInv".
     wp_pures.
     wp_bind (! _)%E.
     iInv (lockN (#arr, #nextPtr, #(cap))) as (o i xs) "(>%lenEq & >nextPts & isArr & >Inv & Auth & Part)" "Close".
     rewrite /is_array rem_mod_eq //.
-    wp_apply (wp_load_offset_len _ _ arr _ ((fun b => # (LitBool b)) <$> xs) with "isArr").
-    { rewrite fmap_length. subst. apply Nat.mod_upper_bound. lia. }
-    iIntros (v) "[%eqLookup isArr]".
-    apply list_lookup_fmap_inv in eqLookup as (x & -> & xsLookup).
+    pose proof (lookup_lt_is_Some_2 ((λ b : bool, #b) <$> xs) ((t `mod` cap)%nat)) as [x1 Hsome].
+    { subst. rewrite fmap_length. apply Nat.mod_upper_bound. lia. }
+    wp_apply (wp_load_offset with "isArr"); first apply Hsome.
+    iIntros "isArr".
+    apply list_lookup_fmap_inv in Hsome as (x & -> & xsLookup).
     destruct x.
     - rewrite /issued.
       iDestruct (valid_ticket_range with "Ticket Auth") as "([% %] & Ticket & Auth)".
@@ -449,8 +426,7 @@ Section abql_spec.
       * (* The case where the lock is currently open. *)
         rewrite xsEq in xsLookup.
         apply nth_list_with_one in xsLookup.
-        assert (t = o) as tEqO. { apply inj_lt in capPos. apply (mod_fact _ _ i (cap)); auto. }
-        rewrite tEqO.
+        assert (t = o) as ->. { apply inj_lt in capPos. apply (mod_fact _ _ i cap); done. }
         iDestruct (both_split with "Both") as "[Left Right]".
         iMod ("Close" with "[nextPts isArr Inv Auth Ticket Left]") as "_".
         { iNext. iExists o, i, (list_with_one cap (o `mod` cap)).
@@ -564,8 +540,8 @@ Section abql_spec.
     * iDestruct (own_valid_2 with "Auth Locked") as
           %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
       rewrite rem_mod_eq //.
-      iApply (wp_store_offset_len with "arrPts").
-      { rewrite fmap_length. rewrite H0. apply Nat.mod_upper_bound. lia. }
+      iApply (wp_store_offset with "arrPts").
+      { apply lookup_lt_is_Some_2. rewrite fmap_length H0. apply Nat.mod_upper_bound. lia. }
       iModIntro. iIntros "isArr".
       (* Combine the left and right we have into a both. *)
       iDestruct (left_right_to_both with "Left Right") as "Both".
