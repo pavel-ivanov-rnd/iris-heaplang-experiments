@@ -1,4 +1,4 @@
-From iris.heap_lang Require Export lifting metatheory.
+From iris.heap_lang Require Export derived_laws metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 

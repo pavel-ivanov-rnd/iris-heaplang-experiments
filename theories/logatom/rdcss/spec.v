@@ -1,7 +1,7 @@
 From stdpp Require Import namespaces.
 From iris.base_logic.lib Require Export gen_inv_heap.
 From iris.program_logic Require Export atomic.
-From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang Require Export proofmode notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for RDCSS.

@@ -64,7 +64,6 @@ Section proof.
   Definition bag_inv (γb : gname) (b : loc) : iProp Σ :=
     (∃ ls : list val, b ↦ (val_of_list ls) ∗ own γb ((1/2)%Qp, to_agree (list_to_set_disj ls)))%I.
   Definition is_bag (γb : gname) (x : val) :=
-
     (∃ (lk : val) (b : loc) (γ : gname),
         ⌜x = PairV #b lk⌝ ∗ is_lock γ lk (bag_inv γb b))%I.
   Definition bag_contents (γb : gname) (X : gmultiset val) : iProp Σ :=

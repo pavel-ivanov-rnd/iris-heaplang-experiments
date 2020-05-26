@@ -1,4 +1,4 @@
-From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang Require Import proofmode notation.
 Set Default Proof Using "Type".
 
 (** Specification for an eager coin. The coin is only ever tossed once, at the

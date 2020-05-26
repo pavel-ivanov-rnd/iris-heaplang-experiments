@@ -1,4 +1,4 @@
-From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth frac gset gmap excl.
 From iris.base_logic Require Export invariants.
 From iris.proofmode Require Import tactics.

@@ -1,5 +1,5 @@
 From iris.program_logic Require Import atomic.
-From iris.heap_lang Require Import lifting notation.
+From iris.heap_lang Require Import proofmode notation.
 Set Default Proof Using "Type".
 
 (** Specifying snapshots with histories

@@ -2,7 +2,6 @@ From iris.algebra Require Import frac gmap auth.
 From iris.base_logic Require Export invariants.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
-From iris.heap_lang Require Export lifting notation.
 From iris.heap_lang.lib Require Import par.
 From iris.base_logic Require Import cancelable_invariants.
 Import uPred.

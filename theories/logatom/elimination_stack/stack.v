@@ -3,7 +3,7 @@ From iris.bi.lib Require Import fractional.
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Import atomic.
 From iris.proofmode Require Import tactics.
-From iris.heap_lang Require Import proofmode atomic_heap.
+From iris.heap_lang Require Import proofmode notation atomic_heap.
 From iris_examples.logatom.elimination_stack Require Import spec.
 Set Default Proof Using "Type".
 
