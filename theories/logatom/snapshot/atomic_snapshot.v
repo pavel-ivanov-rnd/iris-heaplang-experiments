@@ -248,8 +248,8 @@ Section atomic_snapshot.
       (* close invariant *)
       iModIntro. iSplitR "HΦ".
       + iNext. rewrite /snapshot_inv.
-        set (<[ v'' + 1 := x2]> T) as T'.
-        iExists 1%Qp, l1'new, T', x2, (v'' + 1).
+        set (<[ (v'' + 1)%Z := x2]> T) as T'.
+        iExists 1%Qp, l1'new, T', x2, (v'' + 1)%Z.
         iFrame.
         iPureIntro. split.
         * apply: lookup_insert.
@@ -365,11 +365,11 @@ Section atomic_snapshot.
         iIntros (vs') "[Eq _]"; iDestruct "Eq" as %->; wp_seq; wp_if.
       + inversion H; subst; clear H. wp_pures.
         assert (v_x2 = v_y) as ->. {
-          assert (v_x2 <= v_y) as vneq. {
+          assert (v_x2 ≤ v_y)%Z as vneq. {
             apply Hdom_y.
             eapply (iffRL (elem_of_dom T_y _)). eauto using mk_is_Some.
           }
-          assert (v_y <= v_x2) as vneq'. {
+          assert (v_y ≤ v_x2)%Z as vneq'. {
             apply Hdom_x2.
             eapply (iffRL (elem_of_dom T_x2 _)). eauto using mk_is_Some.
           }

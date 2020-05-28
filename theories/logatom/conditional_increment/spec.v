@@ -33,7 +33,7 @@ Record atomic_cinc {Σ} `{!heapG Σ} := AtomicCinc {
     is_counter N γs v -∗
     <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >>>
         cinc v #f @⊤∖↑N∖↑inv_heapN
-    <<< counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, RET #() >>>;
+    <<< counter_content γs (if b then n + 1 else n)%Z ∗ f ↦_(λ _, True) #b, RET #() >>>;
   get_spec N γs v:
     is_counter N γs v -∗
     <<< ∀ (n : Z), counter_content γs n >>>

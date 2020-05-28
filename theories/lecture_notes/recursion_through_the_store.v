@@ -98,20 +98,20 @@ Section factorial_client.
     | S n' => S n' * factorial n'
   end.
 
-  Lemma factorial_spec_S (n : nat) : factorial (S n) = ((S n) * factorial n)%nat.
+  Lemma factorial_spec_S (n : nat) : factorial (S n) = (S n) * factorial n.
   Proof.
     reflexivity.
   Qed.
 
   Definition fac_int (x : Z) := Z.of_nat (factorial (Z.to_nat x)).
 
-  Lemma fac_int_eq_0: fac_int 0 = 1.
+  Lemma fac_int_eq_0: fac_int 0 = 1%Z.
   Proof.
     reflexivity.
   Qed.
 
   Lemma fac_int_eq (x : Z):
-    1 ≤ x → fac_int x = fac_int (x - 1) * x.
+    (1 ≤ x)%Z → fac_int x = (fac_int (x - 1) * x)%Z.
   Proof.
     intros ?.
     rewrite Z.mul_comm.
@@ -147,7 +147,7 @@ Section factorial_client.
       wp_bind ((times _) _).
       iApply "IH"; iNext.
       wp_binop; first
-        by replace (m + ((n - 1) * m)) with (n * m) by lia.
+        by replace (m + ((n - 1) * m))%Z with (n * m)%Z by lia.
   Qed.
 
   Lemma times_spec (n m : Z):
@@ -175,13 +175,13 @@ Section factorial_client.
   (* Finally, here is the specification that our implementation of factorial
      really does implement the mathematical factorial function. *)
   Lemma myfac_spec (n: Z):
-    (0 ≤ n) →
+    (0 ≤ n)%Z →
     {{{ True }}}
       myfac #n
     {{{ v, RET v; ⌜v = #(fac_int n)⌝ }}}.
   Proof.
     iIntros (Hleq Φ) "_ ret"; simplify_eq. unfold myfac. wp_pures.
-    iApply (myrec_spec (fun v => ⌜∃m' : Z, 0 ≤ m' ∧ to_val v = Some #m'⌝%I)
+    iApply (myrec_spec (fun v => ⌜∃m' : Z, (0 ≤ m')%Z ∧ to_val v = Some #m'⌝%I)
                        (fun u => fun v => ⌜∃m' : Z, to_val v = Some #m' ∧ u = #(fac_int m')⌝%I)).
     - iSplit; last eauto. iIntros (f v). iAlways. iIntros (Φ') "spec_f ret".
       wp_lam. wp_let. iDestruct "spec_f" as "[spec_f %]".
@@ -193,7 +193,7 @@ Section factorial_client.
         wp_binop. wp_bind (f _ )%E.
         iApply ("spec_f" $! (#(m'-1))).
         * iIntros "!%".
-          exists (m'-1); split; first lia; last auto.
+          exists (m'-1)%Z; split; first lia; last auto.
         * iNext. iIntros (u) "**". destruct a as [x [Heq ->]].
           iApply times_spec; first done.
           iNext; iIntros (u) "%"; subst; iApply "ret".

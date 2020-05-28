@@ -16,14 +16,14 @@ Proof. solve_inG. Qed.
 Section ccounter.
   Context `{!heapG Σ, !cntG Σ, !ccounterG Σ} (N : namespace).
 
-  Lemma ccounterRA_valid (m n : natR) (q : frac): ✓ (●F m ⋅ ◯F{q} n) → (n ≤ m)%nat.
+  Lemma ccounterRA_valid (m n : natR) (q : frac): ✓ (●F m ⋅ ◯F{q} n) → n ≤ m.
   Proof.
     intros ?.
     (* This property follows directly from the generic properties of the relevant RAs. *)
     by apply nat_included, (frac_auth_included_total q).
   Qed.
 
-  Lemma ccounterRA_valid_full (m n : natR): ✓ (●F m ⋅ ◯F n) → (n = m)%nat.
+  Lemma ccounterRA_valid_full (m n : natR): ✓ (●F m ⋅ ◯F n) → n = m.
   Proof.
     by intros ?%frac_auth_agree.
   Qed.
@@ -41,7 +41,7 @@ Section ccounter.
 
   (** The main proofs. *)
   Lemma is_ccounter_op γ₁ γ₂ ℓ q1 q2 (n1 n2 : nat) :
-    is_ccounter γ₁ γ₂ ℓ (q1 + q2) (n1 + n2)%nat ⊣⊢ is_ccounter γ₁ γ₂ ℓ q1 n1 ∗ is_ccounter γ₁ γ₂ ℓ q2 n2.
+    is_ccounter γ₁ γ₂ ℓ (q1 + q2) (n1 + n2) ⊣⊢ is_ccounter γ₁ γ₂ ℓ q1 n1 ∗ is_ccounter γ₁ γ₂ ℓ q2 n2.
   Proof.
     apply bi.equiv_spec; split; rewrite /is_ccounter frac_auth_frag_op own_op.
     - iIntros "[? #?]".
@@ -53,12 +53,12 @@ Section ccounter.
   Lemma newcounter_contrib_spec (R : iProp Σ) m:
     {{{ True }}}
         newcounter #m
-    {{{ γ₁ γ₂ ℓ, RET #ℓ; is_ccounter γ₁ γ₂ ℓ 1 m%nat }}}.
+    {{{ γ₁ γ₂ ℓ, RET #ℓ; is_ccounter γ₁ γ₂ ℓ 1 m }}}.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite -wp_fupd.
     wp_apply newcounter_spec; auto.
     iIntros (ℓ) "H"; iDestruct "H" as (γ₂) "[#HCnt Hown]".
-    iMod (own_alloc (●F m%nat ⋅ ◯F m%nat)) as (γ₁) "[Hγ Hγ']"; first by apply auth_both_valid.
+    iMod (own_alloc (●F m ⋅ ◯F m)) as (γ₁) "[Hγ Hγ']"; first by apply auth_both_valid.
     iMod (inv_alloc (N .@ "counter") _ (ccounter_inv γ₁ γ₂) with "[Hγ Hown]").
     { iNext. iExists _. by iFrame. }
     iModIntro. iApply "HΦ". rewrite /is_ccounter; eauto.
@@ -91,10 +91,11 @@ Section ccounter.
   Lemma read_contrib_spec γ₁ γ₂ ℓ q n :
     {{{ is_ccounter γ₁ γ₂ ℓ q n }}}
         read #ℓ
-    {{{ (c : Z), RET #c; ⌜Z.of_nat n ≤ c⌝ ∧ is_ccounter γ₁ γ₂ ℓ q n }}}.
+    {{{ (c : Z), RET #c; ⌜(Z.of_nat n ≤ c)%Z⌝ ∧ is_ccounter γ₁ γ₂ ℓ q n }}}.
   Proof.
     iIntros (Φ) "[Hown #[Hinv HCnt]] HΦ".
-    wp_apply (read_spec N γ₂ _ (own γ₁ (◯F{q} n))%I (λ m, ⌜n ≤ m⌝ ∗ (own γ₁ (◯F{q} n)))%I with "[] [Hown]"); first set_solver.
+    wp_apply (read_spec N γ₂ _ (own γ₁ (◯F{q} n))%I (λ m,
+        ⌜(n ≤ m)%Z⌝ ∗ (own γ₁ (◯F{q} n)))%I with "[] [Hown]"); first set_solver.
     - iIntros (m) "!# [HownE HOwnfrag]".
       iInv (N .@ "counter") as (k) "[>H1 >H2]" "HClose".
       iDestruct (makeElem_eq with "HownE H2") as %->.

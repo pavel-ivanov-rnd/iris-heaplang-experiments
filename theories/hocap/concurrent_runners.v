@@ -380,7 +380,7 @@ Section contents.
     - iNext. by iApply runner_runTasks_spec.
     - iNext. wp_seq. wp_op.
       (* Set Printing Coercions. *)
-      assert ((Z.of_nat i + 1) = Z.of_nat (i + 1)) as -> by lia.
+      assert ((Z.of_nat i + 1)%Z = Z.of_nat (i + 1)) as -> by lia.
       iApply ("IH" with "HΦ").
   Qed.
 

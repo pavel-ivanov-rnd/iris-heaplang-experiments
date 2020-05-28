@@ -42,16 +42,16 @@ Section contents.
     iLöb as "IH" forall (n Φ).
     wp_rec. simpl. wp_op. case_bool_decide; simplify_eq; wp_if.
     { assert (n = O) as -> by lia.
-      by iApply ("HΦ" $! 1%nat). }
+      by iApply ("HΦ" $! 1). }
     wp_op. case_bool_decide; simplify_eq; wp_if.
-    { assert (n = 1%nat) as -> by lia.
-      by iApply ("HΦ" $! 1%nat). }
+    { assert (n = 1) as -> by lia.
+      by iApply ("HΦ" $! 1). }
     wp_op. destruct n as [|[|n]]=> //.
     rewrite !Nat2Z.inj_succ.
-    replace (Z.succ (Z.succ n) - 2) with (Z.of_nat n) by lia.
+    replace (Z.succ (Z.succ n) - 2)%Z with (Z.of_nat n) by lia.
     wp_apply "IH". iIntros (? <-).
     wp_op.
-    replace (Z.succ (Z.succ n) - 1) with (Z.of_nat (S n)) by lia.
+    replace (Z.succ (Z.succ n) - 1)%Z with (Z.of_nat (S n)) by lia.
     wp_apply "IH". iIntros (? <-). wp_op.
     rewrite -Nat2Z.inj_add. by iApply "HΦ".
   Qed.
@@ -84,8 +84,8 @@ Section contents.
     - do 2 (wp_op; wp_let).
       destruct n as [|[|n]]=> //.
       rewrite !Nat2Z.inj_succ.
-      replace (Z.succ (Z.succ n) - 2) with (Z.of_nat n) by lia.
-      replace (Z.succ (Z.succ n) - 1) with (Z.succ n) by lia.
+      replace (Z.succ (Z.succ n) - 2)%Z with (Z.of_nat n) by lia.
+      replace (Z.succ (Z.succ n) - 1)%Z with (Z.succ n) by lia.
       wp_apply (runner_Fork_spec).
       { iFrame "Hrunner". iExists (S n). by rewrite Nat2Z.inj_succ. }
       iIntros (γ1 γ1' t1) "Ht1". wp_let.

@@ -186,7 +186,7 @@ Section conditional_counter.
 
   Definition pau P Q γs f :=
     (▷ P -∗ ◇ AU << ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >> @ ⊤∖↑N∖↑inv_heapN, ∅
-                 << counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, COMM Q >>)%I.
+                 << counter_content γs (if b then n + 1 else n)%Z ∗ f ↦_(λ _, True) #b, COMM Q >>)%I.
 
   Definition counter_inv γ_n c :=
     (∃ (l : loc) (q : Qp) (s : abstract_state),
@@ -385,7 +385,7 @@ Section conditional_counter.
         wp_load.
         iMod ("Hfclose" with "[//] Hf") as "[Hf Hfclose]".
         iDestruct (sync_counter_values with "Hn● Hn◯") as %->.
-        iMod (update_counter_value _ _ _ (if b then n2 + 1 else n2) with "Hn● Hn◯")
+        iMod (update_counter_value _ _ _ (if b then n2 + 1 else n2)%Z with "Hn● Hn◯")
           as "[Hn● Hn◯]".
         iMod ("Hclose" with "[Hn◯ Hf]") as "Q"; first by iFrame.
         iModIntro. iMod "Hfclose" as "_".
@@ -431,7 +431,7 @@ Section conditional_counter.
     is_counter γs v -∗
     <<< ∀ (b : bool) (n : Z), counter_content γs n ∗ f ↦_(λ _, True) #b >>>
         cinc v #f @⊤∖↑N∖↑inv_heapN
-    <<< counter_content γs (if b then n + 1 else n) ∗ f ↦_(λ _, True) #b, RET #() >>>.
+    <<< counter_content γs (if b then n + 1 else n)%Z ∗ f ↦_(λ _, True) #b, RET #() >>>.
   Proof.
     iIntros "#InvC". iDestruct "InvC" as (c_l [-> ?]) "[#GC #InvC]".
     iIntros (Φ) "AU". iLöb as "IH".
@@ -499,7 +499,7 @@ Section conditional_counter.
     iIntros (?) "#GC". iIntros (Φ) "!# _ HΦ". wp_lam. wp_apply wp_fupd.
     wp_alloc l_n as "Hl_n".
     wp_alloc l_c as "Hl_c".
-    iMod (own_alloc (● Excl' 0  ⋅ ◯ Excl' 0)) as (γ_n) "[Hn● Hn◯]".
+    iMod (own_alloc (● Excl' 0%Z  ⋅ ◯ Excl' 0%Z)) as (γ_n) "[Hn● Hn◯]".
     { by apply auth_both_valid. }
     iMod (inv_alloc counterN _ (counter_inv γ_n l_c)
       with "[Hl_c Hl_n Hn●]") as "#InvC".

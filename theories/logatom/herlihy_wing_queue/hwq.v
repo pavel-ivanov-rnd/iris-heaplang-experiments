@@ -185,15 +185,15 @@ Proof. iIntros "H1 H2". by iDestruct (own_valid_2 with "H1 H2") as %?. Qed.
 Definition back_value γb n := own γb (● (n : mnatUR) : backUR).
 Definition back_lower_bound γb n := own γb (◯ (n : mnatUR) : backUR).
 
-Lemma new_back : ⊢ |==> ∃ γb, back_value γb 0%nat.
+Lemma new_back : ⊢ |==> ∃ γb, back_value γb 0.
 Proof.
-  iMod (own_alloc (● (0%nat : mnatUR) : backUR)) as (γb) "H●".
+  iMod (own_alloc (● (0 : mnatUR) : backUR)) as (γb) "H●".
   - by rewrite auth_auth_valid.
   - by iExists γb.
 Qed.
 
 Lemma back_incr γb n :
-  back_value γb n ==∗ back_value γb (S n)%nat.
+  back_value γb n ==∗ back_value γb (S n).
 Proof.
   iIntros "H●". iMod (own_update with "H●") as "[$ _]"; last done.
   apply auth_update_alloc, (mnat_local_update _ _ (S n)). by lia.
@@ -207,7 +207,7 @@ Proof.
 Qed.
 
 Lemma back_le γb n1 n2 :
-  back_value γb n1 -∗ back_lower_bound γb n2 -∗ ⌜n2 ≤ n1⌝%nat.
+  back_value γb n1 -∗ back_lower_bound γb n2 -∗ ⌜n2 ≤ n1⌝.
 Proof.
   iIntros "H1 H2". iCombine "H1 H2" as "H".
   iDestruct (own_valid with "H") as %Hvalid. iPureIntro.
@@ -224,7 +224,7 @@ Definition i2_lower_bound γi n := back_value γi n.
 Definition no_contra_wit γi n := back_lower_bound γi n.
 
 Lemma i2_lower_bound_update γi n m :
-  (n ≤ m)%nat →
+  n ≤ m →
   i2_lower_bound γi n ==∗ i2_lower_bound γi m.
 Proof.
   iIntros (H) "H●". iMod (own_update with "H●") as "[$ _]"; last done.
@@ -713,7 +713,7 @@ Qed.
 Fixpoint proph_data sz (deq : gset nat) (rs : list (val * val)) : list nat :=
   match rs with
   | (PairV _ #true , LitV (LitInt i)) :: rs =>
-    if decide (0 ≤ i < sz) then
+    if decide (0 ≤ i < sz)%Z then
       let i := Z.to_nat i in
       if decide (i ∈ deq) then
         []
@@ -721,7 +721,7 @@ Fixpoint proph_data sz (deq : gset nat) (rs : list (val * val)) : list nat :=
         i :: proph_data sz ({[i]} ∪ deq) rs
     else []
   | (PairV _ #false, LitV (LitInt i)) :: rs =>
-    if decide (0 ≤ i < sz) then
+    if decide (0 ≤ i < sz)%Z then
       proph_data sz deq rs
     else
       []
@@ -742,17 +742,17 @@ Proof.
     destruct b.
     + destruct k; simpl; try by apply not_elem_of_nil.
       destruct l; simpl; try by apply not_elem_of_nil.
-      destruct (decide (0 ≤ n < sz)); last by apply not_elem_of_nil.
+      destruct (decide (0 ≤ n < sz)%Z); last by apply not_elem_of_nil.
       destruct (decide (Z.to_nat n ∈ deq)); first by apply not_elem_of_nil.
       apply not_elem_of_cons. split; first by set_solver.
       apply IH. set_solver.
     + destruct k; simpl; try by apply not_elem_of_nil.
       destruct l; simpl; try by apply not_elem_of_nil.
-      destruct (decide (0 ≤ n < sz)); last by apply not_elem_of_nil.
+      destruct (decide (0 ≤ n < sz)%Z); last by apply not_elem_of_nil.
       apply IH. done.
 Qed.
 
-Lemma proph_data_sz sz deq rs : ∀ i, i ∈ proph_data sz deq rs → (i < sz)%nat.
+Lemma proph_data_sz sz deq rs : ∀ i, i ∈ proph_data sz deq rs → i < sz.
 Proof.
   revert deq. induction rs as [|[b k] rs IH]; intros deq i Hi.
   - set_solver.
@@ -763,7 +763,7 @@ Proof.
     + destruct k; simpl; try by set_solver.
       destruct l; simpl; try by set_solver.
       simpl in Hi.
-      destruct (decide (0 ≤ n < sz)) as [Hn|Hn]; last by set_solver.
+      destruct (decide (0 ≤ n < sz)%Z) as [Hn|Hn]; last by set_solver.
       destruct (decide (Z.to_nat n ∈ deq)) as [H|H]; first by set_solver.
       apply elem_of_cons in Hi. destruct Hi as [->|Hi].
       * apply Nat2Z.inj_lt. destruct Hn as [Hn1 Hn2]. by rewrite Z2Nat.id.
@@ -771,7 +771,7 @@ Proof.
     + destruct k; simpl; try by set_solver.
       destruct l; simpl; try by set_solver.
       simpl in Hi.
-      destruct (decide (0 ≤ n < sz)); last by set_solver.
+      destruct (decide (0 ≤ n < sz)%Z); last by set_solver.
       apply (IH _ _ Hi).
 Qed.
 
@@ -786,7 +786,7 @@ Proof.
     destruct b.
     + destruct k; simpl; try by apply NoDup_elements.
       destruct l; simpl; try by apply NoDup_elements.
-      destruct (decide (0 ≤ n < sz))
+      destruct (decide (0 ≤ n < sz)%Z)
         as [Hn|Hn]; last by apply NoDup_elements.
       destruct (decide (Z.to_nat n ∈ deq))
         as [Hn_in_deq|Hn_not_in_deq]; first by apply NoDup_elements.
@@ -802,7 +802,7 @@ Proof.
       * by apply NoDup_elements.
     + destruct k; simpl; try by apply NoDup_elements.
       destruct l; simpl; try by apply NoDup_elements.
-      destruct (decide (0 ≤ n < sz)); [ by apply IH | by apply NoDup_elements ].
+      destruct (decide (0 ≤ n < sz)%Z); [ by apply IH | by apply NoDup_elements ].
 Qed.
 
 Definition block  : Type := nat * list nat.
@@ -996,7 +996,7 @@ Definition array_get slots (deqs : gset nat) i :=
 
 Fixpoint array_content n slots deqs :=
   match n with
-  | 0%nat => []
+  | 0 => []
   | S n   => array_content n slots deqs ++ [array_get slots deqs n]
   end.
 
@@ -1008,7 +1008,7 @@ Proof.
 Qed.
 
 Lemma array_content_lookup sz slots deqs i :
-  (i < sz)%nat →
+  i < sz →
   array_content sz slots deqs !! i = Some (array_get slots deqs i).
 Proof.
   intros H. induction sz as [|sz IH]; first lia.
@@ -1037,14 +1037,14 @@ Proof.
 Qed.
 
 Lemma array_content_is_Some sz i slots deqs :
-  (i < sz)%nat →
+  i < sz →
   is_Some (array_content sz slots deqs !! i).
 Proof.
   intros H. apply lookup_lt_is_Some. by rewrite length_array_content.
 Qed.
 
 Lemma array_content_ext sz slots1 slots2 deqs :
-  (∀ i, (i < sz)%nat → array_get slots1 deqs i = array_get slots2 deqs i) →
+  (∀ i, i < sz → array_get slots1 deqs i = array_get slots2 deqs i) →
   array_content sz slots1 deqs = array_content sz slots2 deqs.
 Proof.
   induction sz as [|sz IH]; intros H; first done.
@@ -1053,7 +1053,7 @@ Proof.
 Qed.
 
 Lemma array_content_more_deqs sz slots deqs i :
-  (sz ≤ i)%nat →
+  sz ≤ i →
   array_content sz slots ({[i]} ∪ deqs) = array_content sz slots deqs.
 Proof.
   intros H. induction sz as [|sz IH]; first done.
@@ -1067,7 +1067,7 @@ Proof.
 Qed.
 
 Lemma array_content_update_slot_ge sz slots deqs f i :
-  (sz ≤ i)%nat →
+  sz ≤ i →
   array_content sz slots deqs = array_content sz (update_slot i f slots) deqs.
 Proof.
   intros H. induction sz as [|sz IH]; first done.
@@ -1078,13 +1078,13 @@ Proof.
 Qed.
 
 Lemma array_content_dequeue sz i slots deqs :
-  (i < sz)%nat →
+  i < sz →
   i ∉ deqs →
   array_content sz slots ({[i]} ∪ deqs) = <[i:=NONEV]> (array_content sz slots deqs).
 Proof using N heapG0 hwqG0 savedPropG0 Σ.
   revert i. induction sz as [|sz IH]; intros i H1 H2; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
-  - assert (i = length (array_content i slots deqs) + 0)%nat as HEq.
+  - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
     rewrite [X in <[X:=_]> _]HEq.
     rewrite (insert_app_r (array_content i slots deqs) _ 0 NONEV).
@@ -1101,14 +1101,14 @@ Proof using N heapG0 hwqG0 savedPropG0 Σ.
 Qed.
 
 Lemma array_content_set_written sz i (l : loc) slots deqs :
-  (i < sz)%nat →
+  i < sz →
   val_of <$> slots !! i = Some l →
   ¬ i ∈ deqs →
   <[i:=InjRV #l]> (array_content sz slots deqs) = array_content sz (update_slot i set_written slots) deqs.
 Proof using N heapG0 hwqG0 savedPropG0 Σ.
   revert i. induction sz as [|sz IH]; intros i H1 H2 H3; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
-  - assert (i = length (array_content i slots deqs) + 0)%nat as HEq.
+  - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
     rewrite [X in <[X:=_]> _]HEq.
     rewrite (insert_app_r (array_content i slots deqs) _ 0).
@@ -1125,14 +1125,14 @@ Qed.
 
 (* FIXME similar to previous lemma. Share stuff? *)
 Lemma array_content_set_written_and_done sz i (l : loc) slots deqs :
-  (i < sz)%nat →
+  i < sz →
   val_of <$> slots !! i = Some l →
   ¬ i ∈ deqs →
   <[i:=InjRV #l]> (array_content sz slots deqs) = array_content sz (update_slot i set_written_and_done slots) deqs.
 Proof.
   revert i. induction sz as [|sz IH]; intros i H1 H2 H3; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
-  - assert (i = length (array_content i slots deqs) + 0)%nat as HEq.
+  - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
     rewrite [X in <[X:=_]> _]HEq.
     rewrite (insert_app_r (array_content i slots deqs) _ 0).
@@ -1228,7 +1228,7 @@ Definition inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p : iProp :=
   ℓ_back ↦ #back ∗ ℓ_ar ↦∗ (array_content sz slots deqs) ∗
   (** Logical contents of the queue and prophecy contents. *)
   back_value γb back ∗
-  i2_lower_bound γi (match cont with WithCont _ i2 => i2 | NoCont _ => back `min` sz end)%nat ∗
+  i2_lower_bound γi (match cont with WithCont _ i2 => i2 | NoCont _ => back `min` sz end) ∗
   own γe (● (Excl' (map (get_value slots deqs) pref ++ rest))) ∗
   own γs (● (of_slot_data <$> slots : gmap nat per_slot)) ∗
   hwq_proph p sz deqs pvs ∗
@@ -1237,7 +1237,7 @@ Definition inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p : iProp :=
   (** Contradiction status. *)
   match cont with NoCont _ => no_contra γc | WithCont i1 i2 => contra γc i1 i2 end ∗
   (** Tying the logical and physical data and some other pure stuff. *)
-  ⌜(∀ i, (i < back `min` sz)%nat ↔ is_Some (slots !! i)) ∧
+  ⌜(∀ i, (i < back `min` sz) ↔ is_Some (slots !! i)) ∧
    (∀ i, (was_committed <$> slots !! i = Some false → was_written <$> slots !! i = Some false) ∧
          (was_written <$> slots !! i = Some false → i ∉ deqs)) ∧
    (∀ i, i ∈ pref → was_committed <$> slots !! i = Some true ∧ i ∉ deqs ∧
@@ -1245,14 +1245,14 @@ Definition inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p : iProp :=
    (∀ i, i ∈ deqs → was_written <$> slots !! i = Some true ∧
                     was_committed <$> slots !! i = Some true ∧
                     array_get slots deqs i = NONEV) ∧
-   (NoDup (pvs ++ elements deqs) ∧ ∀ i, i ∈ pvs → (i < sz)%nat) ∧
+   (NoDup (pvs ++ elements deqs) ∧ ∀ i, i ∈ pvs → i < sz) ∧
    match cont with
    | NoCont bs      =>
      (∀ b, b ∈ bs → block_valid slots b) ∧
      (bs ≠ [] → rest = []) ∧
      pvs = pref ++ flatten_blocks bs
    | WithCont i1 i2 =>
-     (i1 < i2 < sz ∧ i1 < back)%nat ∧
+     (i1 < i2 < sz ∧ i1 < back) ∧
      was_committed <$> slots !! i1 = Some true ∧
      was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
      array_get slots deqs i1 ≠ NONEV ∧
@@ -1497,7 +1497,7 @@ Proof.
     with "[Hℓa Hℓb Hp Hb● Hi● He● HC Hs●]") as "#InvN".
   { pose (pvs := proph_data sz ∅ rs).
     pose (cont := NoCont (map (λ i, (i, [])) pvs)).
-    iNext. iExists 0%nat, pvs, [], [], cont, ∅, ∅.
+    iNext. iExists 0, pvs, [], [], cont, ∅, ∅.
     rewrite array_content_empty Nat2Z.id fmap_empty /=.
     iFrame. iSplitL. { iExists rs. by iFrame. }
     repeat (iSplit; first done). iPureIntro.
@@ -1528,24 +1528,24 @@ Proof.
   iDestruct "HInv" as "[Hproph [Hbig [Hcont >Hpures]]]".
   iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
   destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
-  wp_faa. assert (back + 1 = S back) as -> by lia.
+  wp_faa. assert (back + 1 = S back)%Z as -> by lia.
   iMod (back_incr with "Hb●") as "Hb●".
   iAssert (i2_lower_bound γi match cont with
                              | WithCont _ i2 => i2
-                             | NoCont _ => (back `min` sz)%nat
+                             | NoCont _ => back `min` sz
                              end -∗ |==>
             i2_lower_bound γi match cont with
                               | WithCont _ i2 => i2
-                              | NoCont _      => ((S back) `min` sz)%nat
+                              | NoCont _      => (S back) `min` sz
                               end)%I as "Hup".
   { destruct cont as [i1 i2|bs]; iIntros "Hi●"; first done.
     iMod (i2_lower_bound_update with "Hi●") as "$"; [ lia | done ]. }
   iMod ("Hup" with "Hi●") as "Hi● {Hup}".
   (* We first handle the case where there is no more space in the queue. *)
-  destruct (decide (back < sz)) as [Hback_sz|Hback_sz]; last first.
+  destruct (decide (back < sz)%Z) as [Hback_sz|Hback_sz]; last first.
   { iModIntro. iClear "AU". iSplitL.
     - iNext. iExists (S back), pvs, pref, rest, cont, slots, deqs.
-      assert (S back `min` sz = back `min` sz)%nat as -> by lia.
+      assert (S back `min` sz = back `min` sz) as -> by lia.
       iFrame. iPureIntro. repeat split_and; try done.
       destruct cont as [i1 i2|bs]; last done.
       destruct Hcont as ((H1 & H2) & H3 & H4).
@@ -1641,7 +1641,7 @@ Proof.
     assert (is_Some (slots !! i)) as Hslots_i.
     { destruct (slots !! i) as [d|]; first by exists d. inversion Hval_wit_i. }
     (* Our index is in the array. *)
-    assert (i < back `min` sz)%nat as Hi_le_back by by apply Hslots.
+    assert (i < back `min` sz) as Hi_le_back by by apply Hslots.
     (* An we perform the store. *)
     wp_apply (wp_store_offset _ _ ℓ_ar i (array_content sz slots deqs) with "Hℓ_ar").
     { apply array_content_is_Some. by lia. }
@@ -1786,7 +1786,7 @@ Proof.
     assert (is_Some (slots !! i)) as Hslots_i.
     { destruct (slots !! i) as [d|]; first by exists d. inversion Hval_wit_i. }
     (* Our index is in the array. *)
-    assert (i < back `min` sz)%nat as Hi_le_back by by apply Hslots.
+    assert (i < back `min` sz) as Hi_le_back by by apply Hslots.
     (* An we perform the store. *)
     wp_apply (wp_store_offset _ _ ℓ_ar i (array_content sz slots deqs) with "Hℓ_ar").
     { apply array_content_is_Some. by lia. }
@@ -1944,7 +1944,7 @@ Proof.
             by apply is_Some_helped.
         + destruct (decide (k = i)) as [->|Hk_not_i]; first by lia.
           rewrite lookup_insert_ne in Hk; last done.
-          assert (k < back `min` sz)%nat as H; last by lia.
+          assert (k < back `min` sz) as H; last by lia.
           apply Hslots. destruct (slots !! k) as [d|]; first by exists d.
           by inversion Hk.
       - intros k. rewrite /new_slots map_lookup_imap.
@@ -2034,7 +2034,7 @@ Proof.
     assert (is_Some (slots !! i)) as Hslots_i.
     { destruct (slots !! i) as [d|]; first by exists d. inversion Hval_wit_i. }
     (* Our index is in the array. *)
-    assert (i < back `min` sz)%nat as Hi_le_back by by apply Hslots.
+    assert (i < back `min` sz) as Hi_le_back by by apply Hslots.
     (* An we perform the store. *)
     wp_apply (wp_store_offset _ _ ℓ_ar i (array_content sz slots deqs) with "Hℓ_ar").
     { apply array_content_is_Some. by lia. }
@@ -2194,7 +2194,7 @@ Proof.
     assert (is_Some (slots !! i)) as Hslots_i.
     { destruct (slots !! i) as [d|]; first by exists d. inversion Hval_wit_i. }
     (* Our index is in the array. *)
-    assert (i < back `min` sz)%nat as Hi_le_back by by apply Hslots.
+    assert (i < back `min` sz) as Hi_le_back by by apply Hslots.
     (* An we perform the store. *)
     wp_apply (wp_store_offset _ _ ℓ_ar i (array_content sz slots deqs) with "Hℓ_ar").
     { apply array_content_is_Some. by lia. }
@@ -2291,15 +2291,15 @@ Proof.
         wp_pures. iRewrite "HQ_is_Φ". done.
       * (* No contradiction yet, make it ours if the prophecy is non-trivial. *)
         iAssert (match bs with
-                 | [] => i2_lower_bound γi (back `min` sz)%nat
-                 | _  => no_contra γc ∗ i2_lower_bound γi (back `min` sz)%nat
+                 | [] => i2_lower_bound γi (back `min` sz)
+                 | _  => no_contra γc ∗ i2_lower_bound γi (back `min` sz)
                  end -∗ |==>
                    match bs with
                    | []           => True
                    | (i2, _) :: _ => contra γc i i2
                    end ∗
                    match bs with
-                   | []           => i2_lower_bound γi (back `min` sz)%nat
+                   | []           => i2_lower_bound γi (back `min` sz)
                    | (i2, _) :: _ => i2_lower_bound γi i2
                    end)%I as "Hup".
         { destruct bs as [|[i2 ps] bs]; first (iIntros "Hi●"; by iFrame).
@@ -2307,11 +2307,11 @@ Proof.
           iMod (i2_lower_bound_update _ _ i2 with "Hi●") as "$"; last done.
           assert (block_valid slots (i2, ps)) as [Hvalid _].
           { destruct Hcont as (Hblocks & _ & _). apply Hblocks, elem_of_list_here. }
-          assert (¬ (i2 < back `min` sz)%nat) as H%not_lt; last by lia.
+          assert (¬ (i2 < back `min` sz)) as H%not_lt; last by lia.
           eapply iffRLn. apply Hslots. intros H. rewrite Hvalid in H. by inversion H. }
         iAssert (match bs with
-                 | [] => i2_lower_bound γi (back `min` sz)%nat
-                 | _  => no_contra γc ∗ i2_lower_bound γi (back `min` sz)%nat
+                 | [] => i2_lower_bound γi (back `min` sz)
+                 | _  => no_contra γc ∗ i2_lower_bound γi (back `min` sz)
                  end ∗
                  match bs with
                  | [] => no_contra γc
@@ -2375,13 +2375,13 @@ Proof.
             destruct bs as [|[i2 ps] bs].
             + repeat split_and; try done. intros. by set_solver.
             + repeat split_and; try lia.
-              * assert (i < back `min` sz)%nat
+              * assert (i < back `min` sz)
                   as Hi_lt by (apply Hslots; by eexists).
                 assert (block_valid slots (i2, ps))
                   as Hvalid by apply HC1, elem_of_list_here.
                 assert (slots !! i2 = None)
                   as Hi2_None by by destruct Hvalid as (H & _).
-                assert (¬ i2 < back `min` sz)%nat as Hi2_ge; last by lia.
+                assert (¬ i2 < back `min` sz) as Hi2_ge; last by lia.
                 intros H%Hslots. rewrite Hi2_None in H. by inversion H.
               * apply Hpvs_sz. subst pvs. apply elem_of_app. right. simpl.
                 by apply elem_of_list_here.
@@ -2512,12 +2512,12 @@ Proof.
   (* The range is the min between [q.back - 1] and [q.size - 1]. *)
   wp_bind (minimum _ _)%E. wp_apply minimum_spec_nat. wp_pures.
   (* We now prove the inner loop part by induction in the index. *)
-  assert (back `min` sz ≤ back `min` sz)%nat as Hn by done.
+  assert (back `min` sz ≤ back `min` sz) as Hn by done.
   assert (match cont with
           | NoCont _      => True
-          | WithCont i1 _ => (back `min` sz - back `min` sz ≤ i1)%nat
+          | WithCont i1 _ => back `min` sz - back `min` sz ≤ i1
           end) as Hcont_i1 by (destruct cont as [i1 _|_]; lia).
-  revert Hn Hcont_i1. generalize (back `min` sz)%nat at 1 4 7 as n.
+  revert Hn Hcont_i1. generalize (back `min` sz) at 1 4 7 as n.
   intros n Hn Hcont_i1.
   iInduction n as [|n] "IH_loop" forall (Hn Hcont_i1).
   (* The bas case is trivial. *)
@@ -2533,15 +2533,15 @@ Proof.
   (* We use our snapshot to show that back is smaller that back'. *)
   iDestruct (back_le with "Hb● Hback_snap") as %Hback.
   (* We define the loop index as [i]. *)
-  pose (i := ((back `min` sz) - S n)%nat).
-  assert ((back `min` sz)%nat - S n = i) as -> by by rewrite Nat2Z.inj_sub.
+  pose (i := (back `min` sz) - S n).
+  assert ((back `min` sz)%nat - S n = i)%Z as -> by by rewrite Nat2Z.inj_sub.
   (* We can now load. *)
   wp_apply (wp_load_offset _ _ ℓ_ar _ i _ (array_get slots deqs i) with "Hℓ_ar");
     [ apply array_content_lookup; lia | iIntros "Hℓa" ].
   (* If there was an initial contradiction, it is still here. *)
   iAssert ⌜match cont with
            | NoCont _       => True
-           | WithCont i1 i2 => cont' = cont ∧ (back `min` sz - S n ≤ i1)%nat
+           | WithCont i1 i2 => cont' = cont ∧ (back `min` sz - S n ≤ i1)
            end⌝%I as %Hinitial_cont.
   { destruct cont as [i1 i2|bs]; destruct cont' as [i1' i2'|bs']; try done.
     - iDestruct (contra_agree with "Hinit_cont Hcont") as %[-> ->].
@@ -2553,7 +2553,7 @@ Proof.
   { rewrite Hi_NULL. iModIntro.
     iSplitR "AU Hback_snap Hi2_lower_bound".
     { iNext. repeat iExists _. iFrame. iSplit; done. }
-    wp_pures. assert (S n - 1 = n%nat) as -> by lia.
+    wp_pures. assert (S n - 1 = n)%Z as -> by lia.
     iApply ("IH_loop" with "[] [] AU Hback_snap").
     - iPureIntro. lia.
     - iPureIntro. destruct cont as [i1 i2|bs]; last done.
@@ -2591,7 +2591,7 @@ Proof.
   (* If there was an initial contradiction, it is still here. *)
   iAssert ⌜match cont with
            | NoCont _       => True
-           | WithCont i1 i2 => cont' = cont ∧ (back `min` sz - S n ≤ i1)%nat
+           | WithCont i1 i2 => cont' = cont ∧ back `min` sz - S n ≤ i1
            end⌝%I as %Hinitial_cont.
   { destruct cont as [i1 i2|bs]; destruct cont' as [i1' i2'|bs']; try done.
     - iDestruct (contra_agree with "Hinit_cont Hcont") as %[-> ->].
@@ -2637,7 +2637,7 @@ Proof.
           + destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
             rewrite Hpvs /= in HC8. destruct HC8 as [junk HEq].
             inversion HEq as [[HEq1 HEq2]].
-            assert (back < i2')%nat; last by lia. lia.
+            assert (back < i2'); last by lia. lia.
           + destruct Hcont as (HC1 & HC2 & HC3). rewrite Hpvs /= in HC3.
             destruct bs as [|[b_u b_ps] bs]; first by inversion HC3.
             simpl in HC3. inversion HC3 as [[HEq1 HEq2]].
@@ -2734,7 +2734,7 @@ Proof.
     { iNext. iExists _, _, _, _, cont', _, _. iFrame. iSplit; last done.
       iExists rs'. rewrite Hpvs /= decide_True; last by lia. by iFrame. }
     (* And conclude using the loop induction hypothesis. *)
-    wp_pures. assert (S n - 1 = n%nat) as -> by lia. iClear "Hval_wit_i".
+    wp_pures. assert (S n - 1 = n)%Z as -> by lia. iClear "Hval_wit_i".
     iApply ("IH_loop" with "[] [] AU Hback_snap").
     - iPureIntro. lia.
     - iPureIntro. destruct cont as [i1 i2|bs]; last done.

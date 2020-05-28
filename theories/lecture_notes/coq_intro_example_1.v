@@ -69,13 +69,13 @@ Section proof.
      and we make it an Iris assertion by using ⌜ ... ⌝. Semantically, the
      embedding is such that the embedded assertion either holds for all
      resources, or none. *)
-  Definition incr_inv (ℓ : loc) (n : Z) : iProp := (∃ (m : Z), ⌜n ≤ m⌝ ∗ ℓ ↦ #m)%I.
+  Definition incr_inv (ℓ : loc) (n : Z) : iProp := (∃ (m : Z), ⌜(n ≤ m)%Z⌝ ∗ ℓ ↦ #m)%I.
 
   (** The main proofs. *)
   (* As in example 7.5 in the notes we will show the following specification.
   The specification is  parametrized by any location ℓ and natural number n *)
   Lemma parallel_incr_spec (ℓ : loc) (n : Z):
-    {{{ ℓ ↦ #n }}} (incr ℓ) ||| (incr ℓ) ;; !#ℓ {{{m, RET #m; ⌜n ≤ m⌝ }}}.
+    {{{ ℓ ↦ #n }}} (incr ℓ) ||| (incr ℓ) ;; !#ℓ {{{m, RET #m; ⌜(n ≤ m)%Z⌝ }}}.
   Proof.
     (* We first unfold the triple notation. Recall its definition from Section 9
        of the lecture notes. *)
@@ -202,7 +202,7 @@ Section proof.
         iInv N as (k) ">[% Hpt]" "Hclose".
         wp_store.
         iMod ("Hclose" with "[Hpt]") as "_".
-        { iNext; iExists (m+1); iFrame; iIntros "!%"; lia. }
+        { iNext; iExists (m+1)%Z; iFrame; iIntros "!%"; lia. }
         (* And we are left with proving |={T}=> True, which is trivial. *)
         done.
       + (* The second thread is exactly the same as the first, so the proof is
@@ -221,7 +221,7 @@ Section proof.
         iInv N as (k) ">[% Hpt]" "Hclose".
         wp_store.
         iMod ("Hclose" with "[Hpt]") as "_"; last done.
-        { iExists (m+1); iFrame; iIntros "!%"; lia. }
+        { iExists (m+1)%Z; iFrame; iIntros "!%"; lia. }
       + (* And the last goal is before us. We first simplify to get rid of
            superflous assumptions and variables. As above, the pattern _ means
            ignore this assumption. It is always safe to ignore True as an
