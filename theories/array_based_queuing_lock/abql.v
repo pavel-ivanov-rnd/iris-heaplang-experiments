@@ -1,11 +1,12 @@
 (** An implementation and safety proof of the Array-Based Queuing Lock (ABQL).
 
     This data-structure was included in the VerifyThis 2018 program verification
-    competition [1]. The example is also described in the chapter "Case study:
+    competition [1, 2]. The example is also described in the chapter "Case study:
     The Array-Based Queuing Lock" in the Iris lecture notes [2].
 
     1: https://hal.inria.fr/hal-01981937/document
-    2: https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf#section.10
+    2: https://ethz.ch/content/dam/ethz/special-interest/infk/chair-program-method/pm/documents/Verify%20This/Solutions%202018/abql.pdf
+    3: https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf#section.10
  *)
 
 From iris.program_logic Require Export weakestpre.
@@ -19,31 +20,41 @@ From iris_string_ident Require Import ltac2_string_ident.
 
 Section abql_code.
 
-  (* The lock consists of a natural number, an array of booleans, and the length
-     of the array. The number is the next ticket available and the array
-     contains false at every entry, except for one, which contains true. *)
+  (* The ABQL is a variant of a ticket lock which uses an array.
+
+     The lock consists of three things:
+     - An array of booleans which contains true at a single index and false at
+       all other indices.
+     - A natural number, which represents the next available ticket. Tickets are
+       increasing and the remainder from dividing the ticket with the length of
+       the array gives an index in the array to which the ticket corresponds.
+     - The length of the array. The lock can handle at most this many
+       simultaneous attempts to acquire the lock. We call this the capacity of
+       the lock. *)
   Definition newlock : val :=
     λ: "cap", let: "array" := AllocN "cap" #false in
               ("array" +ₗ #0%nat) <- #true ;; ("array", ref #0, "cap").
 
+  (* wait_loop is called by acquire with a ticket. As mentioned, the ticket
+     corresponds to an index in the array. If the array contains true at that
+     index we may acquire the lock otherwise we spin. *)
   Definition wait_loop : val :=
     rec: "spin" "lock" "ticket" :=
       let: "array" := Fst (Fst "lock") in (* Get the first element of the triple *)
       let: "idx" := "ticket" `rem` (Snd "lock") in (* Snd "Lock" gets the third element of the triple *)
       if: ! ("array" +ₗ "idx") then #() else ("spin" "lock" "ticket").
 
-  (* To acquire the lock we first take the next ticket using FAA. We then spin
-     on the index in the array corresponding to the ticket (the tickets number mod
-     the length of the array) until that index becomes true. *)
+  (* To acquire the lock we first take the next ticket using FAA. The wait_loop
+     function then spins until the ticket grants access to the lock. *)
   Definition acquire : val :=
     λ: "lock", let: "next" := Snd (Fst "lock") in
                let: "ticket" := FAA "next" #1%nat in
                wait_loop "lock" "ticket" ;;
                "ticket".
 
-  (* To release the lock we set the spot in the array corresponding to our
-     ticket to false and set the next spot (possibly wrapping around the end of the
-     list) to true. *)
+  (* To release the lock, the index in the array corresponding to the current
+     ticket is set to false and the next index (possibly wrapping around the end
+     of the array) is set to true. *)
   Definition release : val :=
     λ: "lock" "o", let: "array" := Fst (Fst "lock") in
                    let: "cap" := Snd "lock" in
@@ -56,7 +67,13 @@ Open Scope Z_scope.
 
 Section algebra.
 
-  (* The carrier of the resource algebra is pairs of natural numbers. The first
+  (* We create a resource algebra used to represent invitations. In the
+     specification, a lock created with capacity `n` is associated with `n`
+     invitations. Acquiring the lock consumes an invitation and releasing the
+     lock returns the invitation. This ensures that at most `n` threads may
+     simultaneously attempt to acquire the lock.
+
+     The carrier of the resource algebra is pairs of natural numbers. The first
      number represents how many invitations we have and the second how many
      invitations exists in total. *)
   Definition sumRAT : Type := nat * nat.
@@ -86,10 +103,7 @@ Section algebra.
 
   (* If (a, n) is valid ghost state then we can conclude that a ≤ n *)
   Lemma sumRA_valid (a n : nat): ✓((a, n) : sumRAT) ↔ (a ≤ n)%nat.
-  Proof.
-    (* Both cases below could also be proved using `auto` *)
-    split; unfold valid; simpl; intros; assumption.
-  Qed.
+  Proof. split; auto. Qed.
 
   Definition sumRA_mixin : RAMixin sumRAT.
   Proof.
@@ -124,13 +138,19 @@ End algebra.
 
 Section array_model.
 
+  (* A few auxillary lemmas used to handle arrays in relation to the ABQL. *)
+
   Context `{!heapG Σ}.
 
+  (* is_array relates a location to a list of booleans. We use this since "_ ↦∗
+     _" relates a location to a list of values, but we need the extra
+     information offered here. *)
   Definition is_array (array : loc) (xs : list bool) : iProp Σ :=
     let vs := (fun b => # (LitBool b)) <$> xs
     in array ↦∗ vs.
 
-  (* Create a Coq list with lenght n, a single true at index i, and false everywhere else *)
+  (* `list_with_one n i` denotes a list with lenght n, a single true at index i,
+     and false everywhere else. *)
   Definition list_with_one (length index : nat) : list bool :=
     <[index:=true]> (replicate length false).
 
@@ -142,7 +162,7 @@ Section array_model.
     iIntros (ϕ) "[% isArr] Post".
     unfold is_array.
     iApply (wp_store_offset with "isArr").
-    { apply lookup_lt_is_Some_2. rewrite fmap_length. done. }
+    { apply lookup_lt_is_Some_2. by rewrite fmap_length. }
     rewrite (list_fmap_insert ((λ b : bool, #b) : bool → val) xs i v).
     iAssumption.
   Qed.
@@ -150,8 +170,7 @@ Section array_model.
   Lemma insert_list_with_one (i : nat) l :
     <[i:=false]> (list_with_one l i) = replicate l false.
   Proof.
-    unfold list_with_one.
-    rewrite list_insert_insert. rewrite insert_replicate. reflexivity.
+    by rewrite /list_with_one list_insert_insert insert_replicate.
   Qed.
 
   (* The repeat code behaves similar to the replicate function *)
@@ -172,28 +191,71 @@ Section array_model.
 End array_model.
 
 (** The CMRAs we need. *)
-
 Class alockG Σ := {
   tlock_G :> inG Σ (authR (prodUR (optionUR (exclR natO)) (gset_disjUR nat)));
   tlock_sumG :> sumG Σ;
   tlock_tokenG :> inG Σ ((prodR (optionUR (exclR unitO)) (optionUR (exclR unitO))));
 }.
 
-Section abql_model.
+Module spec.
+
+  (* The specification is that of a ticket lock, but extended with invitations.
+     The invitations appear in:
+     - invitation_split which allows the client to split and combine
+       invitations.
+     - newlock which returns a number invitations corresponding to the capacity
+       of the lock..
+     - acquire_spec which consumes an invitaiton.
+     - release_spec which hands back an invitation. *)
+
+  Structure abql_spec Σ `{!heapG Σ, !alockG Σ} := abql {
+    (* Operations *)
+    newlock : val;
+    acquire : val;
+    release : val;
+    (* Predicates *)
+    is_lock (γ ι κ : gname) (lock : val) (cap : nat) (R : iProp Σ) : iProp Σ;
+    locked (γ κ: gname) (o : nat) : iProp Σ;
+    invitation (ι : gname) (n : nat) (cap : nat) : iProp Σ;
+    (* General properties of the predicates *)
+    is_lock_persistent γ ι κ lock cap R : Persistent (is_lock γ ι κ lock cap R);
+    locked_timeless γ κ o : Timeless (locked γ κ o);
+    locked_exclusive γ κ o o' : locked γ κ o -∗ locked γ κ o' -∗ False;
+    invitation_split γ (n m o cap : nat) :
+      n = (m + o)%nat → invitation γ n cap  ⊣⊢ invitation γ m cap ∗ invitation γ o cap;
+    (* Program specs *)
+    newlock_spec (R : iProp Σ) (cap : nat) :
+      {{{ R ∗ ⌜(0 < cap)%nat⌝ }}}
+        newlock (#cap)
+      {{{ lk γ ι κ, RET lk; (is_lock γ ι κ lk cap R) ∗ invitation ι cap cap }}};
+    acquire_spec γ ι κ lk cap R :
+      {{{ is_lock γ ι κ lk cap R ∗ invitation ι 1 cap}}}
+        acquire lk
+      {{{ t, RET #t; locked γ κ t ∗ R }}};
+    release_spec γ ι κ lk cap o R :
+      {{{ is_lock γ ι κ lk cap R ∗ locked γ κ o ∗ R }}}
+        release lk #o
+      {{{ RET #(); invitation ι 1 cap }}};
+  }.
+
+End spec.
+
+Section proof.
 
   Context `{!heapG Σ, !alockG Σ}.
+  Let N := nroot .@ "abql".
 
+  (* The ghost state both, left, and right is used to keep track of the state of
+     the lock:
+     State of lock:  open --> closed --> clopen --> open
+     Owned by lock:  both --> left   --> right  --> both
+     Outside lock:   none --> right  --> left   --> none *)
   Definition both (κ : gname) : iProp Σ := own κ (Excl' (), Excl' ()).
-
   Definition left (κ : gname) : iProp Σ := own κ (Excl' (), None).
-
   Definition right (κ : gname) : iProp Σ := own κ (None, Excl' ()).
 
   Definition invitation (ι : gname) (x : nat) (cap : nat) : iProp Σ :=
     own ι ((x, cap) : sumRA)%I.
-
-  (* The name of a lock. *)
-  Definition lockN (l : val) := nroot .@ "lock" .@ l.
 
   Definition issued (γ : gname) (x : nat) : iProp Σ := own γ (◯ (ε, GSet {[ x ]}))%I.
 
@@ -205,12 +267,12 @@ Section abql_model.
         is_array arr xs ∗
         invitation ι i cap ∗ (* The invitations currently owned by the lock. *)
         own γ (● (Excl' o, GSet (set_seq o i))) ∗
-        ((own γ (◯ (Excl' o, GSet ∅)) ∗ R ∗ both κ ∗ ⌜xs = list_with_one cap (Nat.modulo o cap)⌝) ∨
-         (* Lock is open, R belongs to lock *)
+        ((* Lock is open, R belongs to the lock *)
+         (own γ (◯ (Excl' o, GSet ∅)) ∗ R ∗ both κ ∗ ⌜xs = list_with_one cap (Nat.modulo o cap)⌝) ∨
+         (* Lock is clopen, in the process of being released. *)
          (issued γ o ∗ right κ ∗ ⌜xs = replicate cap false⌝) ∨
-         (* Lock is in the process of being released. *)
-         (issued γ o ∗ left κ ∗ ⌜xs = list_with_one cap (Nat.modulo o cap)⌝) (* Lock is locked *)
-        ))%I.
+         (* Lock is closed, i.e. it is locked *)
+         (issued γ o ∗ left κ ∗ ⌜xs = list_with_one cap (Nat.modulo o cap)⌝)))%I.
 
   (* The lock predicate *)
   (* cap is the length or the capacity of the lock *)
@@ -218,20 +280,13 @@ Section abql_model.
     (∃ (arr : loc) (nextPtr : loc),
         ⌜lock = (#arr, #nextPtr, #cap)%V⌝ ∗
         ⌜(0 < cap)%nat⌝ ∗
-        inv (lockN lock) (lock_inv γ ι κ arr cap nextPtr P))%I.
+        inv N (lock_inv γ ι κ arr cap nextPtr P))%I.
 
   Definition locked (γ κ : gname) (o : nat) : iProp Σ := (own γ (◯ (Excl' o, GSet ∅)) ∗ right κ)%I.
 
-End abql_model.
-
-Section abql_spec.
-
-  Context `{!heapG Σ, !alockG Σ}.
-
   Global Instance is_lock_persistent γ ι κ lk n R : Persistent (is_lock γ ι κ lk n R).
   Proof. apply _. Qed.
-
-  Global Instance locked_timeless γ κ o : Timeless (locked γ o κ).
+  Global Instance locked_timeless γ κ o : Timeless (locked γ κ o).
   Proof. apply _. Qed.
 
   Lemma locked_exclusive (γ κ : gname) o o' : locked γ κ o -∗ locked γ κ o' -∗ False.
@@ -247,29 +302,24 @@ Section abql_spec.
     iIntros "H1 H2". iDestruct (own_valid_2 with "H1 H2") as %[[]].
   Qed.
 
+  (* Lemmas about both, left, and right. *)
   Lemma left_left_false (κ : gname) : left κ -∗ left κ -∗ False.
   Proof.
     iIntros "L L'". iCombine "L L'" as "L".
-    iDestruct (own_valid with "L") as %[Hv _].
-    inversion Hv.
+    iDestruct (own_valid with "L") as %[Hv _]. inversion Hv.
   Qed.
 
   Lemma right_right_false (κ : gname) : right κ -∗ right κ -∗ False.
   Proof.
     iIntros "R R'". iCombine "R R'" as "R".
-    iDestruct (own_valid with "R") as %[_ Hv].
-    inversion Hv.
+    iDestruct (own_valid with "R") as %[_ Hv]. inversion Hv.
   Qed.
 
   Lemma both_split (κ : gname) : both κ -∗ (left κ ∗ right κ).
-  Proof.
-    iIntros "Both". iApply own_op. iFrame.
-  Qed.
+  Proof. iIntros "Both". iApply own_op. iFrame. Qed.
 
   Lemma left_right_to_both (κ : gname) : left κ -∗ right κ -∗ both κ.
-  Proof.
-    iIntros "L R". iCombine "L" "R" as "?". iFrame.
-  Qed.
+  Proof. iIntros "L R". iCombine "L" "R" as "?". iFrame. Qed.
 
   Lemma valid_ticket_range (γ : gname) (x o i : nat) :
     own γ (◯ (ε, GSet {[ x ]})) -∗ own γ (● (Excl' o, GSet (set_seq o i)))
@@ -295,20 +345,31 @@ Section abql_spec.
   Qed.
 
   Lemma invitation_cap_bound γ i cap :
-    invitation γ i cap -∗ ⌜i ≤ cap⌝ ∗ invitation γ i cap.
+    invitation γ i cap -∗ ⌜i ≤ cap⌝.
   Proof.
     iIntros "I".
-    iDestruct (own_valid _ ((i, cap) : sumRA) with "I") as %H.
-    iFrame. iPureIntro. apply inj_le. assumption.
+    iDestruct (own_valid with "I") as %H.
+    iPureIntro. by apply inj_le.
   Qed.
 
-  Lemma invitation_split γ (i cap : nat) :
-    0 < i → invitation γ i cap -∗ invitation γ 1 cap ∗ invitation γ (i - 1) cap.
+  Lemma invitation_split γ (n m o cap : nat) :
+    n = (m + o)%nat → invitation γ n cap  ⊣⊢ invitation γ m cap ∗ invitation γ o cap.
   Proof.
-    iIntros (Hl) "I".
-    iDestruct (own_valid with "I") as %Hv.
-    rewrite -own_op (comm op) sumRA_op_second.
-    rewrite Nat.sub_add; auto; lia.
+    iIntros (Eq).
+    iSplit.
+    - iIntros "I". iDestruct (own_valid with "I") as %Hv.
+      rewrite -own_op sumRA_op_second.
+      by subst.
+    - iIntros "[I1 I2]".
+      iCombine "I1 I2" as "I".
+      rewrite sumRA_op_second. by subst.
+  Qed.
+
+  Lemma invitation_split_one γ (i cap : nat) :
+    0 < i → invitation γ i cap -∗ invitation γ (i - 1) cap ∗ invitation γ 1 cap.
+  Proof.
+    iIntros (Hl) "I". iDestruct (own_valid with "I") as %Hv.
+    rewrite -own_op sumRA_op_second Nat.sub_add; auto; lia.
   Qed.
 
   Lemma newlock_spec (R : iProp Σ) (cap : nat) :
@@ -335,7 +396,7 @@ Section abql_spec.
     iMod (inv_alloc _ _ (lock_inv γ ι κ arr cap p R) with "[-Post Hinvites]").
     { iNext. rewrite /lock_inv. iExists 0%nat, 0%nat, (<[0%nat:=true]> (replicate cap false)).
       iFrame. iSplitR.
-      - rewrite insert_length. rewrite replicate_length. done.
+      - by rewrite insert_length replicate_length.
       - iLeft. iFrame. rewrite Nat.mod_0_l. done. lia. }
     wp_pures.
     iApply "Post".
@@ -345,9 +406,7 @@ Section abql_spec.
 
   Lemma rem_mod_eq (x y : nat) : (0 < y)%nat → x `rem` y = (x `mod` y)%nat.
   Proof.
-    intros Hpos.
-    Check Z.rem_mod_nonneg.
-     rewrite Z.rem_mod_nonneg. rewrite mod_Zmod. reflexivity. lia. lia. lia.
+    intros Hpos. rewrite Z.rem_mod_nonneg; try lia. rewrite mod_Zmod; lia.
   Qed.
 
   Lemma minus_plus_eq a b c : a - b = c → a = c + b.
@@ -410,7 +469,7 @@ Section abql_spec.
     iDestruct "Lock" as (arr nextPtr -> capPos) "#LockInv".
     wp_pures.
     wp_bind (! _)%E.
-    iInv (lockN (#arr, #nextPtr, #(cap))) as (o i xs) "(>%lenEq & >nextPts & isArr & >Inv & Auth & Part)" "Close".
+    iInv N as (o i xs) "(>%lenEq & >nextPts & isArr & >Inv & Auth & Part)" "Close".
     rewrite /is_array rem_mod_eq //.
     pose proof (lookup_lt_is_Some_2 ((λ b : bool, #b) <$> xs) ((t `mod` cap)%nat)) as [x1 Hsome].
     { subst. rewrite fmap_length. apply Nat.mod_upper_bound. lia. }
@@ -420,7 +479,7 @@ Section abql_spec.
     destruct x.
     - rewrite /issued.
       iDestruct (valid_ticket_range with "Ticket Auth") as "([% %] & Ticket & Auth)".
-      iDestruct (invitation_cap_bound with "Inv") as "(% & Inv)".
+      iDestruct (invitation_cap_bound with "Inv") as "%".
       (* We now destruct the three cases that the lock can be in. *)
       iDestruct "Part" as "[(Ho & Hr & Both & %xsEq) | [(Ticket2 & Right & %xsEq) | (Ticket2 & Left & %xsEq)]]".
       * (* The case where the lock is currently open. *)
@@ -460,7 +519,7 @@ Section abql_spec.
     iIntros (ϕ) "[#IsLock Invitation] Post".
     iPoseProof "IsLock" as (arr nextPtr) "(-> & % & LockInv)".
     wp_lam. wp_pures. wp_bind (FAA _ _).
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o i xs) "(>% & >nextPts & psPts & >Invs & >Auth & np)" "Close".
+    iInv N as (o i xs) "(>% & >nextPts & psPts & >Invs & >Auth & np)" "Close".
     wp_faa.
     iMod (own_update with "Auth") as "[Auth Hofull]".
     { eapply auth_update_alloc, prod_local_update_2.
@@ -508,7 +567,7 @@ Section abql_spec.
     wp_lam. wp_pures.
     (* Focus the store such that we can open the invariant. *)
     wp_bind (_ <- _)%E.
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>%lenEq & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
+    iInv N as (o' i xs) "(>%lenEq & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We want to show that o and o' are equal. We know this from the loked γ o ghost state. *)
     iDestruct (own_valid_2 with "Auth Locked") as
       %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
@@ -529,7 +588,7 @@ Section abql_spec.
     clear xsEq lenEq xs i.
     iModIntro. wp_pures.
     rewrite -(Nat2Z.inj_add o 1).
-    iInv (lockN (#arr, #nextPtr, #cap)) as (o' i xs) "(>% & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
+    iInv N as (o' i xs) "(>% & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We destruct the disjunction in the lock invariant. We know that we are in
        the half-locked state so the first and third case results in
        contradictions. *)
@@ -550,7 +609,7 @@ Section abql_spec.
       { apply frame_update_lemma_discard_ticket. }
       { rewrite own_op own_op. iFrame. }
       iDestruct "Hγ" as "[Locked Auth]".
-      iDestruct (invitation_split ι i cap with "[$Invs]") as "[Inv Invs]"; first done.
+      iDestruct (invitation_split_one with "Invs") as "[Invs Inv]"; first done.
       iMod ("Close" with "[nextPts Invs Auth isArr Both R Locked]") as "_".
       { iNext. iExists (o + 1)%nat, (i - 1)%nat, (list_with_one cap ((o + 1) `mod` cap)).
         assert (o + 1 + (i - 1) = o + i)%nat as -> by lia.
@@ -562,4 +621,20 @@ Section abql_spec.
     * iDestruct (left_left_false with "Left Left'") as "[]".
   Qed.
 
-End abql_spec.
+End proof.
+
+Program Definition abql `{!heapG Σ, !alockG Σ} : spec.abql_spec Σ :=
+  {| spec.newlock := newlock;
+     spec.acquire := acquire;
+     spec.release := release;
+     spec.is_lock := is_lock;
+     spec.locked := locked;
+     spec.invitation := invitation;
+     spec.is_lock_persistent := is_lock_persistent;
+     spec.locked_timeless := locked_timeless;
+     spec.locked_exclusive := locked_exclusive;
+     spec.invitation_split := invitation_split;
+     spec.newlock_spec := newlock_spec;
+     spec.acquire_spec := acquire_spec;
+     spec.release_spec := release_spec;
+  |}.
