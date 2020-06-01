@@ -63,17 +63,63 @@ Section abql_code.
 
 End abql_code.
 
-Section algebra.
+Module spec.
 
-  (* We create a resource algebra used to represent invitations. In the
-     specification, a lock created with capacity `n` is associated with `n`
-     invitations. Acquiring the lock consumes an invitation and releasing the
-     lock returns the invitation. This ensures that at most `n` threads may
+  (* Acquiring the lock consists of taking a ticket and spinning on an entry in
+     the array. If there are more threads waiting to acquire the lock than there
+     are entries in the array, several threads will spin on the same entry in
+     the array, and they may both enter their critical section when this entry
+     becomes true. Thus, to ensure safety the specification must ensure that
+     this can't happen. To this end the specification is that of a ticket lock,
+     but extended with _invitations_.
+
+     Invitations are non-duplicable tokens which gives permission to acquire the
+     lock. In newlock, when a lock is created with capacity `n` the same amount
+     of invitations are created. These are tied to the lock through the ghost
+     name γ. acquire_spec consumes one invitaiton and release_spec hands back
+     one invitation. Together this ensures that at most `n` threads may
      simultaneously attempt to acquire the lock.
 
-     The carrier of the resource algebra is pairs of natural numbers. The first
-     number represents how many invitations we have and the second how many
-     invitations exists in total. *)
+     invitation_split allows the client to split and combine invitations. *)
+
+  Structure abql_spec Σ `{!heapG Σ} := abql {
+    (* Operations *)
+    newlock : val;
+    acquire : val;
+    release : val;
+    (* Predicates *)
+    is_lock (γ ι κ : gname) (lock : val) (cap : nat) (R : iProp Σ) : iProp Σ;
+    locked (γ κ: gname) (o : nat) : iProp Σ;
+    invitation (ι : gname) (n : nat) (cap : nat) : iProp Σ;
+    (* General properties of the predicates *)
+    is_lock_persistent γ ι κ lock cap R : Persistent (is_lock γ ι κ lock cap R);
+    locked_timeless γ κ o : Timeless (locked γ κ o);
+    locked_exclusive γ κ o o' : locked γ κ o -∗ locked γ κ o' -∗ False;
+    invitation_split γ (n m cap : nat) :
+      invitation γ (n + m) cap ⊣⊢ invitation γ n cap ∗ invitation γ m cap;
+    (* Program specs *)
+    newlock_spec (R : iProp Σ) (cap : nat) :
+      {{{ R ∗ ⌜0 < cap⌝ }}}
+        newlock (#cap)
+      {{{ lk γ ι κ, RET lk; (is_lock γ ι κ lk cap R) ∗ invitation ι cap cap }}};
+    acquire_spec γ ι κ lk cap R :
+      {{{ is_lock γ ι κ lk cap R ∗ invitation ι 1 cap}}}
+        acquire lk
+      {{{ t, RET #t; locked γ κ t ∗ R }}};
+    release_spec γ ι κ lk cap o R :
+      {{{ is_lock γ ι κ lk cap R ∗ locked γ κ o ∗ R }}}
+        release lk #o
+      {{{ RET #(); invitation ι 1 cap }}};
+  }.
+
+End spec.
+
+Section algebra.
+
+  (* We create a resource algebra used to represent invitations. The carrier of
+     the resource algebra is pairs of natural numbers. The first number
+     represents how many invitations we have and the second how many invitations
+     exists in total. *)
   Definition sumRAT : Type := nat * nat.
 
   Canonical Structure sumRAC := leibnizO sumRAT.
@@ -193,49 +239,6 @@ Class alockG Σ := {
   tlock_tokenG :> inG Σ ((prodR (optionUR (exclR unitO)) (optionUR (exclR unitO))));
 }.
 
-Module spec.
-
-  (* The specification is that of a ticket lock, but extended with invitations.
-     The invitations appear in:
-     - invitation_split which allows the client to split and combine
-       invitations.
-     - newlock which returns a number invitations corresponding to the capacity
-       of the lock..
-     - acquire_spec which consumes an invitaiton.
-     - release_spec which hands back an invitation. *)
-
-  Structure abql_spec Σ `{!heapG Σ, !alockG Σ} := abql {
-    (* Operations *)
-    newlock : val;
-    acquire : val;
-    release : val;
-    (* Predicates *)
-    is_lock (γ ι κ : gname) (lock : val) (cap : nat) (R : iProp Σ) : iProp Σ;
-    locked (γ κ: gname) (o : nat) : iProp Σ;
-    invitation (ι : gname) (n : nat) (cap : nat) : iProp Σ;
-    (* General properties of the predicates *)
-    is_lock_persistent γ ι κ lock cap R : Persistent (is_lock γ ι κ lock cap R);
-    locked_timeless γ κ o : Timeless (locked γ κ o);
-    locked_exclusive γ κ o o' : locked γ κ o -∗ locked γ κ o' -∗ False;
-    invitation_split γ (n m o cap : nat) :
-      n = m + o → invitation γ n cap  ⊣⊢ invitation γ m cap ∗ invitation γ o cap;
-    (* Program specs *)
-    newlock_spec (R : iProp Σ) (cap : nat) :
-      {{{ R ∗ ⌜0 < cap⌝ }}}
-        newlock (#cap)
-      {{{ lk γ ι κ, RET lk; (is_lock γ ι κ lk cap R) ∗ invitation ι cap cap }}};
-    acquire_spec γ ι κ lk cap R :
-      {{{ is_lock γ ι κ lk cap R ∗ invitation ι 1 cap}}}
-        acquire lk
-      {{{ t, RET #t; locked γ κ t ∗ R }}};
-    release_spec γ ι κ lk cap o R :
-      {{{ is_lock γ ι κ lk cap R ∗ locked γ κ o ∗ R }}}
-        release lk #o
-      {{{ RET #(); invitation ι 1 cap }}};
-  }.
-
-End spec.
-
 Section proof.
 
   Context `{!heapG Σ, !alockG Σ}.
@@ -346,17 +349,13 @@ Section proof.
     iIntros "I". by iDestruct (own_valid with "I") as %H.
   Qed.
 
-  Lemma invitation_split γ (n m o cap : nat) :
-    n = m + o → invitation γ n cap  ⊣⊢ invitation γ m cap ∗ invitation γ o cap.
+  Lemma invitation_split γ (n m cap : nat) :
+    invitation γ (n + m) cap  ⊣⊢ invitation γ n cap ∗ invitation γ m cap.
   Proof.
-    iIntros (Eq).
     iSplit.
     - iIntros "I". iDestruct (own_valid with "I") as %Hv.
-      rewrite -own_op sumRA_op_second.
-      by subst.
-    - iIntros "[I1 I2]".
-      iCombine "I1 I2" as "I".
-      rewrite sumRA_op_second. by subst.
+      by rewrite -own_op sumRA_op_second.
+    - iIntros "[I1 I2]". iCombine "I1 I2" as "I". by rewrite sumRA_op_second.
   Qed.
 
   Lemma invitation_split_one γ (i cap : nat) :
