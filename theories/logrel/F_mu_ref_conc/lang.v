@@ -1,5 +1,5 @@
 From iris.program_logic Require Export language ectx_language ectxi_language.
-From iris_examples.logrel.prelude Require Export base.
+From iris_examples.logrel.F_mu_ref_conc Require Export base.
 From iris.algebra Require Export ofe.
 From stdpp Require Import gmap.
 

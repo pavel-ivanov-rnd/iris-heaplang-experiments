@@ -34,39 +34,43 @@ This repository contains the following case studies:
 
 * [barrier](theories/barrier): Implementation and proof of a barrier as
   described in ["Higher-Order Ghost State"](http://doi.acm.org/10.1145/2818638).
-* [logrel](theories/logrel): Logical relations from the
-  [IPM paper](http://doi.acm.org/10.1145/3093333.3009855):
-  - STLC
-      - Unary logical relations proving type safety
-  - F_mu (System F with recursive types)
-      - Unary logical relations proving type safety
-  - F_mu_ref (System F with recursive types and references)
-      - Unary logical relations proving type safety
-      - Binary logical relations for proving contextual refinements
-  - F_mu_ref_conc (System F with recursive types, references and concurrency)
-      - Unary logical relations proving type safety
-      - Binary logical relations for proving contextual refinements
-          - Proof of refinement for a pair of fine-grained/coarse-grained
-            concurrent counter implementations
-          - Proof of refinement for a pair of fine-grained/coarse-grained
-            concurrent stack implementations
-* [logrel_heaplang](theories/logrel_heaplang): A unary logical relation for
-  semantic typing of heap lang.
+* [logrel](logrel): Logical relations.
+  - [logrel/stlc](theories/logrel/stlc): A unary logical relation for semantic
+    typing STLC (simply-typed lambda calculus) with De Bruijn indices (using
+    Autosubst).
+  - [logrel/F_mu_ref_conc](theories/logrel/F_mu_ref_conc): The logical relations
+    for F_mu_ref_conc (System F with recursive types, references and concurrency)
+    with De Bruijn indices (using Autosubst) from the
+    [IPM paper](http://doi.acm.org/10.1145/3093333.3009855):
+    + Unary logical relations proving type safety.
+    + Binary logical relations for proving contextual refinements.
+    + Proof of refinement for a pair of fine-grained/coarse-grained
+      concurrent counter implementations.
+    + Proof of refinement for a pair of fine-grained/coarse-grained
+      concurrent stack implementations.
+  - [logrel/heaplang](theories/logrel/heaplang): A unary logical relation for
+    semantic typing of heap lang (by Robbert Krebbers).
 * [logatom](theories/logrel_heaplang): Proofs of various logically atomic specifications:
-  - Elimination Stack (by Ralf Jung)
-  - Conditional increment (inspired by [this paper](https://people.mpi-sws.org/~dreyer/papers/relcon/paper.pdf)) and RDCSS (as in [this paper](https://timharris.uk/papers/2002-disc.pdf)) (by Marianna Rapoport, Rodolphe Lepigre and Gaurav Parthasarathy)
-  - [Herlihy-Wing-Queue](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf) (by Rodolphe Lepigre)
-  - Atomic Snapshot (by Marianna Rapoport)
-  - Treiber Stack (by Zhen Zhang, and another version by Rodolphe Lepigre)
-  - Flat Combiner (by Zhen Zhang, also see [this archived documentation](https://gitlab.mpi-sws.org/FP/iris-atomic/tree/master/docs))
+  - Elimination Stack (by Ralf Jung).
+  - Conditional increment (inspired by [this paper](https://people.mpi-sws.org/~dreyer/papers/relcon/paper.pdf))
+    and RDCSS (as in [this paper](https://timharris.uk/papers/2002-disc.pdf))
+    (by Marianna Rapoport, Rodolphe Lepigre and Gaurav Parthasarathy).
+  - [Herlihy-Wing-Queue](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf)
+    (by Rodolphe Lepigre).
+  - Atomic Snapshot (by Marianna Rapoport).
+  - Treiber Stack (by Zhen Zhang, and another version by Rodolphe Lepigre).
+  - Flat Combiner (by Zhen Zhang, also see
+    [this archived documentation](https://gitlab.mpi-sws.org/FP/iris-atomic/tree/master/docs)).
 * [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
-  algorithm by Amin Timany.
+  algorithm (by Amin Timany).
 * [concurrent-stacks](theories/concurrent_stacks): Proof of an implementation of
   concurrent stacks with helping by Daniel Gratzer et. al., as described in the
   [report](http://iris-project.org/pdfs/2017-case-study-concurrent-stacks-with-helping.pdf).
 * [lecture-notes](theories/lecture_notes): Coq examples for the
   [Iris lecture notes](http://iris-project.org/tutorial-material.html).
-* [hocap](theories/hocap): Formalisations of the concurrent bag and concurrent runners libraries from the [HOCAP paper](https://dl.acm.org/citation.cfm?id=2450283). See the associated [README](theories/hocap/README.md).
+* [hocap](theories/hocap): Formalizations of the concurrent bag and concurrent
+  runners libraries from the [HOCAP paper](https://dl.acm.org/citation.cfm?id=2450283)
+  (by Dan Frumin). See the associated [README](theories/hocap/README.md).
 
 ## For Developers: How to update the Iris dependency
 

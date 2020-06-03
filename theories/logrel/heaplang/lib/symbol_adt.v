@@ -1,4 +1,4 @@
-From iris_examples.logrel_heaplang Require Export ltyping.
+From iris_examples.logrel.heaplang Require Export ltyping.
 From iris.heap_lang.lib Require Import assert.
 From iris.algebra Require Import auth.
 From iris.base_logic.lib Require Import invariants.

@@ -2,6 +2,10 @@ From iris.program_logic Require Export weakestpre.
 From iris.proofmode Require Export tactics.
 From iris_examples.logrel.stlc Require Export lang typing.
 
+Reserved Notation "⟦ τ ⟧" (at level 0, τ at level 70).
+Reserved Notation "⟦ τ ⟧ₑ" (at level 0, τ at level 70).
+Reserved Notation "⟦ Γ ⟧*" (at level 0, Γ at level 70).
+
 (** interp : is a unary logical relation. *)
 Section logrel.
 Context `{irisG stlc_lang Σ}.
