@@ -116,24 +116,30 @@ End spec.
 
 Section algebra.
 
-  (* We create a resource algebra used to represent invitations. The carrier of
-     the resource algebra is pairs of natural numbers. The first number
-     represents how many invitations we have and the second how many invitations
-     exists in total. *)
+  (* We create a resource algebra used to represent invitations. The RA can be
+     thought of as "addition with an upper bound". The carrier of the resource
+     algebra is pairs of natural numbers. The first number represents how many
+     invitations we have and the second how many invitations exists in total. *)
   Definition sumRAT : Type := nat * nat.
 
   Canonical Structure sumRAC := leibnizO sumRAT.
 
+  (* We want (a, n) ⋅ (b, n) to be equal to (a + b, n). What happens for (a, n)
+     ⋅ (b, m) when n ≠ m is arbitary as we never combine such elements. Here we
+     choose to combine the second elements with min as [n `min` n = n] and both
+     associtaivity and commutativity is easy to prove with this choice. *)
   Instance sumRAop : Op sumRAT :=
     λ a b, match a, b with
              (x, n), (y, m) => (x + y, n `min` m)
            end.
 
+  (* The definition of validity matches the intuition that if there exists n
+     invitations in totoal then one can at most have n invitations. *)
   Instance sumRAValid : Valid sumRAT :=
     λ a, match a with (x, n) => x ≤ n end.
 
-  Instance sumRACore : PCore sumRAT :=
-    λ _, None.
+  (* Invitations should not be duplicable. *)
+  Instance sumRACore : PCore sumRAT := λ _, None.
 
   (* We need these auxiliary lemmas in the proof below.
      We need the type annotation to guide the type inference. *)
