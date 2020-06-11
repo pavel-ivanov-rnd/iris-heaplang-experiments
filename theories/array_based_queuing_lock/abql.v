@@ -155,19 +155,12 @@ Section algebra.
 
   Definition sumRA_mixin : RAMixin sumRAT.
   Proof.
-    split.
-    - intros x. by unfold Proper.
-    - intros x y z -> ->. exists z. done.
-    - by unfold Proper.
-    - intros x y z. destruct x, y, z.
-      repeat rewrite sumRA_op. rewrite Nat.add_assoc. rewrite Nat.min_assoc. reflexivity.
-    - intros x y. destruct x, y.
-      repeat rewrite sumRA_op. rewrite Nat.add_comm. rewrite Nat.min_comm. reflexivity.
-    - intros x y. rewrite /pcore /sumRACore. intros H. inversion H.
-    - intros x y. rewrite /pcore /sumRACore. intros H. inversion H.
-    - rewrite /pcore /sumRACore. intros x y z _ H. inversion H.
-    - intros [n c] [n' c'].
-      repeat rewrite sumRA_op. intros V%Nat.min_glb_iff.
+    split; try apply _; try done.
+    - intros [??] [??] [??].
+      repeat rewrite sumRA_op. by rewrite Nat.add_assoc Nat.min_assoc.
+    - intros [??] [??].
+      repeat rewrite sumRA_op. by rewrite Nat.add_comm Nat.min_comm.
+    - intros [??] [??]. repeat rewrite sumRA_op. intros V%Nat.min_glb_iff.
       apply sumRA_valid. lia.
   Qed.
 
