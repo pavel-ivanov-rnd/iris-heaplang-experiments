@@ -171,33 +171,37 @@ Section algebra.
      the second upper bound as that whould violate commutativity, and using
      `max` would not satisfy the laws for validity. We could use agreement, but
      choose to use `min` as it is easier to work with. *)
-  Definition sumRAT : Type := nat * min_nat.
+  Record addb : Type := Addb { addb_proj : nat * min_nat }.
 
-  Canonical Structure sumRAC := leibnizO sumRAT.
+  Canonical Structure sumRAC := leibnizO addb.
+
+  Instance addb_op : Op addb := λ a b, Addb (addb_proj a ⋅ addb_proj b).
 
   (* The definition of validity matches the intuition that if there exists n
      invitations in totoal then one can at most have n invitations. *)
-  Instance sumRAValid : Valid sumRAT :=
-    λ a, match a with (x, MinNat n) => x ≤ n end.
+  Instance addb_valid : Valid addb :=
+    λ a, match a with Addb (x, MinNat n) => x ≤ n end.
 
   (* Invitations should not be duplicable. *)
-  Instance sumRACore : PCore sumRAT := λ _, None.
+  Instance addb_pcore : PCore addb := λ _, None.
 
   (* We need these auxiliary lemmas in the proof below. *)
-  Lemma sumRA_op_second a b (n : min_nat) : (a, n) ⋅ (b, n) = (a + b, n).
-  Proof. by rewrite -pair_op idemp_L. Qed.
+  Lemma sumRA_op_second a b (n : min_nat) : Addb (a, n) ⋅ Addb (b, n) = Addb (a + b, n).
+  Proof. by rewrite /op /addb_op -pair_op idemp_L. Qed.
 
   (* If (a, n) is valid ghost state then we can conclude that a ≤ n *)
-  Lemma sumRA_valid a n : ✓(a, n) ↔ a ≤ min_nat_car n.
+  Lemma sumRA_valid a n : ✓(Addb (a, n)) ↔ a ≤ min_nat_car n.
   Proof. destruct n. split; auto. Qed.
 
-  Definition sumRA_mixin : RAMixin sumRAT.
+  Definition sumRA_mixin : RAMixin addb.
   Proof.
     split; try apply _; try done.
-    intros [?[?]] [?[?]]. rewrite 2!sumRA_valid nat_op_plus /=. lia.
+    - intros ???. rewrite /op /addb_op /=. apply f_equal, assoc, _.
+    - intros ??. rewrite /op /addb_op /=. apply f_equal, comm, _.
+    - intros [[?[?]]] [[?[?]]]. rewrite 2!sumRA_valid nat_op_plus /=. lia.
   Qed.
 
-  Canonical Structure sumRA := discreteR sumRAT sumRA_mixin.
+  Canonical Structure sumRA := discreteR addb sumRA_mixin.
 
   Global Instance sumRA_cmra_discrete : CmraDiscrete sumRA.
   Proof. apply discrete_cmra_discrete. Qed.
@@ -286,7 +290,7 @@ Section proof.
   Definition right (κ : gname) : iProp Σ := own κ (None, Excl' ()).
 
   Definition invitation (ι : gname) (x cap : nat) : iProp Σ :=
-    own ι ((x, MinNat cap) : sumRA)%I.
+    own ι (Addb (x, MinNat cap))%I.
 
   Definition issued (γ : gname) (x : nat) : iProp Σ := own γ (◯ (ε, GSet {[ x ]}))%I.
 
@@ -413,7 +417,7 @@ Section proof.
     iMod (own_alloc (● (Excl' 0, GSet ∅) ⋅ ◯ (Excl' 0, GSet ∅))) as (γ) "[Hγ Hγ']".
     { by apply auth_both_valid. }
     (* We allocate the ghost state for the invitations. *)
-    iMod (own_alloc (((cap, MinNat cap) : sumRA) ⋅ (0, MinNat cap))) as (ι) "[Hinvites HNoInvites]".
+    iMod (own_alloc (Addb (cap, MinNat cap) ⋅ Addb (0, MinNat cap))) as (ι) "[Hinvites HNoInvites]".
     { rewrite sumRA_op_second Nat.add_0_r. apply sumRA_valid. auto. }
     (* We allocate the ghost state for the lock state indicatior. *)
     iMod (own_alloc ((Excl' (), Excl' ()))) as (κ) "Both". { done. }
