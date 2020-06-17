@@ -18,6 +18,50 @@ From iris.base_logic.lib Require Export invariants.
 From iris.algebra Require Import excl auth gset frac.
 From iris_string_ident Require Import ltac2_string_ident.
 
+(* FIMEX: Temporarily inlined min_nat definition. *)
+(** ** Natural numbers with [min] as the operation. *)
+Record min_nat := MinNat { min_nat_car : nat }.
+
+Canonical Structure min_natO := leibnizO min_nat.
+
+Section min_nat.
+  Instance min_nat_valid : Valid min_nat := λ x, True.
+  Instance min_nat_validN : ValidN min_nat := λ n x, True.
+  Instance min_nat_pcore : PCore min_nat := Some.
+  Instance min_nat_op : Op min_nat := λ n m, MinNat (min_nat_car n `min` min_nat_car m).
+  Definition min_nat_op_min x y : MinNat x ⋅ MinNat y = MinNat (x `min` y) := eq_refl.
+
+  Lemma min_nat_included (x y : min_nat) : x ≼ y ↔ min_nat_car y ≤ min_nat_car x.
+  Proof.
+    split.
+    - intros [z ->]. simpl. lia.
+    - exists y. rewrite /op /min_nat_op. rewrite Nat.min_r; last lia. by destruct y.
+  Qed.
+  Lemma min_nat_ra_mixin : RAMixin min_nat.
+  Proof.
+    apply ra_total_mixin; apply _ || eauto.
+    - intros [x] [y] [z]. repeat rewrite min_nat_op_min. by rewrite Nat.min_assoc.
+    - intros [x] [y]. by rewrite min_nat_op_min Nat.min_comm.
+    - intros [x]. by rewrite min_nat_op_min Min.min_idempotent.
+  Qed.
+  Canonical Structure min_natR : cmraT := discreteR min_nat min_nat_ra_mixin.
+
+  Global Instance min_nat_cmra_discrete : CmraDiscrete min_natR.
+  Proof. apply discrete_cmra_discrete. Qed.
+
+  Global Instance min_nat_core_id (x : min_nat) : CoreId x.
+  Proof. by constructor. Qed.
+
+  Global Instance : LeftAbsorb (=) (MinNat 0) (⋅).
+  Proof. done. Qed.
+
+  Global Instance : RightAbsorb (=) (MinNat 0) (⋅).
+  Proof. intros [x]. by rewrite min_nat_op_min Min.min_0_r. Qed.
+
+  Global Instance : @IdemP min_nat (=) (⋅).
+  Proof. intros [x]. rewrite min_nat_op_min. apply f_equal. lia. Qed.
+End min_nat.
+
 Section abql_code.
 
   (* The ABQL is a variant of a ticket lock which uses an array.
@@ -119,49 +163,38 @@ Section algebra.
   (* We create a resource algebra used to represent invitations. The RA can be
      thought of as "addition with an upper bound". The carrier of the resource
      algebra is pairs of natural numbers. The first number represents how many
-     invitations we have and the second how many invitations exists in total. *)
-  Definition sumRAT : Type := nat * nat.
+     invitations we have and the second how many invitations exists in total.
+
+     We want (a, n) ⋅ (b, n) to be equal to (a + b, n). What happens for (a, n)
+     ⋅ (b, m) when n ≠ m is arbitary, as we never combine such elements, as long
+     as it satisfies the laws for a RA. We can not, for instance, just disregard
+     the second upper bound as that whould violate commutativity, and using
+     `max` would not satisfy the laws for validity. We could use agreement, but
+     choose to use `min` as it is easier to work with. *)
+  Definition sumRAT : Type := nat * min_nat.
 
   Canonical Structure sumRAC := leibnizO sumRAT.
-
-  (* We want (a, n) ⋅ (b, n) to be equal to (a + b, n). What happens for (a, n)
-     ⋅ (b, m) when n ≠ m is arbitary as we never combine such elements. Here we
-     choose to combine the second elements with min as [n `min` n = n] and both
-     associtaivity and commutativity is easy to prove with this choice. *)
-  Instance sumRAop : Op sumRAT :=
-    λ a b, match a, b with
-             (x, n), (y, m) => (x + y, n `min` m)
-           end.
 
   (* The definition of validity matches the intuition that if there exists n
      invitations in totoal then one can at most have n invitations. *)
   Instance sumRAValid : Valid sumRAT :=
-    λ a, match a with (x, n) => x ≤ n end.
+    λ a, match a with (x, MinNat n) => x ≤ n end.
 
   (* Invitations should not be duplicable. *)
   Instance sumRACore : PCore sumRAT := λ _, None.
 
-  (* We need these auxiliary lemmas in the proof below.
-     We need the type annotation to guide the type inference. *)
-  Lemma sumRA_op_second a b n: ((a, n) : sumRAT) ⋅ ((b, n) : sumRAT) = ((a + b, n) : sumRAT).
-  Proof. by rewrite /op /sumRAop Nat.min_id. Qed.
-
-  Lemma sumRA_op a b n m: ((a, n) : sumRAT) ⋅ ((b, m) : sumRAT) = ((a + b, n `min` m) : sumRAT).
-  Proof. by rewrite /op /sumRAop. Qed.
+  (* We need these auxiliary lemmas in the proof below. *)
+  Lemma sumRA_op_second a b (n : min_nat) : (a, n) ⋅ (b, n) = (a + b, n).
+  Proof. by rewrite -pair_op idemp_L. Qed.
 
   (* If (a, n) is valid ghost state then we can conclude that a ≤ n *)
-  Lemma sumRA_valid (a n : nat): ✓((a, n) : sumRAT) ↔ a ≤ n.
-  Proof. split; auto. Qed.
+  Lemma sumRA_valid a n : ✓(a, n) ↔ a ≤ min_nat_car n.
+  Proof. destruct n. split; auto. Qed.
 
   Definition sumRA_mixin : RAMixin sumRAT.
   Proof.
     split; try apply _; try done.
-    - intros [??] [??] [??].
-      repeat rewrite sumRA_op. by rewrite Nat.add_assoc Nat.min_assoc.
-    - intros [??] [??].
-      repeat rewrite sumRA_op. by rewrite Nat.add_comm Nat.min_comm.
-    - intros [??] [??]. repeat rewrite sumRA_op. intros V%Nat.min_glb_iff.
-      apply sumRA_valid. lia.
+    intros [?[?]] [?[?]]. rewrite 2!sumRA_valid nat_op_plus /=. lia.
   Qed.
 
   Canonical Structure sumRA := discreteR sumRAT sumRA_mixin.
@@ -252,8 +285,8 @@ Section proof.
   Definition left (κ : gname) : iProp Σ := own κ (Excl' (), None).
   Definition right (κ : gname) : iProp Σ := own κ (None, Excl' ()).
 
-  Definition invitation (ι : gname) (x : nat) (cap : nat) : iProp Σ :=
-    own ι ((x, cap) : sumRA)%I.
+  Definition invitation (ι : gname) (x cap : nat) : iProp Σ :=
+    own ι ((x, MinNat cap) : sumRA)%I.
 
   Definition issued (γ : gname) (x : nat) : iProp Σ := own γ (◯ (ε, GSet {[ x ]}))%I.
 
@@ -380,8 +413,8 @@ Section proof.
     iMod (own_alloc (● (Excl' 0, GSet ∅) ⋅ ◯ (Excl' 0, GSet ∅))) as (γ) "[Hγ Hγ']".
     { by apply auth_both_valid. }
     (* We allocate the ghost state for the invitations. *)
-    iMod (own_alloc (((cap, cap) : sumRA) ⋅ (0, cap))) as (ι) "[Hinvites HNoInvites]".
-    { rewrite sumRA_op_second Nat.add_0_r. apply (sumRA_valid cap cap). auto. }
+    iMod (own_alloc (((cap, MinNat cap) : sumRA) ⋅ (0, MinNat cap))) as (ι) "[Hinvites HNoInvites]".
+    { rewrite sumRA_op_second Nat.add_0_r. apply sumRA_valid. auto. }
     (* We allocate the ghost state for the lock state indicatior. *)
     iMod (own_alloc ((Excl' (), Excl' ()))) as (κ) "Both". { done. }
     wp_alloc p as "pts".
