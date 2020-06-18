@@ -1,4 +1,4 @@
-From iris.algebra Require Import excl auth list gset gmap agree csum.
+From iris.algebra Require Import numbers excl auth list gset gmap agree csum.
 From iris.bi.lib Require Import fractional.
 From iris.proofmode Require Import tactics.
 From iris.base_logic.lib Require Export invariants proph_map saved_prop.
@@ -116,7 +116,7 @@ Definition per_slot :=
 Definition eltsUR := authR $ optionUR $ exclR $ listO locO.
 Definition contUR := csumR (exclR unitR) (agreeR (prodO natO natO)).
 Definition slotUR := authR $ gmapUR nat per_slot.
-Definition backUR := authR mnatUR.
+Definition backUR := authR max_natUR.
 
 Class hwqG Σ :=
   HwqG {
@@ -182,12 +182,12 @@ Proof. iIntros "H1 H2". by iDestruct (own_valid_2 with "H1 H2") as %?. Qed.
 
 (** Operations for the CMRA used to show that back only increases. *)
 
-Definition back_value γb n := own γb (● (n : mnatUR) : backUR).
-Definition back_lower_bound γb n := own γb (◯ (n : mnatUR) : backUR).
+Definition back_value γb n := own γb (● MaxNat n).
+Definition back_lower_bound γb n := own γb (◯ MaxNat n).
 
 Lemma new_back : ⊢ |==> ∃ γb, back_value γb 0.
 Proof.
-  iMod (own_alloc (● (0 : mnatUR) : backUR)) as (γb) "H●".
+  iMod (own_alloc (● MaxNat 0)) as (γb) "H●".
   - by rewrite auth_auth_valid.
   - by iExists γb.
 Qed.
@@ -196,14 +196,14 @@ Lemma back_incr γb n :
   back_value γb n ==∗ back_value γb (S n).
 Proof.
   iIntros "H●". iMod (own_update with "H●") as "[$ _]"; last done.
-  apply auth_update_alloc, (mnat_local_update _ _ (S n)). by lia.
+  apply auth_update_alloc, (max_nat_local_update _ _ (MaxNat (S n))). simpl. lia.
 Qed.
 
 Lemma back_snapshot γb n :
   back_value γb n ==∗ back_value γb n ∗ back_lower_bound γb n.
 Proof.
   iIntros "H●". rewrite -own_op. iApply (own_update with "H●").
-  by apply auth_update_alloc, mnat_local_update.
+  by apply auth_update_alloc, max_nat_local_update.
 Qed.
 
 Lemma back_le γb n1 n2 :
@@ -211,8 +211,7 @@ Lemma back_le γb n1 n2 :
 Proof.
   iIntros "H1 H2". iCombine "H1 H2" as "H".
   iDestruct (own_valid with "H") as %Hvalid. iPureIntro.
-  apply auth_both_valid in Hvalid as [H1 H2].
-  by apply mnat_included.
+  apply auth_both_valid in Hvalid as [H1%max_nat_included _]. done.
 Qed.
 
 (* Stores a lower bound on the [i2] part of any contradiction that
@@ -228,14 +227,14 @@ Lemma i2_lower_bound_update γi n m :
   i2_lower_bound γi n ==∗ i2_lower_bound γi m.
 Proof.
   iIntros (H) "H●". iMod (own_update with "H●") as "[$ _]"; last done.
-  apply auth_update_alloc, (mnat_local_update _ _ m). by lia.
+  apply auth_update_alloc, (max_nat_local_update _ _ (MaxNat m)). simpl. lia.
 Qed.
 
 Lemma i2_lower_bound_snapshot γi n :
   i2_lower_bound γi n ==∗ i2_lower_bound γi n ∗ no_contra_wit γi n.
 Proof.
   iIntros "H●". rewrite -own_op. iApply (own_update with "H●").
-  by apply auth_update_alloc, mnat_local_update.
+  by apply auth_update_alloc, max_nat_local_update.
 Qed.
 
 (** Operations for the one-shot CMRA used for contradiction states. *)

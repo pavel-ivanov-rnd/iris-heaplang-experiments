@@ -1,6 +1,6 @@
 From iris_examples.logrel.heaplang Require Export ltyping.
 From iris.heap_lang.lib Require Import assert.
-From iris.algebra Require Import auth.
+From iris.algebra Require Import numbers auth.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 
@@ -13,8 +13,8 @@ Definition symbol_adt_ty `{heapG Σ} : lty Σ :=
   (() → ∃ A, (() → A) * (A → ()))%lty.
 
 (* The required ghost theory *)
-Class symbolG Σ := { symbol_inG :> inG Σ (authR mnatUR) }.
-Definition symbolΣ : gFunctors := #[GFunctor (authR mnatUR)].
+Class symbolG Σ := { symbol_inG :> inG Σ (authR max_natUR) }.
+Definition symbolΣ : gFunctors := #[GFunctor (authR max_natUR)].
 
 Instance subG_symbolΣ {Σ} : subG symbolΣ Σ → symbolG Σ.
 Proof. solve_inG. Qed.
@@ -22,8 +22,8 @@ Proof. solve_inG. Qed.
 Section symbol_ghosts.
   Context `{!symbolG Σ}.
 
-  Definition counter (γ : gname) (n : nat) : iProp Σ := own γ (● (n : mnat)).
-  Definition symbol (γ : gname) (n : nat) : iProp Σ := own γ (◯ (S n : mnat)).
+  Definition counter (γ : gname) (n : nat) : iProp Σ := own γ (● (MaxNat n)).
+  Definition symbol (γ : gname) (n : nat) : iProp Σ := own γ (◯ (MaxNat (S n))).
 
   Global Instance counter_timeless γ n : Timeless (counter γ n).
   Proof. apply _. Qed.
@@ -39,7 +39,7 @@ Section symbol_ghosts.
 
   Lemma counter_alloc n : ⊢ |==> ∃ γ, counter γ n.
   Proof.
-    iMod (own_alloc (● (n:mnat) ⋅ ◯ (n:mnat))) as (γ) "[Hγ Hγf]";
+    iMod (own_alloc (● MaxNat n ⋅ ◯ MaxNat n)) as (γ) "[Hγ Hγf]";
       first by apply auth_both_valid.
     iExists γ. by iFrame.
   Qed.
@@ -47,14 +47,14 @@ Section symbol_ghosts.
   Lemma counter_inc γ n : counter γ n ==∗ counter γ (S n) ∗ symbol γ n.
   Proof.
     rewrite -own_op.
-    apply own_update, auth_update_alloc, mnat_local_update. omega.
+    apply own_update, auth_update_alloc, max_nat_local_update. simpl. lia.
   Qed.
 
   Lemma symbol_obs γ s n : counter γ n -∗ symbol γ s -∗ ⌜(s < n)%nat⌝.
   Proof.
     iIntros "Hc Hs".
-    iDestruct (own_valid_2 with "Hc Hs") as %[?%mnat_included _]%auth_both_valid.
-    iPureIntro. omega.
+    iDestruct (own_valid_2 with "Hc Hs") as %[?%max_nat_included _]%auth_both_valid.
+    simpl in *. iPureIntro. lia.
   Qed.
 End symbol_ghosts.
 
