@@ -9,6 +9,7 @@ From iris.base_logic.lib Require Export invariants.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode.
 From iris.heap_lang Require Import notation lang.
+From iris.algebra Require Import numbers.
 
 From iris.heap_lang.lib Require Import par.
 
@@ -356,7 +357,7 @@ End monotone_counter.
    As we stated in an exercise in the counter modules section of the lecture
    notes, the resource algebra we constructed above is nothing but Auth(N_max).
    Auth and N_max are both part of the iris Coq library. They are called authR
-   and mnatUR (standing for authoritative Resource algebra and max nat Unital
+   and max_natUR (standing for authoritative Resource algebra and max nat Unital
    Resource algebra). *)
 
 (* Auth is defined in iris.algebra.auth. *)
@@ -404,40 +405,44 @@ End auth_update.
 Section monotone_counter'.
   (* We tell Coq that our Iris instantiation has the following resource
      algebras. Note that the only diffference from above is that we use authR
-     mnatUR in place of the resource algebra mcounterRA we constructed above. *)
-  Class mcounterG' Σ := MCounterG' { mcounter_inG' :> inG Σ (authR mnatUR)}.
-  Definition mcounterΣ' : gFunctors := #[GFunctor (authR mnatUR)].
+     max_natUR in place of the resource algebra mcounterRA we constructed above. *)
+  Class mcounterG' Σ := MCounterG' { mcounter_inG' :> inG Σ (authR max_natUR)}.
+  Definition mcounterΣ' : gFunctors := #[GFunctor (authR max_natUR)].
 
   Instance subG_mcounterΣ' {Σ} : subG mcounterΣ' Σ → mcounterG' Σ.
   Proof. solve_inG. Qed.
 
   (* We now prove the same three properties we claim were required from the resource
      algebra in Section 7.7.  *)
-  Instance mcounterRA_frag_core' (n : mnatUR): CoreId (◯ n).
+  Instance mcounterRA_frag_core' (n : max_natUR): CoreId (◯ n).
   Proof.
     apply _.
     (* CoreID is a typeclass, so typeclass search can automatically deduce what
        we want. Concretely, the proof follows by lemmas auth_frag_core_id and
-       mnat_core_id proved in the Iris Coq library. *)
+       max_nat_core_id proved in the Iris Coq library. *)
   Qed.
 
-  Lemma mcounterRA_valid_auth_frag' (m n : mnatUR): ✓ (● m ⋅ ◯ n) ↔ (n ≤ m)%nat.
+  Lemma mcounterRA_valid_auth_frag' (m n : max_natUR): ✓ (● m ⋅ ◯ n) ↔ (max_nat_car n ≤ max_nat_car m)%nat.
   Proof.
     (* Use a simplified definition of validity for when the underlying CMRA is discrete, i.e., an RA.
        The general definition also involves the use of step-indices, which is not needed in our case. *)
     rewrite auth_both_valid.
     split.
-    - intros [? _]; by apply mnat_included.
-    - intros ?%mnat_included; done.
+    - intros [? _]; by apply max_nat_included.
+    - intros ?%max_nat_included; done.
   Qed.
 
-  Lemma mcounterRA_update' (m n : mnatUR): ● m ⋅ ◯ n ~~> ● (S m : mnatUR) ⋅ ◯ (S n : mnatUR).
+  Lemma max_nat_op_succ m : MaxNat (S m) = MaxNat m ⋅ MaxNat (S m).
+  Proof. rewrite max_nat_op_max. apply f_equal. lia. Qed.
+
+  Lemma mcounterRA_update' (m n : max_natUR) :
+    ● m ⋅ ◯ n ~~> ● MaxNat (S (max_nat_car m)) ⋅ ◯ MaxNat (S (max_nat_car n)).
   Proof.
-    replace (S m) with (m ⋅ (S m)); last auto with arith.
-    replace (S n) with (n ⋅ (S n)); last auto with arith.
-    apply cmra_update_valid0; intros ?%cmra_discrete_valid%mcounterRA_valid_auth_frag'.
-    apply auth_update_add'; first reflexivity.
-    exists (S m); symmetry; apply max_r; auto with arith.
+    destruct m as [m], n as [n]. simpl.
+    rewrite (max_nat_op_succ m) (max_nat_op_succ n).
+    apply cmra_update_valid0. intros ?%cmra_discrete_valid%mcounterRA_valid_auth_frag'.
+    simpl in *. apply auth_update_add'; first reflexivity.
+    exists (MaxNat (S m)). rewrite max_nat_op_max. apply f_equal. lia.
   Qed.
 
   (* We can now verify the programs. *)
@@ -447,9 +452,9 @@ Section monotone_counter'.
 
   (* The rest of this section is exactly the same as the preceding one. We use
      the properties of the RA we have proved above. *)
-  Definition counter_inv' (ℓ : loc) (γ : gname) : iProp := (∃ (m : mnatUR), ℓ ↦ #m ∗ own γ (● m))%I.
+  Definition counter_inv' (ℓ : loc) (γ : gname) : iProp := (∃ (m : nat), ℓ ↦ #m ∗ own γ (● MaxNat m))%I.
 
-  Definition isCounter' (ℓ : loc) (n : mnatUR) : iProp :=
+  Definition isCounter' (ℓ : loc) (n : max_natUR) : iProp :=
     (∃ γ, own γ (◯ n) ∗ inv N (counter_inv' ℓ γ))%I.
 
   Global Instance isCounter_persistent' ℓ n: Persistent (isCounter' ℓ n).
@@ -457,12 +462,12 @@ Section monotone_counter'.
     apply _.
   Qed.
 
-  Lemma newCounter_spec': {{{ True }}} newCounter #() {{{ v, RET #v; isCounter' v 0%nat }}}.
+  Lemma newCounter_spec': {{{ True }}} newCounter #() {{{ v, RET #v; isCounter' v (MaxNat 0) }}}.
   Proof.
     iIntros (Φ) "_ HCont".
     rewrite /newCounter -wp_fupd.
     wp_lam.
-    iMod (own_alloc (● (0%nat : mnatUR) ⋅ ◯ (0%nat : mnatUR))) as (γ) "[HAuth HFrac]".
+    iMod (own_alloc (● MaxNat 0 ⋅ ◯ MaxNat 0)) as (γ) "[HAuth HFrac]".
     - apply mcounterRA_valid_auth_frag'; auto.
     - wp_alloc ℓ as "Hpt".
       iMod (inv_alloc N _ (counter_inv' ℓ γ) with "[Hpt HAuth]") as "HInv".
@@ -472,7 +477,7 @@ Section monotone_counter'.
   Qed.
 
   (* The read method specification. *)
-  Lemma read_spec' ℓ n: {{{ isCounter' ℓ n }}} read #ℓ {{{ m, RET #m; ⌜n ≤ m⌝%nat }}}.
+  Lemma read_spec' ℓ n : {{{ isCounter' ℓ (MaxNat n) }}} read #ℓ {{{ m, RET #m; ⌜n ≤ m⌝%nat }}}.
   Proof.
     iIntros (Φ) "HCounter HCont".
     iDestruct "HCounter" as (γ) "[HOwnFrag HInv]".
@@ -488,7 +493,7 @@ Section monotone_counter'.
   Qed.
 
   (* The read method specification. *)
-  Lemma incr_spec' ℓ n: {{{ isCounter' ℓ n }}} incr #ℓ {{{ RET #(); isCounter' ℓ (1 + n)%nat }}}.
+  Lemma incr_spec' ℓ n : {{{ isCounter' ℓ (MaxNat n) }}} incr #ℓ {{{ RET #(); isCounter' ℓ (MaxNat (1 + n)) }}}.
   Proof.
     iIntros (Φ) "HCounter HCont".
     iDestruct "HCounter" as (γ) "[HOwnFrag #HInv]".
@@ -507,7 +512,7 @@ Section monotone_counter'.
     iInv N as (k) ">[Hpt HOwnAuth]" "HClose".
     destruct (decide (k = m)); subst.
     + wp_cmpxchg_suc.
-      iMod (own_update γ ((● m ⋅ ◯ n)) (● (S m : mnatUR) ⋅ (◯ (S n : mnatUR))) with "[HOwnFrag HOwnAuth]") as "[HOwnAuth HOwnFrag]".
+      iMod (own_update γ (● (MaxNat m) ⋅ ◯ (MaxNat n)) (● (MaxNat (S m)) ⋅ (◯ (MaxNat (S n)))) with "[HOwnFrag HOwnAuth]") as "[HOwnAuth HOwnFrag]".
       { apply mcounterRA_update'. }
       { rewrite own_op; iFrame. }
       iMod ("HClose" with "[Hpt HOwnAuth]") as "_".
