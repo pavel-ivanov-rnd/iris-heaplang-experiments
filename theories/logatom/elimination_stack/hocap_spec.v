@@ -45,7 +45,8 @@ Module logatom := elimination_stack.spec.
 [hocap/abstract_bag.v]. This style is similar to what was done in the HoCAP
 paper, except that we avoid unnecessary quantification over propositions and
 instead make use of viewn shifts *without* a persistence modality (in HoCAP,
-view shifts are always persistent).
+view shifts are always persistent). This does not change the meaning of the
+spec, it just makes it easier to use in Coq.
 We might call this "Iris-adjusted HoCAP-style specs".
 
 There are two differences to the [abstract_bag] spec:
