@@ -15,6 +15,8 @@ HoCAP-style specs.  The key difference between these specs is as follows:
   precondition"; the relation between a sequential specification and its atomic
   counterpart is much more complex with HoCAP-style specs than it is with
   logically atomic specs.
+  HoCAP-style specs come in two variants: "authoritative" and "predicate".
+  Both can be found below.
 
 One consequence of this difference is that there are some specs where the HoCAP
 style simply does not work: one cannot use the HoCAP style to prove a spec about
@@ -40,18 +42,22 @@ Set Default Proof Using "Type".
 Module logatom := elimination_stack.spec.
 
 (** A general HoCAP-style interface for a stack, modeled after the spec in
-[hocap/abstract_bag.v].  There are two differences:
+[hocap/abstract_bag.v]. This style is similar to what was done in the HoCAP
+paper, except that we avoid unnecessary quantification over propositions and
+instead make use of viewn shifts *without* a persistence modality (in HoCAP,
+view shifts are always persistent).
+We might call this "Iris-adjusted HoCAP-style specs".
+
+There are two differences to the [abstract_bag] spec:
 - We split [bag_contents] into an authoritative part and a fragment as this
-  slightly strnegthens the spec: The logically atomic spec only requires
-  [stack_content ∗ stack_content] to derive a contradiction, the abstract bag
-  spec requires to get *three* pieces which is only possible when actually
-  calling a bag operation.
+  slightly strengthens the spec ([stack_content_frag_exclusive] is added),
 - We also slightly weaken the spec by adding [make_laterable], which is needed
   because logical atomicity can only capture laterable resources, which is
   needed when implementing e.g. the elimination stack on top of an abstract
   logically atomic heap.
 
-This spec follows the "authoritative" variant of HoCAP specs. *)
+This spec uses the "authoritative" variant of HoCAP specs.
+See below for the "predicate"-based alternative *)
 Module hocap_auth.
 Record stack {Σ} `{!heapG Σ} := AtomicStack {
   (* -- operations -- *)
@@ -102,8 +108,9 @@ Existing Instances
 
 End hocap_auth.
 
-(** A general HoCAP-style interface for a stack. This spec follows
-the "predicate" variant of HoCAP specs. *)
+(** A general HoCAP-style interface for a stack, with a user-defined predicate
+instead of an authoritative element, thereby departing even further from the
+HoCAP paper.  This style matches [concurrent_stacks.spec]. *)
 Module hocap_pred.
 Record stack {Σ} `{!heapG Σ} := AtomicStack {
   (* -- operations -- *)

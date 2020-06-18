@@ -2,7 +2,7 @@ From stdpp Require Import namespaces.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export proofmode notation.
 
-(** General (HoCAP-style) spec for a concurrent bag ("per-elemt spec") *)
+(** General (CAP-style) spec for a concurrent bag ("per-element spec") *)
 Record concurrent_bag {Σ} `{!heapG Σ} := ConcurrentBag {
   is_bag (P : val → iProp Σ) (s : val) : iProp Σ;
   bag_pers (P : val → iProp Σ) (s : val) : Persistent (is_bag P s);
@@ -20,7 +20,7 @@ Record concurrent_bag {Σ} `{!heapG Σ} := ConcurrentBag {
 }.
 Arguments concurrent_bag _ {_}.
 
-(** General (CAP-style) spec for a concurrent stack *)
+(** General (HoCAP-style) spec for a concurrent stack *)
 
 Record concurrent_stack {Σ} `{!heapG Σ} := ConcurrentStack {
   is_stack (N : namespace) (P : list val → iProp Σ) (s : val) : iProp Σ;
