@@ -15,52 +15,8 @@ From iris.heap_lang Require Export notation lang.
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 From iris.base_logic.lib Require Export invariants.
-From iris.algebra Require Import excl auth gset frac.
+From iris.algebra Require Import numbers excl auth gset frac.
 From iris_string_ident Require Import ltac2_string_ident.
-
-(* FIMEX: Temporarily inlined min_nat definition. *)
-(** ** Natural numbers with [min] as the operation. *)
-Record min_nat := MinNat { min_nat_car : nat }.
-
-Canonical Structure min_natO := leibnizO min_nat.
-
-Section min_nat.
-  Instance min_nat_valid : Valid min_nat := λ x, True.
-  Instance min_nat_validN : ValidN min_nat := λ n x, True.
-  Instance min_nat_pcore : PCore min_nat := Some.
-  Instance min_nat_op : Op min_nat := λ n m, MinNat (min_nat_car n `min` min_nat_car m).
-  Definition min_nat_op_min x y : MinNat x ⋅ MinNat y = MinNat (x `min` y) := eq_refl.
-
-  Lemma min_nat_included (x y : min_nat) : x ≼ y ↔ min_nat_car y ≤ min_nat_car x.
-  Proof.
-    split.
-    - intros [z ->]. simpl. lia.
-    - exists y. rewrite /op /min_nat_op. rewrite Nat.min_r; last lia. by destruct y.
-  Qed.
-  Lemma min_nat_ra_mixin : RAMixin min_nat.
-  Proof.
-    apply ra_total_mixin; apply _ || eauto.
-    - intros [x] [y] [z]. repeat rewrite min_nat_op_min. by rewrite Nat.min_assoc.
-    - intros [x] [y]. by rewrite min_nat_op_min Nat.min_comm.
-    - intros [x]. by rewrite min_nat_op_min Min.min_idempotent.
-  Qed.
-  Canonical Structure min_natR : cmraT := discreteR min_nat min_nat_ra_mixin.
-
-  Global Instance min_nat_cmra_discrete : CmraDiscrete min_natR.
-  Proof. apply discrete_cmra_discrete. Qed.
-
-  Global Instance min_nat_core_id (x : min_nat) : CoreId x.
-  Proof. by constructor. Qed.
-
-  Global Instance : LeftAbsorb (=) (MinNat 0) (⋅).
-  Proof. done. Qed.
-
-  Global Instance : RightAbsorb (=) (MinNat 0) (⋅).
-  Proof. intros [x]. by rewrite min_nat_op_min Min.min_0_r. Qed.
-
-  Global Instance : @IdemP min_nat (=) (⋅).
-  Proof. intros [x]. rewrite min_nat_op_min. apply f_equal. lia. Qed.
-End min_nat.
 
 Section abql_code.
 
@@ -165,12 +121,12 @@ Section algebra.
      algebra is pairs of natural numbers. The first number represents how many
      invitations we have and the second how many invitations exists in total.
 
-     We want (a, n) ⋅ (b, n) to be equal to (a + b, n). What happens for (a, n)
-     ⋅ (b, m) when n ≠ m is arbitary, as we never combine such elements, as long
-     as it satisfies the laws for a RA. We can not, for instance, just disregard
-     the second upper bound as that whould violate commutativity, and using
-     `max` would not satisfy the laws for validity. We could use agreement, but
-     choose to use `min` as it is easier to work with. *)
+     We want (a, n) ⋅ (b, n) to be equal to (a + b, n). We never combine
+     elements (a, n) ⋅ (b, m) where n ≠ m. Hence what happens it that case is
+     arbitary, as long the laws for a RA are satisfied. We can not, for instance,
+     just disregard the second upper bound as that whould violate commutativity,
+     and using `max` would not satisfy the laws for validity. We could use
+     agreement, but choose to use `min` instead as it is easier to work with. *)
   Record addb : Type := Addb { addb_proj : nat * min_nat }.
 
   Canonical Structure sumRAC := leibnizO addb.
