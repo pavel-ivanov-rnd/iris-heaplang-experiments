@@ -29,5 +29,5 @@ logatom: $(filter theories/logatom/%,$(VOFILES))
 array-based_queuing_lock: $(filter theories/array_based_queuing_lock/%,$(VOFILES))
 .PHONY: array-based_queuing_lock
 
-proph: $(filter theories/array_based_queuing_lock/%,$(VOFILES))
-.PHONY: array-based_queuing-lock
+proph: $(filter theories/proph/%,$(VOFILES))
+.PHONY: proph
