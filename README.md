@@ -61,17 +61,17 @@ This repository contains the following case studies:
   - Treiber Stack (by Zhen Zhang, and another version by Rodolphe Lepigre).
   - Flat Combiner (by Zhen Zhang, also see
     [this archived documentation](https://gitlab.mpi-sws.org/FP/iris-atomic/tree/master/docs)).
-* [spanning-tree](theories/spanning_tree): Proof of a concurrent spanning tree
+* [spanning_tree](theories/spanning_tree): Proof of a concurrent spanning tree
   algorithm (by Amin Timany).
-* [concurrent-stacks](theories/concurrent_stacks): Proof of an implementation of
+* [concurrent_stacks](theories/concurrent_stacks): Proof of an implementation of
   concurrent stacks with helping by Daniel Gratzer et. al., as described in the
   [report](http://iris-project.org/pdfs/2017-case-study-concurrent-stacks-with-helping.pdf).
-* [lecture-notes](theories/lecture_notes): Coq examples for the
+* [lecture_notes](theories/lecture_notes): Coq examples for the
   [Iris lecture notes](http://iris-project.org/tutorial-material.html).
 * [hocap](theories/hocap): Formalizations of the concurrent bag and concurrent
   runners libraries from the [HOCAP paper](https://dl.acm.org/citation.cfm?id=2450283)
   (by Dan Frumin). See the associated [README](theories/hocap/README.md).
-* [array-based_queuing_lock](/theories/array_based_queuing_lock): Proof of
+* [array_based_queuing_lock](/theories/array_based_queuing_lock): Proof of
   safety of an implementation of the array-based queuing lock. This example is
   also covered in the chapter ["Case study: The Array-Based Queueing
   Lock"](https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf#section.10)
