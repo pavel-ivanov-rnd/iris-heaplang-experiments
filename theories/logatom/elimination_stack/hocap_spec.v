@@ -1,20 +1,23 @@
-(** This file explores the relation between "logically atomic"-style specs and
-HoCAP-style specs.  The key difference between these specs is as follows:
-- Logically atomic specs require the client to prove a mask-changing view shift
+(** This file explores the relation between two kinds of logically atomic specs:
+TaDA-style and HoCAP-style.  The key difference between these specs is as follows:
+- TaDA-style specs require the client to prove a mask-changing view shift
   which, at the linearization point, gets used to access the atomic
   precondition. The client can open invariants to prove this view shift. The
   library then works with this precondition, transforms it to the postcondition
   (which usually involves changing the abstract state), and gives that back to
   the client for a "closing" mask-changing view shift, where the client can
   close the invariants again.
+  A TaDA-style specs have an "atomic pre/postcondition", making them easy to
+  relate to a sequential spec for the same kind of data structure.
 - HoCAP-style specs require the client to prove a non-mask-changing view shift
   which may assume as an assumption the "old" abstract state of the library, and
-  has to produce the "new" abstract state. Unlike with logically atomic specs,
+  has to produce the "new" abstract state. Unlike TaDA-style specs,
   it is up to the *client* to change the abstract state to match the current
-  operation. This pattern also does not really have a notion of "atomic
-  precondition"; the relation between a sequential specification and its atomic
-  counterpart is much more complex with HoCAP-style specs than it is with
-  logically atomic specs.
+  operation.
+  This pattern also does not really have a notion of "atomic pre/postcondition";
+  the relation between a sequential specification and its atomic counterpart is
+  much more complex with HoCAP-style specs than it is with
+  TaDA-style specs.
   HoCAP-style specs come in two variants: "authoritative" and "predicate".
   Both can be found below.
 
@@ -23,12 +26,13 @@ style simply does not work: one cannot use the HoCAP style to prove a spec about
 the abstraction of *another library*.  See
 <https://people.mpi-sws.org/~jung/iris/logatom-talk-2019.pdf#page=89> and
 [heap_lang.lib.increment] in the Iris repository for an example of this.
+(When unqualified, "logically atomic" in Iris usually means TaDA-style.)
 
 For libraries that only state atomic transitions for their own abstraction, the
 two styles are equivalent, as this file shows: we give two different HoCAP-style
 specs (the "authoritative" variant, which is closer to the original HoCAP paper,
 and the "predicate" variant which is somewhat simpler), and we show them both
-equivalent to the logically atomic spec. *)
+equivalent with each other and with the TaDA-style spec. *)
 
 
 From stdpp Require Import namespaces.
@@ -39,7 +43,7 @@ From iris.heap_lang Require Import proofmode notation atomic_heap.
 From iris_examples.logatom.elimination_stack Require spec.
 Set Default Proof Using "Type".
 
-Module logatom := elimination_stack.spec.
+Module tada := elimination_stack.spec.
 
 (** A general HoCAP-style interface for a stack, modeled after the spec in
 [hocap/abstract_bag.v]. This style is similar to what was done in the HoCAP
@@ -53,9 +57,9 @@ There are two differences to the [abstract_bag] spec:
 - We split [bag_contents] into an authoritative part and a fragment as this
   slightly strengthens the spec ([stack_content_frag_exclusive] is added),
 - We also slightly weaken the spec by adding [make_laterable], which is needed
-  because logical atomicity can only capture laterable resources, which is
-  needed when implementing e.g. the elimination stack on top of an abstract
-  logically atomic heap.
+  because Iris' TaDA-style logically atomic triples can only capture laterable
+  resources, which is needed when implementing e.g. the elimination stack on top
+  of an abstract logically atomic heap.
 
 This spec uses the "authoritative" variant of HoCAP specs.
 See below for the "predicate"-based alternative *)
@@ -144,23 +148,22 @@ Existing Instances is_stack_persistent.
 End hocap_pred.
 
 (** Now we show the following three implications:
-- hocap_auth implies logatom.
-- logcatom implies hocap_pred.
+- hocap_auth implies tada.
+- tada implies hocap_pred.
 - hocap_pred implies hocap_auth.
 *)
 
 
-(** From a HoCAP-"auth" stack we can directly implement the logically atomic
-interface.
+(** From a HoCAP-"auth" stack we can directly implement the TaDA interface.
 
 Roughly:
-logatom.is_stack := hocap_auth.is_stack
-logatom.stack_content := hocap_auth.stack_content_frag
+tada.is_stack := hocap_auth.is_stack
+tada.stack_content := hocap_auth.stack_content_frag
 *)
-Section hocap_auth_logatom.
+Section hocap_auth_tada.
   Context `{!heapG Σ} (stack: hocap_auth.stack Σ).
 
-  Lemma logatom_push N γs s (v : val) :
+  Lemma tada_push N γs s (v : val) :
     stack.(hocap_auth.is_stack) N γs s -∗
     <<< ∀ l : list val, stack.(hocap_auth.stack_content_frag) γs l >>>
       stack.(hocap_auth.push) s v @ ⊤∖↑N
@@ -175,7 +178,7 @@ Section hocap_auth_logatom.
     iMod ("Hclose" with "Hfrag") as "HΦ". done.
   Qed.
 
-  Lemma logatom_pop N γs (s : val) :
+  Lemma tada_pop N γs (s : val) :
     stack.(hocap_auth.is_stack) N γs s -∗
     <<< ∀ l : list val, stack.(hocap_auth.stack_content_frag) γs l >>>
       stack.(hocap_auth.pop) s @ ⊤∖↑N
@@ -192,27 +195,27 @@ Section hocap_auth_logatom.
     iMod ("Hclose" with "Hfrag") as "HΦ"; done.
   Qed.
 
-  Definition hocap_auth_logatom : logatom.atomic_stack Σ :=
-    {| logatom.new_stack_spec := stack.(hocap_auth.new_stack_spec);
-       logatom.push_spec := logatom_push;
-       logatom.pop_spec := logatom_pop;
-       logatom.stack_content_exclusive := stack.(hocap_auth.stack_content_frag_exclusive) |}.
+  Definition hocap_auth_tada : tada.atomic_stack Σ :=
+    {| tada.new_stack_spec := stack.(hocap_auth.new_stack_spec);
+       tada.push_spec := tada_push;
+       tada.pop_spec := tada_pop;
+       tada.stack_content_exclusive := stack.(hocap_auth.stack_content_frag_exclusive) |}.
 
-End hocap_auth_logatom.
+End hocap_auth_tada.
 
-(** From a logically atomic stack, we can implement a HoCAP-"pred" stack by
+(** From a TaDA-style stack, we can implement a HoCAP-"pred" stack by
  adding an invariant.
 
 Roughly:
-hocap_pred.is_stack P := logatom.is_stack * inv (∃ l, logatom.stack_content l * P l)
+hocap_pred.is_stack P := tada.is_stack * inv (∃ l, tada.stack_content l * P l)
 *)
-Section logatom_hocap_pred.
-  Context `{!heapG Σ} (stack: logatom.atomic_stack Σ).
+Section tada_hocap_pred.
+  Context `{!heapG Σ} (stack: tada.atomic_stack Σ).
   Implicit Type P : list val → iProp Σ.
 
   Definition hocap_pred_is_stack N v P : iProp Σ :=
-    (∃ γs, stack.(logatom.is_stack) (N .@ "stack") γs v ∗
-     inv (N .@ "wrapper") (∃ l, stack.(logatom.stack_content) γs l ∗ P l))%I.
+    (∃ γs, stack.(tada.is_stack) (N .@ "stack") γs v ∗
+     inv (N .@ "wrapper") (∃ l, stack.(tada.stack_content) γs l ∗ P l))%I.
 
   Instance hocap_pred_is_stack_ne N v n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (hocap_pred_is_stack N v).
@@ -220,10 +223,10 @@ Section logatom_hocap_pred.
 
   Lemma hocap_pred_new_stack N P :
     {{{ ▷ P [] }}}
-      stack.(logatom.new_stack) #()
+      stack.(tada.new_stack) #()
     {{{ s, RET s; hocap_pred_is_stack N s P }}}.
   Proof.
-    iIntros (Φ) "HP HΦ". iApply wp_fupd. iApply logatom.new_stack_spec; first done.
+    iIntros (Φ) "HP HΦ". iApply wp_fupd. iApply tada.new_stack_spec; first done.
     iIntros "!>" (γs s) "[Hstack Hcont]".
     iApply "HΦ". rewrite /hocap_pred_is_stack. iExists γs. iFrame.
     iApply inv_alloc. eauto with iFrame.
@@ -232,10 +235,10 @@ Section logatom_hocap_pred.
   Lemma hocap_pred_push N s P (v : val) (Φ : val → iProp Σ) :
     hocap_pred_is_stack N s P -∗
     make_laterable (∀ l, ▷ P l ={⊤∖↑N}=∗ ▷ P (v::l) ∗ Φ #()) -∗
-    WP stack.(logatom.push) s v {{ Φ }}.
+    WP stack.(tada.push) s v {{ Φ }}.
   Proof.
     iIntros "#Hstack Hupd". iDestruct "Hstack" as (γs) "[Hstack Hinv]".
-    awp_apply (logatom.push_spec with "Hstack").
+    awp_apply (tada.push_spec with "Hstack").
     iInv "Hinv" as (l) "[>Hcont HP]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont".
@@ -250,10 +253,10 @@ Section logatom_hocap_pred.
     make_laterable (∀ l, ▷ P l ={⊤∖↑N}=∗
           match l with [] => ▷ P [] ∗ Φ NONEV
                 | v :: l' => ▷ P l' ∗ Φ (SOMEV v) end) -∗
-    WP stack.(logatom.pop) s {{ Φ }}.
+    WP stack.(tada.pop) s {{ Φ }}.
   Proof.
     iIntros "#Hstack Hupd". iDestruct "Hstack" as (γs) "[Hstack Hinv]".
-    awp_apply (logatom.pop_spec with "Hstack").
+    awp_apply (tada.pop_spec with "Hstack").
     iInv "Hinv" as (l) "[>Hcont HP]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont". destruct l.
@@ -265,12 +268,12 @@ Section logatom_hocap_pred.
        iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
   Qed.
 
-  Program Definition logatom_hocap_pred : hocap_pred.stack Σ :=
+  Program Definition tada_hocap_pred : hocap_pred.stack Σ :=
     {| hocap_pred.new_stack_spec := hocap_pred_new_stack;
        hocap_pred.push_spec := hocap_pred_push;
        hocap_pred.pop_spec := hocap_pred_pop |}.
 
-End logatom_hocap_pred.
+End tada_hocap_pred.
 
 (** From a hocap_pred stack, we can implement a hocap_auth stack by adding an
 auth.
