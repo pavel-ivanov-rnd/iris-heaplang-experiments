@@ -2,8 +2,6 @@ From iris.proofmode Require Import tactics.
 From iris.algebra Require Import auth gmap agree.
 From iris_examples.logrel.F_mu_ref_conc Require Import logrel_binary.
 Import uPred.
-From iris.algebra Require deprecated.
-Import deprecated.dec_agree.
 
 Definition stackUR : ucmraT := gmapUR loc (agreeR valO).
 
