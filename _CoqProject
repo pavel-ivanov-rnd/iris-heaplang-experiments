@@ -20,6 +20,7 @@ theories/lecture_notes/coq_intro_example_2.v
 theories/lecture_notes/lists.v
 theories/lecture_notes/lists_guarded.v
 theories/lecture_notes/lock.v
+theories/lecture_notes/bag.v
 theories/lecture_notes/lock_unary_spec.v
 theories/lecture_notes/modular_incr.v
 theories/lecture_notes/recursion_through_the_store.v
