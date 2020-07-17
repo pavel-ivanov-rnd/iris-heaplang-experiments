@@ -15,7 +15,7 @@ Definition newbag : val :=
          let: "v" := newlock #() in ("ℓ", "v").
 
 Definition insert : val :=
-  λ: "x", λ: "e", let: "ℓ" := Fst "x" in
+  λ: "x" "e", let: "ℓ" := Fst "x" in
                   let: "lock" := Snd "x" in
                   acquire "lock" ;; 
                   "ℓ" <- SOME ("e", !"ℓ") ;;
@@ -44,7 +44,7 @@ Section spec.
     end.
 
   Definition is_bag (v : val) (Ψ : val → iProp) :=
-    (∃ (ℓ : loc) (v₂ : val) γ, ⌜v = PairV (#ℓ) v₂⌝ ∗ is_lock γ v₂ (∃ u, ℓ ↦ u ∗ isBag Ψ u))%I.
+    (∃ (ℓ : loc) (v₂ : val) γ, ⌜v = (#ℓ, v₂)%V⌝ ∗ is_lock γ v₂ (∃ u, ℓ ↦ u ∗ isBag Ψ u))%I.
 
   Global Instance bag_persistent v Ψ: Persistent (is_bag v Ψ).
   Proof. apply _. Qed.
@@ -65,7 +65,7 @@ Section spec.
     {{{ is_bag v Ψ ∗ Ψ e }}} insert v e {{{ RET #(); True }}}.
   Proof.
     iIntros (ϕ) "[Hb Hψ] Hcont".
-    iDestruct "Hb" as (ℓ u γ) "[% #IL]" ; subst.
+    iDestruct "Hb" as (ℓ u γ) "[% #IL]"; subst.
     wp_lam. wp_pures.
     wp_apply (acquire_spec with "IL"); first done.
     iIntros (v) "[P HLocked]".
@@ -77,7 +77,7 @@ Section spec.
   Qed.
 
   Lemma bag_remove_triple_spec v Ψ:
-    {{{ is_bag v Ψ }}} remove v {{{ u, RET u; ⌜u = NONEV⌝ ∨ ∃ x, ⌜u = SOMEV x⌝ ∗ Ψ x}}}.
+    {{{ is_bag v Ψ }}} remove v {{{ u, RET u; ⌜u = NONEV⌝ ∨ ∃ x, ⌜u = SOMEV x⌝ ∗ Ψ x }}}.
   Proof.
     iIntros (ϕ) "Hb Hcont".
     iDestruct "Hb" as (ℓ u γ) "[% #IL]"; subst.
