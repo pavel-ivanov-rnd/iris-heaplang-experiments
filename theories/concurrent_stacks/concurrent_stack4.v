@@ -240,13 +240,13 @@ Section proofs.
       wp_pures.
       wp_apply (revoke_works with "[Hrev]"); first auto.
       iIntros (v') "H"; iApply "HΦ"; auto.
-    - iDestruct "Hsome" as (? ? ?) "[Hl _]". wp_store.
+    - iDestruct "Hsome" as (v' γ' Q') "[Hl _]". wp_store.
       iMod ("Hclose" with "[Hl]") as "_".
       { iNext; iRight; iExists _, _, _; by iFrame. }
       iModIntro.
       wp_pures.
       wp_apply (revoke_works with "[Hrev]"); first auto.
-      iIntros (v') "H"; iApply "HΦ"; auto.
+      iIntros (v'') "H"; iApply "HΦ"; auto.
   Qed.
 
   Local Notation "l ↦{-} v" := (∃ q, l ↦{q} v)%I
