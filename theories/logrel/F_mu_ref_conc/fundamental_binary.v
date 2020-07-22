@@ -322,7 +322,7 @@ Section fundamental.
     iIntros (v); iDestruct 1 as (w) "[Hv #Hiv]".
     iApply wp_value. iExists (FoldV w); iFrame "Hv".
     rewrite fixpoint_interp_rec1_eq /= -interp_subst.
-    iAlways; iExists (_, _); eauto.
+    iModIntro; iExists (_, _); eauto.
   Qed.
 
   Lemma bin_log_related_unfold Γ e e' τ

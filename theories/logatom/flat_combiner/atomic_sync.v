@@ -56,13 +56,13 @@ Section atomic_sync.
     iSplitL "Hg2"; first done. iIntros "!#".
     iIntros (f). iApply wp_wand_r. iSplitR; first by iApply "Hsyncer".
     iIntros (f') "#Hsynced {Hsyncer}".
-    iAlways. iIntros (α β x) "#Hseq". change (ofe_car AO) with A.
+    iModIntro. iIntros (α β x) "#Hseq". change (ofe_car AO) with A.
     iIntros (Φ') "?".
     (* TODO: Why can't I iApply "Hsynced"? *)
     iSpecialize ("Hsynced" $! _ Φ' x).
     iApply wp_wand_r. iSplitL.
     - iApply ("Hsynced" with "[]")=>//; last iAccu.
-      iAlways. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
+      iModIntro. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
       (* we should view shift at this point *)
       iApply fupd_wp. iMod "HP" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
       iDestruct (m_frag_agree with "Hg1 Hg2") as %Heq. subst.

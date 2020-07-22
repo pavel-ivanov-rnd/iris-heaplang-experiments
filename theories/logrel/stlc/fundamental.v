@@ -49,7 +49,7 @@ Section typed_interp.
         iNext. iApply (IHHtyped3). iApply interp_env_cons; by iSplit.
     - (* lam *)
       iDestruct (interp_env_length with "[]") as %Hlen; auto.
-      iApply wp_value. simpl. iAlways; iIntros (w) "#Hw".
+      iApply wp_value. simpl. iModIntro; iIntros (w) "#Hw".
       iApply wp_pure_step_later; auto.
       asimpl.
       iNext; iApply (IHHtyped (w :: vs)). iApply interp_env_cons; by iSplit.

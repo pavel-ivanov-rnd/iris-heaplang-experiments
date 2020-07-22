@@ -369,7 +369,7 @@ Proof.
                ∗ ([∗ list] x ∈ xs',∃ (n' : Z), ⌜x = #n'⌝))%I
             with "[$H_is_list] [H_later]").
   - iSplitR.
-    + iIntros (x a' ys). iAlways. iIntros (ϕ') "(H1 & H2) H3".
+    + iIntros (x a' ys). iModIntro. iIntros (ϕ') "(H1 & H2) H3".
       do 5 (wp_pure _).
       iDestruct "H2" as (zs) "(% & % & H_list)".
       iDestruct "H1" as (n2) "%". iSimplifyEq. wp_pures.
@@ -439,7 +439,7 @@ Proof.
                                  ∗ ⌜length xs = length ys⌝)%I
             with "[H_is_list H1 H_P_xs] [H_ϕ]").
   - iSplitR "H_is_list H_P_xs".
-    + iIntros (x a' ys). iAlways. iIntros (ϕ') "(H_Px & H_Q) H_ϕ'". wp_pures.
+    + iIntros (x a' ys). iModIntro. iIntros (ϕ') "(H_Px & H_Q) H_ϕ'". wp_pures.
       wp_bind (f x). iApply ("H1" with "[H_Px][H_Q H_ϕ']"); try done.
       iNext. iIntros (r) "H_Qr". wp_rec. wp_alloc l. wp_pures. iApply "H_ϕ'".
       iDestruct "H_Q" as (ys') "(H_is_list_ys' & H_Qys' & %)". iExists (r::ys').

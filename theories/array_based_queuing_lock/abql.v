@@ -211,8 +211,7 @@ Section array_model.
   Lemma array_repeat (b : bool) (n : nat) :
     {{{ ⌜0 < n⌝ }}} AllocN #n #b {{{ arr, RET #arr; is_array arr (replicate n b) }}}.
   Proof.
-    iIntros (ϕ) "% Post".
-    apply inj_lt in a.
+    iIntros (ϕ ?%inj_lt) "Post".
     iApply wp_allocN; try done.
     iNext. iIntros (l) "[lPts _]".
     iApply "Post".

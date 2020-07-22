@@ -278,7 +278,7 @@ Section proof.
     iApply (new_bag_spec N (p_inv' R γm γr))=>//.
     iNext. iIntros (s) "#Hss".
     wp_pures. iApply "HΦ". rewrite /synced.
-    iAlways. iIntros (f). wp_pures. iAlways.
+    iModIntro. iIntros (f). wp_pures. iModIntro.
     iIntros (P Q x) "#Hf".
     iIntros "!# Hp". wp_pures. wp_bind (install _ _ _).
     iApply (install_spec R P Q f x γm γr s with "[-]")=>//.
@@ -287,10 +287,10 @@ Section proof.
     wp_let. wp_bind (loop _ _ _).
     iApply (loop_spec with "[-Hx HoQ]")=>//.
     { iFrame "#". iFrame. }
-    iNext. iIntros (? ?) "Hs".
+    iNext. iIntros (v1 v2) "Hs".
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
-    destruct (decide (x = a)) as [->|Hneq].
-    - iDestruct (saved_pred_agree _ _ _ a0 with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
+    destruct (decide (x = v1)) as [->|Hneq].
+    - iDestruct (saved_pred_agree _ _ _ v2 with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
       wp_let. by iRewrite -"Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].

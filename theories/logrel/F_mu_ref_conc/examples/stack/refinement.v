@@ -26,7 +26,7 @@ Section Stack_refinement.
     rewrite ?empty_env_subst /CG_stack /FG_stack.
     iApply wp_value; eauto.
     iExists (TLamV _); iFrame "Hj".
-    clear j K. iAlways. iIntros (τi) "%". iIntros (j K) "Hj /=".
+    clear j K. iModIntro. iIntros (τi) "%". iIntros (j K) "Hj /=".
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iApply wp_pure_step_later; auto. iNext.
     iMod (steps_newlock _ j (LetInCtx _ :: K) with "[$Hj]")
@@ -81,7 +81,7 @@ Section Stack_refinement.
     (* refinement of push and pop *)
     - iExists (_, _), (_, _); iSplit; eauto. iSplit.
       + (* refinement of push *)
-        iAlways. clear j K. iIntros ( [v1 v2] ) "#Hrel". iIntros (j K) "Hj /=".
+        iModIntro. clear j K. iIntros ( [v1 v2] ) "#Hrel". iIntros (j K) "Hj /=".
         rewrite -(FG_push_folding (Loc stk)).
         iLöb as "Hlat".
         rewrite {2}(FG_push_folding (Loc stk)).
@@ -131,7 +131,7 @@ Section Stack_refinement.
           { iNext. iExists _, _, _. by iFrame "Hoe Hstk' Hstk Hl". }
           iApply wp_pure_step_later; auto. iModIntro. iNext. by iApply "Hlat".
       + (* refinement of pop *)
-        iAlways. clear j K. iIntros ( [v1 v2] ) "[% %]".
+        iModIntro. clear j K. iIntros ( [v1 v2] ) "[% %]".
         iIntros (j K) "Hj /="; simplify_eq/=.
         rewrite -(FG_pop_folding (Loc stk)).
         iLöb as "Hlat".
@@ -239,7 +239,7 @@ Section Stack_refinement.
             { iNext. iExists _, _, _. by iFrame "Hoe Hstk' Hstk HLK Hl". }
             iApply wp_pure_step_later; auto. iModIntro. iNext. by iApply "Hlat".
     - (* refinement of iter *)
-      iAlways. clear j K. iIntros ( [f1 f2] ) "/= #Hfs". iIntros (j K) "Hj".
+      iModIntro. clear j K. iIntros ( [f1 f2] ) "/= #Hfs". iIntros (j K) "Hj".
       iApply wp_pure_step_later; auto using to_of_val. iNext.
       iMod (do_step_pure with "[$Hspec $Hj]") as "Hj"; eauto.
       iAsimpl.
@@ -319,7 +319,7 @@ Section Stack_refinement.
         iApply wp_pure_step_later; auto using to_of_val.
         simpl. iNext. rewrite -FG_iter_folding. iApply wp_value.
         iApply ("Hlat" $! istk6 zn2 with "[Hj] [HLK]"); trivial.
-        rewrite StackLink_unfold; iAlways; simpl.
+        rewrite StackLink_unfold; iModIntro; simpl.
         iDestruct "HLK" as "[Histk6 [HLK|HLK]]";
           iExists istk6, w'; iSplit; auto; iFrame "#".
         iRight. iDestruct "HLK" as (? ? ? ?) "(?&?&?&?)".

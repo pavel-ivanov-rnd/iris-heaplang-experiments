@@ -74,7 +74,7 @@ Section fact_equiv.
     iIntros (j K) "Hj"; simpl.
     iApply wp_value; iExists (LamV _); iFrame.
     rewrite /= -/fact.
-    iAlways. iIntros ([? ?] [n [? ?]]); simpl in *; simplify_eq; simpl.
+    iModIntro. iIntros ([? ?] [n [? ?]]); simpl in *; simplify_eq; simpl.
     clear j K.
     iIntros (j K) "Hj"; simpl.
     iMod (do_step_pure with "[$Hj]") as "Hj"; auto.
@@ -151,7 +151,7 @@ Section fact_equiv.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
     iApply wp_value; iExists (RecV _); iFrame.
-    iAlways. iIntros ([? ?] [n [? ?]]); simpl in *; simplify_eq; simpl.
+    iModIntro. iIntros ([? ?] [n [? ?]]); simpl in *; simplify_eq; simpl.
     clear j K.
     iIntros (j K) "Hj"; simpl.
     iApply wp_pure_step_later; auto.

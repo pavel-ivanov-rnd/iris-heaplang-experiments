@@ -150,7 +150,7 @@ Section proof.
     {{{ RET #(); Q }}}.
   Proof.
     iIntros "#Hvs".
-    iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
+    iIntros (Φ). iModIntro. iIntros "[#Hbag HP] HΦ".
     unfold pushBag.
     iLöb as "IH". wp_rec. wp_pures.
     rewrite /is_bag.
@@ -190,7 +190,7 @@ Section proof.
     {{{ v, RET v; Q v }}}.
   Proof.
     iIntros "#Hvs1 #Hvs2".
-    iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
+    iIntros (Φ). iModIntro. iIntros "[#Hbag HP] HΦ".
     unfold popBag.
     iLöb as "IH". wp_rec.
     rewrite /is_bag.

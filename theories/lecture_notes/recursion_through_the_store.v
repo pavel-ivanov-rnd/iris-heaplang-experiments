@@ -77,7 +77,7 @@ Proof.
    iMod ("cl" with "[r]") as "_"; first done. iModIntro.
    iApply ("H" with "[P]"); last done.
    iFrame. iIntros (v3).
-   iAlways. iIntros (Φ) "P Q". iApply ("IH" with "[P][Q]"); done.
+   iModIntro. iIntros (Φ) "P Q". iApply ("IH" with "[P][Q]"); done.
 Qed.
 
 End recursion_through_the_store.
@@ -183,7 +183,7 @@ Section factorial_client.
     iIntros (Hleq Φ) "_ ret"; simplify_eq. unfold myfac. wp_pures.
     iApply (myrec_spec (fun v => ⌜∃m' : Z, (0 ≤ m')%Z ∧ to_val v = Some #m'⌝%I)
                        (fun u => fun v => ⌜∃m' : Z, to_val v = Some #m' ∧ u = #(fac_int m')⌝%I)).
-    - iSplit; last eauto. iIntros (f v). iAlways. iIntros (Φ') "spec_f ret".
+    - iSplit; last eauto. iIntros (f v). iModIntro. iIntros (Φ') "spec_f ret".
       wp_lam. wp_let. iDestruct "spec_f" as "[spec_f %]".
       destruct H as [m' [Hleqm' Heq%of_to_val]]; simplify_eq.
       wp_binop.
@@ -194,7 +194,7 @@ Section factorial_client.
         iApply ("spec_f" $! (#(m'-1))).
         * iIntros "!%".
           exists (m'-1)%Z; split; first lia; last auto.
-        * iNext. iIntros (u) "**". destruct a as [x [Heq ->]].
+        * iNext. iIntros (u [x [Heq ->]]).
           iApply times_spec; first done.
           iNext; iIntros (u) "%"; subst; iApply "ret".
           iIntros "!%".
@@ -202,7 +202,7 @@ Section factorial_client.
           simpl in Heq; simplify_eq.
           split; first auto.
           rewrite -fac_int_eq; first auto; lia.
-    - iNext. iIntros "**". destruct a as (?&[=]&->); simplify_eq. by iApply "ret".
+    - iNext. iIntros (u (?&[=]&->)); simplify_eq. by iApply "ret".
   Qed.
 
 End factorial_client.

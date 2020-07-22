@@ -37,7 +37,7 @@ Section proof.
   Proof.
     iIntros (Φ) "Hbag HΦ".
     iApply (pushBag_spec b N (bagE γ x X)%I (bagE γ x ({[v]} ⊎ X))%I γ with "[] [Hbag]"); eauto.
-    { iAlways. iIntros (Y) "[Hb1 Hb2]".
+    { iModIntro. iIntros (Y) "[Hb1 Hb2]".
       iDestruct "Hb2" as "[#Hbag Hb2]".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iMod (bag_contents_update b ({[v]} ⊎ Y) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
@@ -54,12 +54,12 @@ Section proof.
     iIntros (Φ) "Hbag HΦ".
     iApply (popBag_spec b N (bagE γ x X)%I (fun v => (⌜X = ∅⌝ ∧ ⌜v = NONEV⌝ ∧ bagE γ x ∅)
                  ∨ (∃ Y y, ⌜X = {[y]} ⊎ Y⌝ ∧ ⌜v = SOMEV y⌝ ∧ bagE γ x Y))%I γ with "[] [] [Hbag]"); eauto.
-    { iAlways. iIntros (Y y) "[Hb1 Hb2]".
+    { iModIntro. iIntros (Y y) "[Hb1 Hb2]".
       iDestruct "Hb2" as "[#Hbag Hb2]".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iMod (bag_contents_update b Y with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
       iFrame. iRight. iModIntro. iExists _,_; repeat iSplit; eauto. }
-    { iAlways. iIntros "[Hb1 Hb2]".
+    { iModIntro. iIntros "[Hb1 Hb2]".
       iDestruct "Hb2" as "[#Hbag Hb2]".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iModIntro. iFrame. iLeft. repeat iSplit; eauto. }

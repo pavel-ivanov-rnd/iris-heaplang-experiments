@@ -279,7 +279,7 @@ Section CG_Counter.
     iFrame "Hj".
     iExists (_, _), (_, _); simpl; repeat iSplit; trivial.
     - (* refinement of increment *)
-      iAlways. clear j K. iIntros (v) "#Heq". iIntros (j K) "Hj".
+      iModIntro. clear j K. iIntros (v) "#Heq". iIntros (j K) "Hj".
       rewrite CG_locked_increment_of_val /=.
       destruct v; iDestruct "Heq" as "[% %]"; simplify_eq/=.
       iLöb as "Hlat".
@@ -327,7 +327,7 @@ Section CG_Counter.
         { iNext. iExists _; iFrame "Hl Hcnt Hcnt'". }
         iApply wp_pure_step_later; trivial. iModIntro. iNext. by iApply "Hlat".
     - (* refinement of read *)
-      iAlways. clear j K. iIntros (v) "#Heq". iIntros (j K) "Hj".
+      iModIntro. clear j K. iIntros (v) "#Heq". iIntros (j K) "Hj".
       rewrite ?counter_read_of_val.
       iDestruct "Heq" as "[% %]"; destruct v; simplify_eq/=.
       Transparent counter_read.

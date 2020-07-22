@@ -121,7 +121,7 @@ Section proof.
     {{{ RET #(); Q }}}.
   Proof.
     iIntros "#Hvs".
-    iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
+    iIntros (Φ). iModIntro. iIntros "[#Hbag HP] HΦ".
     unfold pushBag. wp_rec. wp_let.
     rewrite /is_bag /bag_inv.
     iDestruct "Hbag" as (lk b γl) "[% #Hlk]"; simplify_eq/=.
@@ -148,7 +148,7 @@ Section proof.
     {{{ v, RET v; Q v }}}.
   Proof.
     iIntros "#Hvs1 #Hvs2".
-    iIntros (Φ). iAlways. iIntros "[#Hbag HP] HΦ".
+    iIntros (Φ). iModIntro. iIntros "[#Hbag HP] HΦ".
     unfold popBag. wp_rec.
     rewrite /is_bag /bag_inv.
     iDestruct "Hbag" as (lk b γl) "[% #Hlk]"; simplify_eq/=.

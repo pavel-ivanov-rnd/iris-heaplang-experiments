@@ -25,7 +25,7 @@ Section client.
   Lemma y_inv_split q l : y_inv q l -∗ (y_inv (q/2) l ∗ y_inv (q/2) l).
   Proof.
     iDestruct 1 as (f) "[[Hl1 Hl2] #Hf]".
-    iSplitL "Hl1"; iExists f; by iSplitL; try iAlways.
+    iSplitL "Hl1"; iExists f; by iSplitL; try iModIntro.
   Qed.
 
   Lemma worker_safe q (n : Z) (b y : loc) :

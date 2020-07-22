@@ -63,7 +63,7 @@ Section proof.
   Proof.
     iIntros (Φ) "[#[Hbag Hinv] HP] HΦ". rewrite /bagM_inv.
     iApply (pushBag_spec b NB (bagPart γ q Y)%I (bagPart γ q ({[v]} ⊎ Y))%I with "[] [Hbag HP]"); eauto.
-    iAlways. iIntros (X) "[Hb1 HP]".
+    iModIntro. iIntros (X) "[Hb1 HP]".
     iInv NI as (X') "[>Hb2 >Hown]" "Hcl".
     iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
     iMod (bag_contents_update b ({[v]} ⊎ X) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
@@ -92,7 +92,7 @@ Section proof.
     iApply (popBag_spec b NB (bagPart γ 1 X)%I
              (fun v => (⌜v = NONEV⌝ ∧ ⌜X = ∅⌝ ∗ bagPart γ 1 X)
                      ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ ⌜y ∈ X⌝ ∗ bagPart γ 1 (X ∖ {[y]})))%I with "[] [] [Hpart]"); eauto.
-    { iAlways. iIntros (Y y) "[Hb1 Hpart]".
+    { iModIntro. iIntros (Y y) "[Hb1 Hpart]".
       iInv NI as (X') "[>Hb2 >HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iMod (bag_contents_update b Y with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
@@ -111,7 +111,7 @@ Section proof.
         iFrame. }
       iModIntro. iNext. iFrame. iRight. iExists y; repeat iSplit; eauto.
       iPureIntro. apply gmultiset_elem_of_disj_union. left. by apply elem_of_singleton. }
-    { iAlways. iIntros "[Hb1 Hpart]".
+    { iModIntro. iIntros "[Hb1 Hpart]".
       iInv NI as (X') "[>Hb2 >HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iAssert (⌜X = ∅⌝)%I with "[Hpart HPs]" as %->.

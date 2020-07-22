@@ -55,10 +55,10 @@ Section Rules.
     unfold Persistent.
     iIntros "H". iLöb as "IH" forall (v). rewrite StackLink_unfold.
     iDestruct "H" as (l w) "[% [#Hl [#Hr|Hr]]]"; subst.
-    { iExists l, w; iAlways; eauto. }
+    { iExists l, w; iModIntro; eauto. }
     iDestruct "Hr" as (y1 z1 y2 z2) "[#H1 [#H2 [#HQ H']]]".
     rewrite later_forall. iDestruct ("IH" with "H'") as "#H''". iClear "H'".
-    iAlways. eauto 20.
+    iModIntro. eauto 20.
   Qed.
 
   Lemma stackR_alloc (h : stackUR) (i : loc) (v : val) :

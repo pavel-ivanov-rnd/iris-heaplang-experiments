@@ -67,14 +67,14 @@ Section typed_interp.
         [iApply wp_pure_step_later .. ]; auto; iNext;
       [iApply IHtyped2| iApply IHtyped3]; auto.
     - (* Rec *)
-      iApply wp_value. simpl. iAlways. iLöb as "IH". iIntros (w) "#Hw".
+      iApply wp_value. simpl. iModIntro. iLöb as "IH". iIntros (w) "#Hw".
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl. change (Rec _) with (of_val (RecV e.[upn 2 (env_subst vs)])) at 2.
       iApply (IHtyped Δ (_ :: w :: vs)).
       iApply interp_env_cons; iSplit; [|iApply interp_env_cons]; auto.
     - (* Lam *)
-      iApply wp_value. simpl. iAlways. iIntros (w) "#Hw".
+      iApply wp_value. simpl. iModIntro. iIntros (w) "#Hw".
       iDestruct (interp_env_length with "HΓ") as %?.
       iApply wp_pure_step_later; auto 1 using to_of_val. iNext.
       asimpl.
@@ -96,7 +96,7 @@ Section typed_interp.
       by iApply "Hv".
     - (* TLam *)
       iApply wp_value.
-      iAlways; iIntros (τi) "%". iApply wp_pure_step_later; auto; iNext.
+      iModIntro; iIntros (τi) "%". iApply wp_pure_step_later; auto; iNext.
       iApply IHtyped. by iApply interp_env_ren.
     - (* TApp *)
       smart_wp_bind TAppCtx v "#Hv" IHtyped; cbn.
@@ -107,7 +107,7 @@ Section typed_interp.
         iApply wp_wand_l; iSplitL; [|iApply (IHtyped Δ vs); auto].
       iIntros (v) "#Hv". iApply wp_value.
       rewrite /= -interp_subst fixpoint_interp_rec1_eq /=.
-      iAlways; eauto.
+      iModIntro; eauto.
     - (* Unfold *)
       iApply (wp_bind (fill [UnfoldCtx]));
         iApply wp_wand_l; iSplitL; [|iApply IHtyped; auto].

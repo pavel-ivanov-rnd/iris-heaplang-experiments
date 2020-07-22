@@ -109,7 +109,7 @@ Section contents.
     iIntros (Φ) "_ HΦ".
     unfold fibRunner. wp_lam. wp_let. wp_bind (newRunner _ _ _).
     iApply (newRunner_spec b N P Q).
-    - iIntros (γb r). iAlways. iIntros (a') "[#Hrunner HP]".
+    - iIntros (γb r). iModIntro. iIntros (a') "[#Hrunner HP]".
       iApply (parFib_spec with "[$HP]"); eauto.
     - iNext. iIntros (γb r) "#Hrunner".
       wp_let. wp_bind (runner_Fork b r #a).

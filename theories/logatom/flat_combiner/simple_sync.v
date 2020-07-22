@@ -25,7 +25,7 @@ Section syncer.
     wp_lam. wp_bind (newlock _).
     iApply (newlock_spec R with "[HR]"); first done. iNext.
     iIntros (lk γ) "#Hl". wp_pures. iApply "HΦ". iIntros "!#".
-    iIntros (f). wp_pures. iAlways.
+    iIntros (f). wp_pures. iModIntro.
     iIntros (P Q x) "#Hf !# HP".
     wp_pures. wp_bind (acquire _).
     iApply (acquire_spec with "Hl"). iNext.
