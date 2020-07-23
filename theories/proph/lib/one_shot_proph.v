@@ -5,7 +5,7 @@ From iris.heap_lang Require Import proofmode notation.
 From iris_string_ident Require Import ltac2_string_ident.
 Set Default Proof Using "Type".
 
-Fixpoint val_of_list (vs : list (val * val)) : val :=
+Definition val_of_list (vs : list (val * val)) : val :=
   match vs with
   | []          => #()
   | (_, v) :: _ => v

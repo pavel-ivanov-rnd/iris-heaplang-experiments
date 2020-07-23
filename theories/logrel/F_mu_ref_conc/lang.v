@@ -80,7 +80,7 @@ Module F_mu_ref_conc.
   Notation "'#♭v' b" := (BoolV b) (at level 20).
   Notation "'#nv' n" := (NatV n) (at level 20).
 
-  Fixpoint binop_eval (op : binop) : nat → nat → val :=
+  Definition binop_eval (op : binop) : nat → nat → val :=
     match op with
     | Add => λ a b, #nv(a + b)
     | Sub => λ a b, #nv(a - b)

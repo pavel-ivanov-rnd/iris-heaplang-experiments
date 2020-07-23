@@ -243,7 +243,7 @@ Section atomic_snapshot.
         iMod ("Hclose" with "Hx◯") as "HΦ".
       (* update timestamp *)
       iMod (timestamp_update _ T (v'' + 1)%Z x2 with "[Ht●]") as "Ht".
-      { eapply (not_elem_of_dom (D:=gset Z) T). intros Hd. specialize (Hvt _ Hd). omega. }
+      { eapply (not_elem_of_dom (D:=gset Z) T). intros Hd. specialize (Hvt _ Hd). lia. }
       { done. }
       (* close invariant *)
       iModIntro. iSplitR "HΦ".

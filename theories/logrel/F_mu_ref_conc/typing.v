@@ -17,7 +17,7 @@ Instance Rename_type : Rename type. derive. Defined.
 Instance Subst_type : Subst type. derive. Defined.
 Instance SubstLemmas_typer : SubstLemmas type. derive. Qed.
 
-Fixpoint binop_res_type (op : binop) : type :=
+Definition binop_res_type (op : binop) : type :=
   match op with
   | Add => TNat | Sub => TNat | Mult => TNat
   | Eq => TBool | Le => TBool | Lt => TBool
@@ -93,7 +93,7 @@ Proof.
          try inversion Hmc; try match goal with H : _ |- _ => by rewrite H end;
          fail).
   - apply H1. rewrite iter_up in Hmc. destruct lt_dec; try lia.
-    asimpl in *. injection Hmc as Hmc. unfold var in *. omega.
+    asimpl in *. injection Hmc as Hmc. unfold var in *. lia.
   - unfold upn in *.
     change (e.[up (up (upn m (ren (+1))))]) with
     (e.[iter (S (S m)) up (ren (+1))]) in *.

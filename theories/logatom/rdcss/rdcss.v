@@ -224,7 +224,7 @@ Section rdcss.
 
   (** Extract the [tid] of the winner (i.e., the first thread that preforms a
       CAS) from the prophecy. *)
-  Fixpoint proph_extract_winner (pvs : list (val * val)) : option proph_id :=
+  Definition proph_extract_winner (pvs : list (val * val)) : option proph_id :=
     match pvs with
     | (_, LitV (LitProphecy tid)) :: _  => Some tid
     | _                                 => None
