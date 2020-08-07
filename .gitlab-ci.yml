@@ -27,10 +27,10 @@ variables:
 
 ## Build jobs
 
-#build-coq.8.12.dev: # not compatible with iris-string-ident
-#  <<: *template
-#  variables:
-#    OPAM_PINS: "coq version 8.12.dev"
+build-coq.8.12.0:
+  <<: *template
+  variables:
+    OPAM_PINS: "coq version 8.12.0"
 
 build-coq.8.11.2:
   <<: *template
@@ -42,7 +42,7 @@ build-coq.8.11.2:
 build-iris.dev:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.11.dev   coq-stdpp.dev git git+https://gitlab.mpi-sws.org/iris/stdpp.git#$STDPP_REV   coq-iris.dev git git+https://gitlab.mpi-sws.org/iris/iris.git#$IRIS_REV"
+    OPAM_PINS: "coq version 8.12.dev   coq-stdpp.dev git git+https://gitlab.mpi-sws.org/iris/stdpp.git#$STDPP_REV   coq-iris.dev git git+https://gitlab.mpi-sws.org/iris/iris.git#$IRIS_REV"
   except:
   only:
   - triggers

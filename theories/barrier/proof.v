@@ -114,7 +114,7 @@ Proof.
   set (γsps' := γsps ∖ {[γsp]}).
   iMod (saved_prop_alloc_cofinite γsps' R1) as (γsp1 Hγsp1) "#Hsp1".
   iMod (saved_prop_alloc_cofinite (γsps' ∪ {[ γsp1 ]}) R2)
-    as (γsp2 [? ?%not_elem_of_singleton]%not_elem_of_union) "#Hsp2".
+    as (γsp2 [? ?%not_elem_of_singleton_1]%not_elem_of_union) "#Hsp2".
   iMod (own_update _ _ (● _ ⋅ (◯ GSet {[ γsp1 ]} ⋅ ◯ (GSet {[ γsp2 ]})))
     with "H●") as "(H● & H◯1 & H◯2)".
   { rewrite -auth_frag_op gset_disj_union; last set_solver.
@@ -128,8 +128,8 @@ Proof.
     iDestruct (saved_prop_agree with "Hsp Hsp'") as "#Heq".
     iAssert (▷ R')%I with "[HR'']" as "HR'"; [iNext; by iRewrite "Heq"|].
     iDestruct ("HR" with "HR'") as "[HR1 HR2]".
-    iApply big_sepS_union; [set_solver|iFrame "HRs"].
-    iApply big_sepS_union; [set_solver|].
+    iApply big_sepS_union; first set_solver. iFrame "HRs".
+    iApply big_sepS_union; first set_solver.
     iSplitL "HR1"; rewrite big_sepS_singleton; eauto. }
   iModIntro; iSplitL "H◯1".
   - iExists γ, P, R1, γsp1. iFrame; auto.

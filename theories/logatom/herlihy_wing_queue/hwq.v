@@ -2668,7 +2668,7 @@ Proof.
         - intros k. split; intros Hk; first by apply Hstate.
           intros Hk_in_deqs. apply elem_of_union in Hk_in_deqs.
           destruct Hk_in_deqs as [Hk_is_i|Hk_in_deqs].
-          + apply elem_of_singleton in Hk_is_i. subst k.
+          + apply elem_of_singleton_1 in Hk_is_i. subst k.
             rewrite /array_get Hslots_i decide_False in Hi; last done.
             rewrite /physical_value in Hi. rewrite Hslots_i in Hk.
             inversion Hk; subst dw. inversion Hi.
@@ -2690,7 +2690,7 @@ Proof.
             apply NoDup_app in Hpvs_ND as (HND & _ & _).
             apply NoDup_app in HND as (HND & _ & _).
             apply NoDup_cons in HND as (HND & _). apply HND, Hk.
-        - intros k Hk. apply elem_of_union in Hk as [Hk%elem_of_singleton|Hk].
+        - intros k Hk. apply elem_of_union in Hk as [Hk%elem_of_singleton_1|Hk].
           + subst k. rewrite Hslots_i /=.
             assert (dw = true) as ->.
             { rewrite /array_get Hslots_i decide_False in Hi; last done.
