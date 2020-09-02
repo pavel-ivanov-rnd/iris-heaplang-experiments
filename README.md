@@ -34,7 +34,7 @@ This repository contains the following case studies:
 
 * [barrier](theories/barrier): Implementation and proof of a barrier as
   described in ["Higher-Order Ghost State"](http://doi.acm.org/10.1145/2818638).
-* [logrel](logrel): Logical relations.
+* [logrel](theories/logrel): Logical relations.
   - [logrel/stlc](theories/logrel/stlc): A unary logical relation for semantic
     typing STLC (simply-typed lambda calculus) with De Bruijn indices (using
     Autosubst).
