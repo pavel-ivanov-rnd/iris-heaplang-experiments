@@ -9,6 +9,8 @@ Record lty Σ := Lty {
 }.
 Arguments Lty {_} _%I {_}.
 Arguments lty_car {_} _ _ : simpl never.
+
+Declare Scope lty_scope.
 Bind Scope lty_scope with lty.
 Delimit Scope lty_scope with lty.
 Existing Instance lty_persistent.

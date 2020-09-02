@@ -42,7 +42,7 @@ Inductive ctx_item :=
   | CTX_CAS_M (e0 : expr) (e2 : expr)
   | CTX_CAS_R (e0 : expr) (e1 : expr).
 
-Fixpoint fill_ctx_item (ctx : ctx_item) (e : expr) : expr :=
+Definition fill_ctx_item (ctx : ctx_item) (e : expr) : expr :=
   match ctx with
   | CTX_Rec => Rec e
   | CTX_AppL e2 => App e e2

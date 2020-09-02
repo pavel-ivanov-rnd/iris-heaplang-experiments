@@ -9,7 +9,7 @@ From iris.base_logic.lib Require Export invariants.
 From stdpp Require Import gmultiset.
 Set Default Proof Using "Type".
 
-Structure bag Σ `{!heapG Σ} := Bag {
+Record bag Σ `{!heapG Σ} := Bag {
   (* -- operations -- *)
   newBag : val;
   pushBag : val;

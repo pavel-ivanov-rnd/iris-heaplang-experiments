@@ -174,7 +174,7 @@ End proof.
 
 Typeclasses Opaque bag_contents is_bag.
 
-Canonical Structure cg_bag `{!heapG Σ, !bagG Σ} : bag Σ :=
+Definition cg_bag `{!heapG Σ, !bagG Σ} : bag Σ :=
   {| abstract_bag.is_bag N := is_bag;
      abstract_bag.is_bag_persistent N := is_bag_persistent;
      abstract_bag.bag_contents_timeless := bag_contents_timeless;
