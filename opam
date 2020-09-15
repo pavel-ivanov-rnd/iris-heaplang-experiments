@@ -3,8 +3,8 @@ name: "coq-iris-examples"
 maintainer: "Ralf Jung <jung@mpi-sws.org>"
 authors: "The Iris Team and Contributors"
 homepage: "http://iris-project.org/"
-bug-reports: "https://gitlab.mpi-sws.org/FP/iris-examples/issues"
-dev-repo: "git+https://gitlab.mpi-sws.org/FP/iris-examples.git"
+bug-reports: "https://gitlab.mpi-sws.org/iris/examples/issues"
+dev-repo: "git+https://gitlab.mpi-sws.org/iris/examples.git"
 
 synopsis: "A collection of case studies for Iris"
 
