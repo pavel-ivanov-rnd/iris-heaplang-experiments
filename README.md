@@ -7,7 +7,7 @@ Some example verification demonstrating the use of Iris.
 This version is known to compile with:
 
  - Coq 8.11.2 / 8.12.0
- - A development version of [Iris](https://gitlab.mpi-sws.org/FP/iris-coq/)
+ - A development version of [Iris](https://gitlab.mpi-sws.org/iris/iris)
  - The coq86-devel branch of [Autosubst](https://github.com/uds-psl/autosubst)
 
 ## Building from source
