@@ -261,7 +261,7 @@ Lemma contra_agree i1 i2 i1' i2' γc :
   contra γc i1 i2 -∗ contra γc i1' i2' -∗ ⌜i1' = i1 ∧ i2' = i2⌝.
 Proof.
   iIntros "HC HC'". iDestruct (own_valid_2 with "HC HC'") as %H.
-  iPureIntro. apply agree_op_invL' in H. by inversion H.
+  iPureIntro. apply to_agree_op_inv_L in H. by inversion H.
 Qed.
 
 Global Instance contra_persistent γc i1 i2 : Persistent (contra γc i1 i2).

@@ -76,7 +76,7 @@ Section cnt_model.
     iIntros "H1 H2".
     iDestruct (own_valid_2 with "H1 H2") as %HValid.
     destruct HValid as [_ H2].
-    iIntros "!%"; by apply agree_op_invL'.
+    iIntros "!%"; by apply to_agree_op_inv_L.
   Qed.
 
   Lemma makeElem_entail γ p q (n m : Z):

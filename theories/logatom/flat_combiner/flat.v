@@ -295,7 +295,7 @@ Section proof.
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
       rewrite //= in H1.
-      by apply agree_op_inv' in H1.
+      by apply to_agree_op_inv in H1.
   Qed.
 
 End proof.

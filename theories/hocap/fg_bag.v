@@ -110,7 +110,7 @@ Section proof.
     rewrite /bag_contents. apply bi.wand_intro_r.
     rewrite -own_op own_valid uPred.discrete_valid.
     f_equiv=> /=. rewrite -pair_op.
-    by intros [_ ?%agree_op_invL'].
+    by intros [_ ?%to_agree_op_inv_L].
   Qed.
 
   Lemma bag_contents_update γb X X' Y :

@@ -141,7 +141,7 @@ Section cfg.
     apply wand_intro_r.
     rewrite /heapS_mapsto -own_op -auth_frag_op own_valid discrete_valid.
     f_equiv=> -[_] /=. rewrite singleton_op singleton_valid -pair_op.
-    by intros [_ ?%agree_op_invL'].
+    by intros [_ ?%to_agree_op_inv_L].
   Qed.
   Lemma mapstoS_combine l q1 q2 v1 v2 :
     l ↦ₛ{q1} v1 -∗ l ↦ₛ{q2} v2 -∗ l ↦ₛ{q1 + q2} v1 ∗ ⌜v1 = v2⌝.

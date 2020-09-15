@@ -66,7 +66,7 @@ Proof.
   iIntros "Hs1 Hs2".
   iDestruct (own_valid_2 with "Hs1 Hs2") as %Hfoo.
   iPureIntro. rewrite -Cinr_op -Cinl_op -pair_op in Hfoo.
-  by destruct Hfoo as [_ ?%agree_op_invL'].
+  by destruct Hfoo as [_ ?%to_agree_op_inv_L].
 Qed.
 Lemma FIN_agree `{saG Σ} (γ: gname) (v w: val) :
   FIN γ v -∗ FIN γ w -∗ ⌜v = w⌝.
@@ -74,7 +74,7 @@ Proof.
   iIntros "Hs1 Hs2".
   iDestruct (own_valid_2 with "Hs1 Hs2") as %Hfoo.
   iPureIntro. rewrite -Cinr_op -Cinr_op in Hfoo.
-  by apply agree_op_invL'.
+  by apply to_agree_op_inv_L.
 Qed.
 Lemma INIT_SET_RES `{saG Σ} (v: val) γ :
   INIT γ 1%Qp ==∗ SET_RES γ 1%Qp v.
