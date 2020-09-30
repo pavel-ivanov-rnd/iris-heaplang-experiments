@@ -426,7 +426,7 @@ Section monotone_counter'.
   Proof.
     (* Use a simplified definition of validity for when the underlying CMRA is discrete, i.e., an RA.
        The general definition also involves the use of step-indices, which is not needed in our case. *)
-    rewrite auth_both_valid.
+    rewrite auth_both_valid_discrete.
     split.
     - intros [? _]; by apply max_nat_included.
     - intros ?%max_nat_included; done.
@@ -613,7 +613,7 @@ Section ccounter.
     {{{ γ ℓ, RET #ℓ; is_ccounter γ ℓ 1 0%nat }}}.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
-    iMod (own_alloc (●F O%nat ⋅ ◯F 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid.
+    iMod (own_alloc (●F O%nat ⋅ ◯F 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid_discrete.
     iMod (inv_alloc N _ (ccounter_inv γ ℓ) with "[Hpt Hγ]").
     { iNext. iExists 0%nat. by iFrame. }
     iModIntro. iApply "HΦ". rewrite /is_ccounter; eauto.

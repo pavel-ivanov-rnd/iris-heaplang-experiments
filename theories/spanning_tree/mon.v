@@ -192,7 +192,7 @@ Section graph_ctx_alloc.
     iMod (own_alloc (● (∅ : markingUR))) as (mn) "H2"; first by apply auth_auth_valid.
     iMod (own_alloc (● (Some (1%Qp, ∅ : Gmon) : graphUR)
                       ⋅ ◯ (Some (1%Qp, ∅ : Gmon) : graphUR))) as (gn) "H3".
-    { by apply auth_both_valid. }
+    { by apply auth_both_valid_discrete. }
     iDestruct "H3" as "[H31 H32]".
     set (Ig := GraphG _ _ mn _ gn).
     iExists Ig.
@@ -288,7 +288,7 @@ Section graph.
   Proof.
     iIntros "[H1 H2]". rewrite /own_graph.
     iCombine "H1" "H2" as "H".
-    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid.
+    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid_discrete.
     iPureIntro.
     apply option_included in H1; destruct H1 as [H1|H1]; [inversion H1|].
     destruct H1 as (u1 & u2 & Hu1 & Hu2 & H3);
@@ -344,7 +344,7 @@ Section graph.
       ⊢ ⌜G = {[x := Excl w]} ⋅ (delete x G)⌝.
   Proof.
     rewrite /own_graph -?own_op. iIntros "H".
-    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid.
+    iDestruct (own_valid with "H") as %[H1 H2]%auth_both_valid_discrete.
     iPureIntro.
     apply option_included in H1; destruct H1 as [H1|H1]; [inversion H1|].
     destruct H1 as (u1 & u2 & Hu1 & Hu2 & H1);
@@ -396,7 +396,7 @@ Section graph.
   Proof.
     iIntros "H". unfold is_marked. rewrite -own_op.
     iDestruct (own_valid with "H") as %Hvl.
-    move : Hvl => /auth_both_valid [[z Hvl'] _].
+    move : Hvl => /auth_both_valid_discrete [[z Hvl'] _].
     iPureIntro.
     rewrite Hvl' /= !gset_op_union !elem_of_union elem_of_singleton; tauto.
   Qed.

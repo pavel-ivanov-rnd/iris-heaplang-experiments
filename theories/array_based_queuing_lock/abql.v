@@ -316,7 +316,7 @@ Section proof.
         -∗ ⌜o ≤ x < o + i⌝ ∗ own γ (◯ (ε, GSet {[ x ]})) ∗ own γ (● (Excl' o, GSet (set_seq o i))).
   Proof.
     iIntros "P O".
-    iDestruct (own_valid_2 with "O P") as %[[_ xIncl%gset_disj_included]%prod_included Hv]%auth_both_valid.
+    iDestruct (own_valid_2 with "O P") as %[[_ xIncl%gset_disj_included]%prod_included Hv]%auth_both_valid_discrete.
     iFrame. iPureIntro.
     apply elem_of_subseteq_singleton, elem_of_set_seq in xIncl.
     lia.
@@ -327,7 +327,7 @@ Section proof.
       -∗ ⌜0 < i⌝ ∗ own γ (◯ (ε, GSet {[ o ]})) ∗ own γ (● (Excl' o, GSet (set_seq o i))).
   Proof.
     iIntros "P O".
-    iDestruct (own_valid_2 with "O P") as %HV%auth_both_valid.
+    iDestruct (own_valid_2 with "O P") as %HV%auth_both_valid_discrete.
     iFrame. iPureIntro.
     destruct HV as [[_ H%gset_disj_included]%prod_included _].
     apply elem_of_subseteq_singleton, set_seq_len_pos in H.
@@ -370,7 +370,7 @@ Section proof.
     iIntros "isArr".
     (* We allocate the ghost states for the tickets and value of o. *)
     iMod (own_alloc (● (Excl' 0, GSet ∅) ⋅ ◯ (Excl' 0, GSet ∅))) as (γ) "[Hγ Hγ']".
-    { by apply auth_both_valid. }
+    { by apply auth_both_valid_discrete. }
     (* We allocate the ghost state for the invitations. *)
     iMod (own_alloc (Addb (cap, MinNat cap) ⋅ Addb (0, MinNat cap))) as (ι) "[Hinvites HNoInvites]".
     { rewrite sumRA_op_second Nat.add_0_r. apply sumRA_valid. auto. }
@@ -541,7 +541,7 @@ Section proof.
     iInv N as (o' i xs) "(>%lenEq & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We want to show that o and o' are equal. We know this from the loked γ o ghost state. *)
     iDestruct (own_valid_2 with "Auth Locked") as
-      %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
+      %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid_discrete.
     rewrite rem_mod_eq //.
     iApply (array_store with "[arrPts]").
     { iFrame. iPureIntro. rewrite lenEq. apply Nat.mod_upper_bound. lia. }
@@ -568,7 +568,7 @@ Section proof.
     (* This is the case where the lock is clopen, that is, the actual state
        of the lock. *)
     * iDestruct (own_valid_2 with "Auth Locked") as
-          %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid.
+          %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid_discrete.
       rewrite rem_mod_eq //.
       iApply (wp_store_offset with "arrPts").
       { apply lookup_lt_is_Some_2. rewrite fmap_length H0. apply Nat.mod_upper_bound. lia. }

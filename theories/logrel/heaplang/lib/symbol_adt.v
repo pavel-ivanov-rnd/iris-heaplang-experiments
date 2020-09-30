@@ -40,7 +40,7 @@ Section symbol_ghosts.
   Lemma counter_alloc n : ⊢ |==> ∃ γ, counter γ n.
   Proof.
     iMod (own_alloc (● MaxNat n ⋅ ◯ MaxNat n)) as (γ) "[Hγ Hγf]";
-      first by apply auth_both_valid.
+      first by apply auth_both_valid_discrete.
     iExists γ. by iFrame.
   Qed.
 
@@ -53,7 +53,7 @@ Section symbol_ghosts.
   Lemma symbol_obs γ s n : counter γ n -∗ symbol γ s -∗ ⌜(s < n)%nat⌝.
   Proof.
     iIntros "Hc Hs".
-    iDestruct (own_valid_2 with "Hc Hs") as %[?%max_nat_included _]%auth_both_valid.
+    iDestruct (own_valid_2 with "Hc Hs") as %[?%max_nat_included _]%auth_both_valid_discrete.
     simpl in *. iPureIntro. lia.
   Qed.
 End symbol_ghosts.

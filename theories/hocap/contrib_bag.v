@@ -50,7 +50,7 @@ Section proof.
     iIntros (Φ) "_ HΦ". iApply wp_fupd.
     iApply (newBag_spec b NB); eauto.
     iNext. iIntros (v γb) "[#Hbag Hcntn]".
-    iMod (own_alloc (●F ∅ ⋅ ◯F ∅)) as (γ) "[Hown Hpart]"; first by apply auth_both_valid.
+    iMod (own_alloc (●F ∅ ⋅ ◯F ∅)) as (γ) "[Hown Hpart]"; first by apply auth_both_valid_discrete.
     iMod (inv_alloc NI _ (∃ X, bag_contents b γb X ∗ own γ (●F X))%I with "[Hcntn Hown]") as "#Hinv".
     { iNext. iExists _. iFrame. }
     iApply "HΦ". iModIntro. iExists _,_. iFrame "Hinv Hbag Hpart".

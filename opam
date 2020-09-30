@@ -9,7 +9,7 @@ dev-repo: "git+https://gitlab.mpi-sws.org/iris/examples.git"
 synopsis: "A collection of case studies for Iris"
 
 depends: [
-  "coq-iris" { (= "dev.2020-09-15.2.59280f68") | (= "dev") }
+  "coq-iris" { (= "dev.2020-09-29.7.19ba2bc0") | (= "dev") }
   "coq-autosubst" { = "dev.coq86" }
   "coq-iris-string-ident"
 ]

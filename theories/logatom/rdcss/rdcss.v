@@ -200,7 +200,7 @@ Section rdcss.
     iDestruct "H◯" as (γ') "[HMeta' H◯]".
     iDestruct (meta_agree with "HMeta' HMeta") as %->. iClear "HMeta'".
     iCombine "H●" "H◯" as "H". iDestruct (own_valid with "H") as "H".
-    by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid.
+    by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
   Qed.
 
   Lemma update_value l_n (n1 n2 m : val) :
@@ -647,7 +647,7 @@ Section rdcss.
     wp_lam. wp_apply wp_fupd. wp_apply wp_alloc; first done.
     iIntros (l_n) "[Hln HMeta]".
     iMod (own_alloc (● Excl' n  ⋅ ◯ Excl' n)) as (γ_n) "[Hn● Hn◯]";
-      first by apply auth_both_valid.
+      first by apply auth_both_valid_discrete.
     iMod (meta_set _ l_n γ_n rdcssN with "HMeta") as "#HMeta"; first done.
     iMod (inv_alloc rdcssN _ (rdcss_inv l_n)
       with "[Hln Hn●]") as "#InvR".

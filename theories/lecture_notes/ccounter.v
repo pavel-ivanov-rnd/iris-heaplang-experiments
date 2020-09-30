@@ -58,7 +58,7 @@ Section ccounter.
     iIntros (Φ) "_ HΦ". rewrite -wp_fupd.
     wp_apply newcounter_spec; auto.
     iIntros (ℓ) "H"; iDestruct "H" as (γ₂) "[#HCnt Hown]".
-    iMod (own_alloc (●F m ⋅ ◯F m)) as (γ₁) "[Hγ Hγ']"; first by apply auth_both_valid.
+    iMod (own_alloc (●F m ⋅ ◯F m)) as (γ₁) "[Hγ Hγ']"; first by apply auth_both_valid_discrete.
     iMod (inv_alloc (N .@ "counter") _ (ccounter_inv γ₁ γ₂) with "[Hγ Hown]").
     { iNext. iExists _. by iFrame. }
     iModIntro. iApply "HΦ". rewrite /is_ccounter; eauto.

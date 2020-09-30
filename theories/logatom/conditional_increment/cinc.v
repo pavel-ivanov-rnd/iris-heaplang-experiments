@@ -114,7 +114,7 @@ Section conditional_counter.
     own γ_n (● Excl' n) -∗ own γ_n (◯ Excl' m) -∗ ⌜n = m⌝.
   Proof.
     iIntros "H● H◯". iCombine "H●" "H◯" as "H". iDestruct (own_valid with "H") as "H".
-      by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid.
+      by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
   Qed.
 
   Lemma update_counter_value γ_n (n1 n2 m : Z) :
@@ -500,7 +500,7 @@ Section conditional_counter.
     wp_alloc l_n as "Hl_n".
     wp_alloc l_c as "Hl_c".
     iMod (own_alloc (● Excl' 0%Z  ⋅ ◯ Excl' 0%Z)) as (γ_n) "[Hn● Hn◯]".
-    { by apply auth_both_valid. }
+    { by apply auth_both_valid_discrete. }
     iMod (inv_alloc counterN _ (counter_inv γ_n l_c)
       with "[Hl_c Hl_n Hn●]") as "#InvC".
     { iNext. iDestruct "Hl_c" as "[Hl_c1 Hl_c2]".

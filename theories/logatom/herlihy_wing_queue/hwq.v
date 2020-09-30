@@ -151,7 +151,7 @@ Implicit Types pvs : list nat.
 Lemma new_elts l : ⊢ |==> ∃ γe, own γe (● Excl' l) ∗ own γe (◯ Excl' l).
 Proof.
   iMod (own_alloc (● Excl' l ⋅ ◯ Excl' l)) as (γe) "[H● H◯]".
-  - by apply auth_both_valid.
+  - by apply auth_both_valid_discrete.
   - iModIntro. iExists γe. iFrame.
 Qed.
 
@@ -160,7 +160,7 @@ Lemma sync_elts γe (l1 l2 : list loc) :
 Proof.
   iIntros "H● H◯". iCombine "H●" "H◯" as "H".
   iDestruct (own_valid with "H") as "H".
-  by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid.
+  by iDestruct "H" as %[H%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
 Qed.
 
 Lemma update_elts γe (l1 l2 l : list loc) :
@@ -211,7 +211,7 @@ Lemma back_le γb n1 n2 :
 Proof.
   iIntros "H1 H2". iCombine "H1 H2" as "H".
   iDestruct (own_valid with "H") as %Hvalid. iPureIntro.
-  apply auth_both_valid in Hvalid as [H1%max_nat_included _]. done.
+  apply auth_both_valid_discrete in Hvalid as [H1%max_nat_included _]. done.
 Qed.
 
 (* Stores a lower bound on the [i2] part of any contradiction that
@@ -379,7 +379,7 @@ Definition slot_writing_tok γs i :=
 Lemma new_slots : ⊢ |==> ∃ γs, own γs (● ∅).
 Proof.
   iMod (own_alloc (● ∅ ⋅ ◯ ∅)) as (γs) "[H● _]".
-  - by apply auth_both_valid.
+  - by apply auth_both_valid_discrete.
   - iModIntro. iExists γs. iFrame.
 Qed.
 
@@ -434,7 +434,7 @@ Lemma use_val_wit γs slots i l :
   ⌜val_of <$> slots !! i = Some l⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
-  iPureIntro. apply auth_both_valid in H as [H%singleton_included_l _].
+  iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
   inversion_clear H1; rename H into H1.
@@ -464,7 +464,7 @@ Lemma use_name_tok γs slots i γ :
   ⌜name_of <$> slots !! i = Some (Some γ)⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
-  iPureIntro. apply auth_both_valid in H as [H%singleton_included_l _].
+  iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
   inversion_clear H1; rename H into H1.
@@ -530,7 +530,7 @@ Lemma use_committed_wit γs slots i :
   ⌜was_committed <$> slots !! i = Some true⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
-  iPureIntro. apply auth_both_valid in H as [H%singleton_included_l _].
+  iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
   inversion_clear H1; rename H into H1.
@@ -553,7 +553,7 @@ Lemma use_written_wit γs slots i :
   ⌜was_written <$> slots !! i = Some true⌝.
 Proof.
   iIntros "H● Hwit". iDestruct (own_valid_2 with "H● Hwit") as %H.
-  iPureIntro. apply auth_both_valid in H as [H%singleton_included_l _].
+  iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
   inversion_clear H1; rename H into H1.
@@ -577,7 +577,7 @@ Proof.
   iIntros "Hs● Htok". iCombine "Hs● Htok" as "H". rewrite -own_op.
   iDestruct (own_valid with "H") as %Hvalid.
   iApply (own_update with "H").
-  apply auth_both_valid in Hvalid as [H1 H2].
+  apply auth_both_valid_discrete in Hvalid as [H1 H2].
   apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|] eqn:Hi; last by inversion H1_1.
@@ -607,7 +607,7 @@ Lemma writing_tok_not_written γs slots i :
     ⌜was_written <$> slots !! i = Some false⌝.
 Proof.
   iIntros "Hs● Htok". iCombine "Hs● Htok" as "H".
-  iDestruct (own_valid with "H") as %Hvalid%auth_both_valid.
+  iDestruct (own_valid with "H") as %Hvalid%auth_both_valid_discrete.
   iPureIntro. destruct Hvalid as [H1 H2].
   apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
@@ -638,7 +638,7 @@ Proof.
   iIntros (Hlookup) "Hs● Htok". iCombine "Hs● Htok" as "H".
   rewrite -own_op. iDestruct (own_valid with "H") as %Hvalid.
   iApply (own_update with "H").
-  apply auth_both_valid in Hvalid as [H1 H2].
+  apply auth_both_valid_discrete in Hvalid as [H1 H2].
   apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|] eqn:Hi; last by inversion H1_1.

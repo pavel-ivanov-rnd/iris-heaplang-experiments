@@ -54,7 +54,7 @@ Proof.
   iApply ("HΦ" with "[> -]").
   iMod (saved_prop_alloc P) as (γsp) "#Hsp".
   iMod (own_alloc (● GSet {[ γsp ]} ⋅ ◯ GSet {[ γsp ]})) as (γ) "[H● H◯]".
-  { by apply auth_both_valid. }
+  { by apply auth_both_valid_discrete. }
   iMod (inv_alloc N _ (barrier_inv l γ P) with "[Hl H●]") as "#Hinv".
   { iExists false, {[ γsp ]}. iIntros "{$Hl $H●} !> HP".
     rewrite big_sepS_singleton; eauto. }
@@ -87,7 +87,7 @@ Proof.
     by wp_apply ("IH" with "[$] [$]"). }
   iSpecialize ("HRs" with "[//]"). wp_load.
   iDestruct (own_valid_2 with "H● H◯")
-    as %[Hvalid%gset_disj_included%elem_of_subseteq_singleton _]%auth_both_valid.
+    as %[Hvalid%gset_disj_included%elem_of_subseteq_singleton _]%auth_both_valid_discrete.
   iDestruct (big_sepS_delete with "HRs") as "[HR'' HRs]"; first done.
   iDestruct "HR''" as (R'') "[#Hsp' HR'']".
   iDestruct (saved_prop_agree with "Hsp Hsp'") as "#Heq".
@@ -107,7 +107,7 @@ Proof.
   iIntros (?). iDestruct 1 as (γ P R' γsp) "(#Hinv & HR & H◯ & #Hsp)".
   iInv N as (b γsps) "(>Hl & >H● & HRs)".
   iDestruct (own_valid_2 with "H● H◯")
-    as %[Hvalid%gset_disj_included%elem_of_subseteq_singleton _]%auth_both_valid.
+    as %[Hvalid%gset_disj_included%elem_of_subseteq_singleton _]%auth_both_valid_discrete.
   iMod (own_update_2 with "H● H◯") as "H●".
   { apply (auth_update_dealloc _ _ (GSet (γsps ∖ {[ γsp ]}))).
     apply gset_disj_dealloc_local_update. }

@@ -313,7 +313,7 @@ Section hocap_pred_auth.
   Proof.
     iIntros (Φ) "_ HΦ". iApply wp_fupd.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
-    { apply auth_both_valid. split; done. }
+    { apply auth_both_valid_discrete. split; done. }
     iApply (hocap_pred.new_stack_spec _ _ (hocap_auth_stack_content_auth γs) with "[Hs● //]").
     iIntros "!>" (s) "#Hstack". iApply "HΦ".
     rewrite /hocap_auth_is_stack. by iFrame.
@@ -361,7 +361,7 @@ Section hocap_pred_auth.
   Qed.
   Next Obligation.
     iIntros (???) "Hf Ha". iDestruct (own_valid_2 with "Ha Hf") as
-      %[->%Excl_included%leibniz_equiv _]%auth_both_valid. done.
+      %[->%Excl_included%leibniz_equiv _]%auth_both_valid_discrete. done.
   Qed.
   Next Obligation.
     iIntros (???) "Hf Ha". iMod (own_update_2 with "Ha Hf") as "[? ?]".
