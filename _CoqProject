@@ -61,10 +61,6 @@ theories/logrel/F_mu_ref_conc/examples/stack/FG_stack.v
 theories/logrel/F_mu_ref_conc/examples/stack/refinement.v
 theories/logrel/F_mu_ref_conc/examples/fact.v
 
-theories/logrel/heaplang/ltyping.v
-theories/logrel/heaplang/ltyping_safety.v
-theories/logrel/heaplang/lib/symbol_adt.v
-
 theories/hocap/abstract_bag.v
 theories/hocap/cg_bag.v
 theories/hocap/fg_bag.v
