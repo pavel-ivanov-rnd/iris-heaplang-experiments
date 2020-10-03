@@ -29,20 +29,6 @@ Section excl.
   Qed.
 End excl.
 
-Section heap_extra.
-  Context `{heapG Σ}.
-
-  Lemma bogus_heap p (q1 q2: Qp) a b:
-    ~((q1 + q2)%Qp ≤ 1%Qp)%Qc →
-    p ↦{q1} a ∗ p ↦{q2} b ⊢ False.
-  Proof.
-    iIntros (?) "Hp".
-    iDestruct "Hp" as "[Hl Hr]".
-    iDestruct (@mapsto_valid_2 with "Hl Hr") as %H'. done.
-  Qed.
-
-End heap_extra.
-
 Section big_op_later.
   Context {M : ucmraT}.
   Context `{Countable K} {A : Type}.
