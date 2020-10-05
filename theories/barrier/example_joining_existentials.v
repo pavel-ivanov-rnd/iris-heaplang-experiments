@@ -7,10 +7,10 @@ From iris_examples.barrier Require Import proof specification.
 Set Default Proof Using "Type".
 
 Definition one_shotR (Σ : gFunctors) (F : oFunctor) :=
-  csumR (exclR unitO) (agreeR $ laterO $ oFunctor_apply F (iPrePropO Σ)).
+  csumR (exclR unitO) (agreeR $ laterO $ oFunctor_apply F (iPropO Σ)).
 Definition Pending {Σ F} : one_shotR Σ F := Cinl (Excl ()).
 Definition Shot {Σ} {F : oFunctor} (x : oFunctor_apply F (iPropO Σ)) : one_shotR Σ F :=
-  Cinr $ to_agree $ Next $ oFunctor_map F (iProp_fold, iProp_unfold) x.
+  Cinr $ to_agree $ Next $ x.
 
 Class oneShotG (Σ : gFunctors) (F : oFunctor) :=
   one_shot_inG :> inG Σ (one_shotR Σ F).
