@@ -694,7 +694,7 @@ Lemma val_wit_from_auth γs i l slots :
     slot_val_wit γs i l.
 Proof.
   iIntros (H) "H". rewrite -own_op. iApply (own_update with "H").
-  apply auth_update_core_id; first apply _.
+  apply auth_update_frac_alloc; first apply _.
   assert (∃ d, slots !! i = Some d) as [d Hlookup].
   { destruct (slots !! i) as [d|]; inversion H. by exists d. }
   apply singleton_included_l. rewrite lookup_fmap. rewrite Hlookup /=.
