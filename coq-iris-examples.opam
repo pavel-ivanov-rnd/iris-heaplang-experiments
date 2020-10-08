@@ -1,5 +1,4 @@
 opam-version: "2.0"
-name: "coq-iris-examples"
 maintainer: "Ralf Jung <jung@mpi-sws.org>"
 authors: "The Iris Team and Contributors"
 homepage: "http://iris-project.org/"
