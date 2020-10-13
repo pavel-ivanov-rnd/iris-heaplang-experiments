@@ -7,6 +7,9 @@ Import uPred.
 
 Definition specN := nroot .@ "spec".
 
+Local Definition gen_heapUR (L V : Type) `{Countable L} : ucmraT :=
+  gmapUR L (prodR fracR (agreeR (leibnizO V))).
+
 (** The CMRA for the heap of the specification. *)
 Definition tpoolUR : ucmraT := gmapUR nat (exclR exprO).
 Definition cfgUR := prodUR tpoolUR (gen_heapUR loc val).
@@ -17,6 +20,8 @@ Fixpoint to_tpool_go (i : nat) (tp : list expr) : tpoolUR :=
   | e :: tp => <[i:=Excl e]>(to_tpool_go (S i) tp)
   end.
 Definition to_tpool : list expr → tpoolUR := to_tpool_go 0.
+Definition to_gen_heap {L V} `{Countable L} : gmap L V → gen_heapUR L V :=
+  fmap (λ v, (1%Qp, to_agree (v : leibnizO V))).
 
 (** The CMRA for the thread pool. *)
 Class cfgSG Σ := CFGSG { cfg_inG :> inG Σ (authR cfgUR); cfg_name : gname }.
@@ -121,6 +126,27 @@ Section conversions.
   Proof. rewrite tpool_lookup. by move=> /tpool_singleton_included=> ->. Qed.
 
 End conversions.
+
+Section to_gen_heap.
+  Context (L V : Type) `{Countable L}.
+  Implicit Types σ : gmap L V.
+  Implicit Types m : gmap L gname.
+
+  Lemma lookup_to_gen_heap_None σ l : σ !! l = None → to_gen_heap σ !! l = None.
+  Proof. by rewrite /to_gen_heap lookup_fmap=> ->. Qed.
+  Lemma to_gen_heap_insert l v σ :
+    to_gen_heap (<[l:=v]> σ) = <[l:=(1%Qp, to_agree (v:leibnizO V))]> (to_gen_heap σ).
+  Proof. by rewrite /to_gen_heap fmap_insert. Qed.
+
+  Lemma gen_heap_singleton_included σ l q v :
+    {[l := (q, to_agree v)]} ≼ to_gen_heap σ → σ !! l = Some v.
+  Proof.
+    rewrite singleton_included_l=> -[[q' av] []].
+    rewrite /to_gen_heap lookup_fmap fmap_Some_equiv => -[v' [Hl [/= -> ->]]].
+    move=> /Some_pair_included_total_2 [_] /to_agree_included /leibniz_equiv_iff -> //.
+  Qed.
+
+End to_gen_heap.
 
 Section cfg.
   Context `{heapIG Σ, cfgSG Σ}.
