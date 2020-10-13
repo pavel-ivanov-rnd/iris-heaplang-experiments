@@ -20,7 +20,7 @@ Proof.
   { apply auth_both_valid_discrete. split=>//. split=>//. apply to_tpool_valid. }
   set (Hcfg := CFGSG _ _ γc).
   iMod (inv_alloc specN _ (spec_inv ([e'], ∅)) with "[Hcfg1]") as "#Hcfg".
-  { iNext. iExists [e'], ∅. rewrite /to_gen_heap fin_maps.map_fmap_empty. auto. }
+  { iNext. iExists [e'], ∅. rewrite /to_heap fin_maps.map_fmap_empty. auto. }
   set (HeapΣ := (HeapIG Σ Hinv Hheap)).
   iExists (λ σ _, gen_heap_ctx σ), (λ _, True%I); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
