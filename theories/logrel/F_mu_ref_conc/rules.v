@@ -16,7 +16,7 @@ Class heapIG Σ := HeapIG {
 
 Instance heapIG_irisG `{heapIG Σ} : irisG F_mu_ref_conc_lang Σ := {
   iris_invG := heapI_invG;
-  state_interp σ κs _ := gen_heap_ctx σ;
+  state_interp σ κs _ := gen_heap_interp σ;
   fork_post _ := True%I;
 }.
 Global Opaque iris_invG.
@@ -65,7 +65,7 @@ Section lang_rules.
   Qed.
 
   Lemma wp_load E l q v :
-  {{{ ▷ l ↦ᵢ{q} v }}} Load (Loc l) @ E {{{ RET v; l ↦ᵢ{q} v }}}.
+    {{{ ▷ l ↦ᵢ{q} v }}} Load (Loc l) @ E {{{ RET v; l ↦ᵢ{q} v }}}.
   Proof.
     iIntros (Φ) ">Hl HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1 ???) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
