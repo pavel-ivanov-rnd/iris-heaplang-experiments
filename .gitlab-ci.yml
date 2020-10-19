@@ -27,6 +27,7 @@ variables:
 
 ## Build jobs
 
+# We are in Coq's CI test suite, so better make sure we keep working with Coq master.
 build-coq.dev:
   <<: *template
   variables:
