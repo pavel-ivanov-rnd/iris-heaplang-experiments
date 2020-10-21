@@ -354,10 +354,12 @@ Section hocap_pred_auth.
        hocap_auth.push_spec := hocap_auth_push;
        hocap_auth.pop_spec := hocap_auth_pop |}.
   Next Obligation.
-    iIntros (???) "Hf1 Hf2". iDestruct (own_valid_2 with "Hf1 Hf2") as %[].
+    iIntros (???) "Hf1 Hf2".
+    iDestruct (own_valid_2 with "Hf1 Hf2") as %[]%auth_frag_op_valid_1.
   Qed.
   Next Obligation.
-    iIntros (???) "Ha1 Ha2". by iDestruct (own_valid_2 with "Ha1 Ha2") as %[].
+    iIntros (???) "Ha1 Ha2".
+    iDestruct (own_valid_2 with "Ha1 Ha2") as %[]%auth_auth_op_valid.
   Qed.
   Next Obligation.
     iIntros (???) "Hf Ha". iDestruct (own_valid_2 with "Ha Hf") as

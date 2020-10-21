@@ -335,7 +335,7 @@ Section rdcss.
     iDestruct "Hn1" as (γ_1) "[#Meta1 Hn1]".
     iDestruct "Hn2" as (γ_2) "[#Meta2 Hn2]".
     iDestruct (meta_agree with "Meta1 Meta2") as %->.
-    by iDestruct (own_valid_2 with "Hn1 Hn2") as %?.
+    by iDestruct (own_valid_2 with "Hn1 Hn2") as %?%auth_frag_op_valid_1.
   Qed.
 
   (** A few more helper lemmas that will come up later *)

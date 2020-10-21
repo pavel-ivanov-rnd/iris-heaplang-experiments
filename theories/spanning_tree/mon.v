@@ -273,7 +273,7 @@ Section graph.
   Lemma own_graph_valid q G : own_graph q G ⊢ ✓ G.
   Proof.
     iIntros "H". unfold own_graph.
-    by iDestruct (own_valid with "H") as %[_ ?].
+    by iDestruct (own_valid with "H") as %[_ ?]%auth_frag_valid.
   Qed.
 
   Lemma auth_own_graph_valid q G : own graph_name (● Some (q, G))  ⊢ ✓ G.

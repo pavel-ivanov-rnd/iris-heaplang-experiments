@@ -282,14 +282,15 @@ Section proof.
   Lemma locked_exclusive (γ κ : gname) o o' : locked γ κ o -∗ locked γ κ o' -∗ False.
   Proof.
     iIntros "[H1 _] [H2 _]".
-    iDestruct (own_valid_2 with "H1 H2") as %[[] _].
+    iDestruct (own_valid_2 with "H1 H2") as %[[] _]%auth_frag_op_valid_1.
   Qed.
 
   (* Only one thread can know the exact value of `o`. *)
   Lemma know_o_exclusive γ o o' :
     own γ (◯ (Excl' o, GSet ∅)) -∗ own γ (◯ (Excl' o', GSet ∅)) -∗ False.
   Proof.
-    iIntros "H1 H2". iDestruct (own_valid_2 with "H1 H2") as %[[]].
+    iIntros "H1 H2".
+    iDestruct (own_valid_2 with "H1 H2") as %[[]]%auth_frag_op_valid_1.
   Qed.
 
   (* Lemmas about both, left, and right. *)
@@ -473,7 +474,8 @@ Section proof.
       * (* The case where the lock is closed. *)
         rewrite xsEq in xsLookup. apply nth_list_with_one in xsLookup.
         assert (t = o) as ->. { apply (mod_fact _ _ i (cap)); auto. }
-        iDestruct (own_valid_2 with "Ticket Ticket2") as % [_ ?%gset_disj_valid_op].
+        iDestruct (own_valid_2 with "Ticket Ticket2")
+          as % [_ ?%gset_disj_valid_op]%auth_frag_op_valid_1.
         set_solver.
     - iMod ("Close" with "[nextPts isArr Inv Auth Part]") as "_".
       { iNext. iExists o, i, xs. iFrame. auto. }

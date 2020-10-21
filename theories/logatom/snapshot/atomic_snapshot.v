@@ -117,7 +117,8 @@ Section atomic_snapshot.
   Lemma snapshot_content_exclusive γs a1 a2 :
     snapshot_content γs a1 -∗ snapshot_content γs a2 -∗ False.
   Proof.
-    iIntros "H1 H2". iDestruct (own_valid_2 with "H1 H2") as %[].
+    iIntros "H1 H2".
+    iDestruct (own_valid_2 with "H1 H2") as %[]%auth_frag_op_valid_1.
   Qed.
 
   Definition new_timestamp t v : gmap Z val := {[ t := v ]}.

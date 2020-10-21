@@ -95,7 +95,8 @@ Section stack.
   Lemma stack_content_exclusive γs l1 l2 :
     stack_content γs l1 -∗ stack_content γs l2 -∗ False.
   Proof.
-    iIntros "Hl1 Hl2". iDestruct (own_valid_2 with "Hl1 Hl2") as %[].
+    iIntros "Hl1 Hl2".
+    iDestruct (own_valid_2 with "Hl1 Hl2") as %[]%auth_frag_op_valid_1.
   Qed.
 
   Definition stack_elem_to_val (stack_rep : option loc) : val :=

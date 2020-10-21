@@ -178,7 +178,10 @@ Definition hwq_cont γe (elts : list loc) : iProp :=
 
 Lemma hwq_cont_exclusive γe elts1 elts2 :
   hwq_cont γe elts1 -∗ hwq_cont γe elts2 -∗ False.
-Proof. iIntros "H1 H2". by iDestruct (own_valid_2 with "H1 H2") as %?. Qed.
+Proof.
+  iIntros "H1 H2".
+  by iDestruct (own_valid_2 with "H1 H2") as %?%auth_frag_op_valid_1.
+Qed.
 
 (** Operations for the CMRA used to show that back only increases. *)
 

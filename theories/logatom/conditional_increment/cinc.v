@@ -219,7 +219,8 @@ Section conditional_counter.
   Lemma counter_content_exclusive γs c1 c2 :
     counter_content γs c1 -∗ counter_content γs c2 -∗ False.
   Proof.
-    iIntros "Hb1 Hb2". iDestruct (own_valid_2 with "Hb1 Hb2") as %?.
+    iIntros "Hb1 Hb2".
+    iDestruct (own_valid_2 with "Hb1 Hb2") as %?%auth_frag_op_valid_1.
     done.
   Qed.
 
