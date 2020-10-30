@@ -344,7 +344,7 @@ Section rdcss.
     l ↦ v1 -∗ l ↦{q} v2 -∗ ⌜False⌝.
   Proof.
     iIntros "Hl1 Hl2". iDestruct (mapsto_valid_2 with "Hl1 Hl2") as %Hv.
-    apply (iffLR (frac_valid' _)) in Hv. by apply Qp_not_plus_ge in Hv.
+    apply (iffLR (frac_valid' _)) in Hv. by apply Qp_not_add_le_l in Hv.
   Qed.
 
   (** Once a [descr] protocol is [done] (as reflected by the [γ_s] token here),
