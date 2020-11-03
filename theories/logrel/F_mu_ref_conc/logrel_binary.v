@@ -252,7 +252,7 @@ Section logrel.
     iInv (logN.@(l5, l6)) as "Hi" "Hcl"; simpl.
     iDestruct "Hi" as ((v1, v2))  "(Hl3 & Hl2' & ?)".
     iMod "Hl3".
-    by iDestruct (@mapsto_valid_2 with "Hl1 Hl3") as %?.
+    by iDestruct (@mapsto_valid_2 with "Hl1 Hl3") as %[??].
   Qed.
 
   Lemma interp_ref_pointsto_neq' E Δ τ l w (l1 l2 l3 l4 : loc) :
@@ -357,7 +357,7 @@ Section logrel.
                  iDestruct "Hib2" as ((v11', v12')) "(Hl1'' & Hl2' & Hr2)".
                  simpl.
                  iMod "Hlx1'"; iMod "Hl1''".
-                   by iDestruct (@mapsto_valid_2 with "Hlx1' Hl1''") as %?.
+                   by iDestruct (@mapsto_valid_2 with "Hlx1' Hl1''") as %[??].
                + iInv (logN.@(l2, l3')) as "Hib1" "Hcl1".
                  iInv (logN.@(l3, l3')) as "Hib2" "Hcl2".
                  iDestruct "Hib1" as ((v11, v12)) "(>Hl1 & >Hl2' & Hr1)".

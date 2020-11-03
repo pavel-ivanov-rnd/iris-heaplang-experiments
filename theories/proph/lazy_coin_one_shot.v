@@ -47,7 +47,7 @@ Section proof.
     simplify_eq.
     iDestruct "H1" as "[Hc1 | [Hc1 _]]";
     iDestruct "H2" as "[Hc2 | [Hc2 _]]";
-    by iDestruct (mapsto_valid_2 with "Hc1 Hc2") as %?.
+    by iDestruct (mapsto_valid_2 with "Hc1 Hc2") as %[??].
   Qed.
 
   Lemma new_lazy_coin_spec :

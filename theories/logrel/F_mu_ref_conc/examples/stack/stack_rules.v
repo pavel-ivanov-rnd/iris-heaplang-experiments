@@ -78,7 +78,7 @@ Section Rules.
     iDestruct (own_valid with "Hown") as %Hvalid.
     destruct (h !! l) as [w|] eqn:?.
     { iDestruct (@big_sepM_lookup with "Hall") as "Hl'"; first done.
-      by iDestruct (@mapsto_valid_2 loc val with "Hl Hl'") as %Hvl. }
+      by iDestruct (@mapsto_valid_2 loc val with "Hl Hl'") as %[??]. }
     iMod (own_update with "Hown") as "[Hown Hl']".
     { eapply auth_update_alloc.
         eapply (alloc_singleton_local_update _ l (to_agree v)); last done.

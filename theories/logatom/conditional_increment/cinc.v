@@ -229,8 +229,8 @@ Section conditional_counter.
   Lemma mapsto_valid_3 l v1 v2 q :
     l ↦ v1 -∗ l ↦{q} v2 -∗ ⌜False⌝.
   Proof.
-    iIntros "Hl1 Hl2". iDestruct (mapsto_valid_2 with "Hl1 Hl2") as %Hv.
-    apply (iffLR (frac_valid' _)) in Hv. by apply Qp_not_add_le_l in Hv.
+    iIntros "Hl1 Hl2". iDestruct (mapsto_mapsto_ne with "Hl1 Hl2") as %?; last done.
+    apply Qp_not_add_le_l.
   Qed.
 
   (** Once a [state] protocol is [done] (as reflected by the [γ_s] token here),
@@ -274,7 +274,7 @@ Section conditional_counter.
          as token for that transition. *)
       iDestruct "Done" as "(_ & _ & Hlghost & _)".
       iDestruct "Hlghost" as (v') ">Hlghost".
-        by iDestruct (mapsto_valid_2 with "Hl_ghost Hlghost") as %?.
+        by iDestruct (mapsto_valid_2 with "Hl_ghost Hlghost") as %[??].
     }
     iDestruct "NotDone" as "(>Hs & >Hc' & [Pending | Accepted])".
     { (* We also cannot be [Pending] any more we have [own γ_n] showing that this
@@ -406,12 +406,12 @@ Section conditional_counter.
         iDestruct "Accepted" as "[>Hl_ghost_inv _]".
         iDestruct "Hl_ghost_inv" as (v) "Hlghost".
         iCombine "Hl_ghost'" "Hl_ghost'2" as "Hl_ghost'".
-        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %?.
+        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %[??].
       + (* Done: contradiction *)
         iDestruct "Done" as "[QT >[Hlghost _]]".
         iDestruct "Hlghost" as (v) "Hlghost".
         iCombine "Hl_ghost'" "Hl_ghost'2" as "Hl_ghost'".
-        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %?.
+        by iDestruct (mapsto_valid_2 with "Hlghost Hl_ghost'") as %[??].
     - (* we are the failing thread. exploit that [f] is a GC location. *)
       iMod (inv_mapsto_acc with "GC isGC") as (b) "(_ & H↦ & Hclose)"; first solve_ndisj.
       wp_load.
