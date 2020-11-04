@@ -263,7 +263,7 @@ Section rdcss.
      which means we know that the [l_descr] there and here cannot be the same. *)
   Definition done_state Qn l_descr (tid_ghost_winner : proph_id) γ_t γ_a :=
     ((Qn ∨ own_token γ_t) ∗ (∃ vs, proph tid_ghost_winner vs) ∗
-     l_descr ↦{1/2} - ∗ own_token γ_a)%I.
+     (∃ v, l_descr ↦{1/2} v) ∗ own_token γ_a)%I.
 
   (* Invariant expressing the descriptor protocol.
      - We always need the [proph] in here so that failing threads coming late can
@@ -314,7 +314,7 @@ Section rdcss.
              ⌜val_is_unboxed m1⌝ ∗
              l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗
              inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_winner γ_t γ_s γ_a) ∗
-             □ pau P Q l_n l_m m1 n1 n2 ∗ l_m ↦□ (λ _, True)
+             □ pau P Q l_n l_m m1 n1 n2 ∗ l_m ↦_(λ _, True) □
        end)%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (rdcss_inv _)) => unfold rdcss_inv : core.
@@ -485,7 +485,7 @@ Section rdcss.
     inv rdcssN (rdcss_inv l_n) -∗
     inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_inv γ_t γ_s γ_a) -∗
     □ pau P Q l_n l_m m1 n1 n2 -∗
-    l_m ↦□ (λ _, True) -∗
+    l_m ↦_(λ _, True) □ -∗
     inv_heap_inv -∗
     {{{ l_descr ↦{q} (#l_m, m1, n1, n2, #p) }}}
        complete #l_descr #l_n

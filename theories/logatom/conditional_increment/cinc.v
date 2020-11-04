@@ -159,7 +159,7 @@ Section conditional_counter.
   (* After the prophecy said we are going to win the race, we commit and run the AU,
      switching from [pending] to [accepted]. *)
   Definition accepted_state Q (proph_winner : option loc) (l_ghost_winner : loc) :=
-    (l_ghost_winner ↦{1/2} - ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
+    ((∃ v, l_ghost_winner ↦{1/2} v) ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
 
   (* The same thread then wins the CmpXchg and moves from [accepted] to [done].
      Then, the [γ_t] token guards the transition to take out [Q].
@@ -171,7 +171,7 @@ Section conditional_counter.
      owns *more than* half of its [l], which means we know that the [l] there
      and here cannot be the same. *)
   Definition done_state Q (l l_ghost_winner : loc) (γ_t : gname) :=
-    ((Q ∨ own_token γ_t) ∗ l_ghost_winner ↦ - ∗ l ↦{1/2} -)%I.
+    ((Q ∨ own_token γ_t) ∗ (∃ v, l_ghost_winner ↦ v) ∗ (∃ v, l ↦{1/2} v))%I.
 
   (* We always need the [proph] in here so that failing threads coming late can
      always resolve their stuff.
@@ -202,7 +202,7 @@ Section conditional_counter.
                to get out the [Q] in the end.
              - [γ_s] reflects whether the protocol is [done] yet or not. *)
              inv stateN (state_inv P Q p n c l l_ghost_winner γ_n γ_t γ_s) ∗
-             □ pau P Q γ_n f ∗ f ↦□ (λ _, True)
+             □ pau P Q γ_n f ∗ f ↦_(λ _, True) □
        end)%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (counter_inv _ _)) => unfold counter_inv : core.
@@ -299,7 +299,9 @@ Section conditional_counter.
     iSplitL "Hl_ghost_inv Hl_ghost Q Hp' Hl".
     (* Update state to Done. *)
     { iNext. iExists _. iFrame "Hp'". iRight. unfold done_state.
-      iFrame "#∗". iSplitR "Hl"; iExists _; done. }
+      iFrame "#∗". iDestruct "Hl_ghost_inv" as (v) "Hl_ghost_inv".
+      iDestruct (mapsto_agree with "Hl_ghost Hl_ghost_inv") as %<-.
+      iSplitR "Hl"; iExists _; iFrame. }
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hc" as "[Hc1 Hc2]".
       iExists l_new, _, (Quiescent n). iFrame. }
@@ -360,7 +362,7 @@ Section conditional_counter.
     inv counterN (counter_inv γ_n c) -∗
     inv stateN (state_inv P Q p n c l l_ghost_inv γ_n γ_t γ_s) -∗
     □ pau P Q γ_n f -∗
-    f ↦□ (λ _, True) -∗
+    f ↦_(λ _, True) □ -∗
     {{{ True }}}
        complete #c #f #l #n #p
     {{{ RET #(); □ (own_token γ_t ={⊤}=∗ ▷Q) }}}.
