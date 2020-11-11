@@ -14,7 +14,7 @@ Proof.
   cut (adequate NotStuck e ∅ (λ _ _, ∃ thp' h v, rtc erased_step ([e'], ∅) (of_val v :: thp', h))).
   { destruct 1; naive_solver. }
   eapply (wp_adequacy Σ _); iIntros (Hinv ?).
-  iMod (gen_heap_init (∅: state)) as (Hheap) "Hh".
+  iMod (gen_heap_init (∅: state)) as (Hheap) "[Hh _]".
   iMod (own_alloc (● (to_tpool [e'], ∅)
     ⋅ ◯ ((to_tpool [e'] : tpoolUR, ∅) : cfgUR))) as (γc) "[Hcfg1 Hcfg2]".
   { apply auth_both_valid_discrete. split=>//. split=>//. apply to_tpool_valid. }

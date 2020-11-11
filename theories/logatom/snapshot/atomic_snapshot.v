@@ -142,7 +142,7 @@ Section atomic_snapshot.
       rewrite /t /new_timestamp. apply auth_both_valid_discrete.
       split; first done. rewrite /gmap_to_UR map_fmap_singleton. apply singleton_valid. done.
     }
-    wp_pures. iApply ("Hx" $! (γ1, γ2)).
+    iApply ("Hx" $! (γ1, γ2)).
     iMod (inv_alloc N _ (snapshot_inv γ1 γ2 _) with "[-Hx◯ Ht◯]") as "#Hinv". {
       iNext. rewrite /snapshot_inv. iExists _, _, _, _, 0. iFrame.
       iPureIntro. split; first done. intros ?. subst t. rewrite /new_timestamp dom_singleton.

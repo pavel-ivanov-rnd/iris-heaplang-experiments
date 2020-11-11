@@ -229,8 +229,7 @@ Section conditional_counter.
   Lemma mapsto_valid_3 l v1 v2 q :
     l ↦ v1 -∗ l ↦{q} v2 -∗ ⌜False⌝.
   Proof.
-    iIntros "Hl1 Hl2". iDestruct (mapsto_mapsto_ne with "Hl1 Hl2") as %?; last done.
-    apply Qp_not_add_le_l.
+    iIntros "Hl1 Hl2". iDestruct (mapsto_ne with "Hl1 Hl2") as %?; done.
   Qed.
 
   (** Once a [state] protocol is [done] (as reflected by the [γ_s] token here),
