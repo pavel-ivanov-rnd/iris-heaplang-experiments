@@ -1,5 +1,3 @@
-From iris.algebra Require Export base.
-From iris.base_logic Require Import upred.
 From iris.program_logic Require Import weakestpre.
 From iris.base_logic Require Import invariants.
 From Autosubst Require Export Autosubst.
