@@ -51,7 +51,7 @@ Section proof.
     wp_alloc c as "Hc".
     wp_pair.
     iApply ("HΦ" $! (#c, #p)%V (b :: prophecy_to_list_bool vs)).
-    rewrite /coin; eauto with iFrame.
+    rewrite /coin; eauto 10 with iFrame.
   Qed.
 
   Lemma read_coin_spec cp bs :
@@ -63,7 +63,7 @@ Section proof.
     iDestruct "Hc" as (c p vs -> ? ?) "[Hp Hb]".
     destruct bs as [|b bs]; simplify_eq/=.
     wp_lam. wp_load.
-    iApply "HΦ"; iSplit; first done.
+    iModIntro. iApply "HΦ"; iSplit; first done.
     rewrite /coin; eauto 10 with iFrame.
   Qed.
 
@@ -81,7 +81,7 @@ Section proof.
     wp_store.
     wp_apply (wp_resolve_proph with "[Hp]"); first done.
     iIntros (ws) "[-> Hp]".
-    wp_seq.
+    wp_seq. iModIntro.
     iApply "HΦ"; iSplit; first done.
     destruct r; rewrite /coin; eauto 10 with iFrame.
   Qed.

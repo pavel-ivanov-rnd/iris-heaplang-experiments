@@ -127,7 +127,7 @@ Section proof.
       iSplitR; first done. iFrame "#". }
     iNext. iIntros "?".
     wp_seq. iApply ("HΦ" $! p (γx, γ1, γ3, γ4, γq)).
-    iFrame. iFrame "#".
+    iFrame. by iFrame "#".
   Qed.
 
   Lemma doOp_f_spec R γm γr (p: loc) ts:
@@ -175,7 +175,7 @@ Section proof.
         iDestruct "Hs" as (Q) "(>Hx & HoQ & HQxy & >Ho1 & >Ho4)".
         wp_load. iMod ("Hclose" with "[-HΦ HR Hor]").
         { iNext. iRight. iRight. iRight. iExists x', y. iFrame. iExists Q. iFrame. }
-        iModIntro. wp_match. iApply "HΦ". iFrame.
+        iModIntro. wp_match. iApply "HΦ". by iFrame.
   Qed.
 
   Definition own_γ3 (ts: toks) := let '(_, _, γ3, _, _) := ts in own γ3 (Excl ()).
@@ -277,9 +277,9 @@ Section proof.
     wp_let. wp_bind (new_stack _).
     iApply (new_bag_spec N (p_inv' R γm γr))=>//.
     iNext. iIntros (s) "#Hss".
-    wp_pures. iApply "HΦ". rewrite /synced.
-    iModIntro. iIntros (f). wp_pures. iModIntro.
-    iIntros (P Q x) "#Hf".
+    wp_pures. iModIntro. iApply "HΦ".
+    iModIntro. iIntros (f). wp_pures.
+    iIntros "!> !>" (P Q x) "#Hf".
     iIntros "!# Hp". wp_pures. wp_bind (install _ _ _).
     iApply (install_spec R P Q f x γm γr s with "[-]")=>//.
     { iFrame. iFrame "#". }

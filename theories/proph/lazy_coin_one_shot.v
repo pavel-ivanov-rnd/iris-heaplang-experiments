@@ -57,7 +57,7 @@ Section proof.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam.
     wp_apply wp_new_proph1; first done. iIntros (p v) "Hp".
-    wp_alloc c as "Hc". wp_pair.
+    wp_alloc c as "Hc". wp_pair. iModIntro.
     iApply ("HΦ" $! (#c, #p)%V).
     iExists c, p, v. iSplit; first done. iRight. by iFrame.
   Qed.
@@ -69,14 +69,14 @@ Section proof.
   Proof.
     iIntros (Φ) "Hc HΦ".
     iDestruct "Hc" as (c p v ->) "[Hc | [Hc [Hp ->]]]".
-    - wp_lam. wp_load. wp_match. iApply "HΦ".
+    - wp_lam. wp_load. wp_match. iApply "HΦ". iModIntro.
       iExists c, p, #(). iSplit; first done. by iLeft.
     - wp_lam. wp_load. wp_match.
       wp_apply nondet_bool_spec; first done. iIntros (r) "_".
       wp_let. wp_store.
       wp_apply (wp_resolve1 with "Hp"); first done.
-      wp_pures. iIntros "->". wp_pures.
-      rewrite !val_to_bool_of_bool. iApply "HΦ".
+      wp_pures. iIntros "!> ->". wp_pures.
+      rewrite !val_to_bool_of_bool. iApply "HΦ". iModIntro.
       iExists c, p, #(). iSplit; first done. by iLeft.
   Qed.
 

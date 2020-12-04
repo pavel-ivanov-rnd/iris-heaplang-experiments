@@ -465,7 +465,7 @@ Section proof.
           iSplit.
           - by rewrite /list_with_one insert_length replicate_length.
           - iRight. iRight. iFrame. done. }
-        iModIntro. wp_pures. iApply "Post". iFrame.
+        iModIntro. wp_pures. iApply "Post". by iFrame.
       * (* The case where the lock is in the clopen state. In this state all the
            indices in the array are false and hence we can not possibly have
            read a true in the array. *)
@@ -510,7 +510,7 @@ Section proof.
     wp_let.
     wp_apply (wait_loop_spec γ ι κ (#arr, #nextPtr, #cap)%V cap (o + i) R with "[Hofull]").
     { rewrite /issued. by iFrame. }
-    iIntros "[locked Res]". wp_seq. iApply "Post". iFrame.
+    iIntros "[locked Res]". wp_seq. iApply "Post". by iFrame.
   Qed.
 
   Lemma frame_update_lemma_discard_ticket o i :

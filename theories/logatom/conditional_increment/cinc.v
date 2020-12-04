@@ -289,7 +289,7 @@ Section conditional_counter.
     (* We perform the CmpXchg. *)
     iCombine "Hc Hc'" as "Hc".
     wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
-    iIntros (vs' ->) "Hp'". simpl.
+    iIntros "!>" (vs' ->) "Hp'". simpl.
     (* Update to Done. *)
     iDestruct "Accepted" as "[Hl_ghost_inv [HEq Q]]".
     iMod (own_update with "Hs") as "Hs".
@@ -304,7 +304,7 @@ Section conditional_counter.
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hc" as "[Hc1 Hc2]".
       iExists l_new, _, (Quiescent n). iFrame. }
-    iApply wp_fupd. wp_seq. iApply "HQ".
+    wp_seq. iApply "HQ".
     iApply state_done_extract_Q; done.
   Qed.
 
@@ -328,7 +328,7 @@ Section conditional_counter.
         iDestruct (mapsto_agree with "Hc Hc'") as %[=->].
         iCombine "Hc Hc'" as "Hc".
         wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
-        iIntros (vs' ->). iDestruct "State" as "[Pending | Accepted]".
+        iIntros "!>" (vs' ->). iDestruct "State" as "[Pending | Accepted]".
         + iDestruct "Pending" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs.
         + iDestruct "Accepted" as "[_ [Hvs _]]". iDestruct "Hvs" as %Hvs. by inversion Hvs. }
     (* So, we know our protocol is [Done]. *)
@@ -343,7 +343,7 @@ Section conditional_counter.
     }
     (* The CmpXchg fails. *)
     wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
-    iIntros (vs' ->) "Hp". iModIntro.
+    iIntros "!>" (vs' ->) "Hp". iModIntro.
     iSplitL "Done Hp". { iNext. iExists _. iFrame "#∗". } iModIntro.
     iSplitL "Hc Hrest Hl Hl'". { eauto 10 with iFrame. }
     wp_seq. iApply "HQ".
@@ -498,7 +498,7 @@ Section conditional_counter.
         new_counter #()
     {{{ ctr γs, RET ctr ; is_counter γs ctr ∗ counter_content γs 0 }}}.
   Proof.
-    iIntros (?) "#GC". iIntros (Φ) "!# _ HΦ". wp_lam. wp_apply wp_fupd.
+    iIntros (?) "#GC". iIntros (Φ) "!# _ HΦ". wp_lam.
     wp_alloc l_n as "Hl_n".
     wp_alloc l_c as "Hl_c".
     iMod (own_alloc (● Excl' 0%Z  ⋅ ◯ Excl' 0%Z)) as (γ_n) "[Hn● Hn◯]".

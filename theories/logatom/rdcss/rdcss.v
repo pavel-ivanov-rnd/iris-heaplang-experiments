@@ -403,7 +403,7 @@ Section rdcss.
     (* We perform the CmpXchg. *)
     iCombine "Hln Hln'" as "Hln".
     wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_suc.
-    iIntros (vs'' ->) "Hp'". simpl.
+    iIntros "!>" (vs'' ->) "Hp'". simpl.
     (* Update to Done. *)
     iDestruct "Accepted" as "[Hp_phost_inv [Q Heq]]".
     iMod (own_update with "Hs") as "Hs".
@@ -414,7 +414,7 @@ Section rdcss.
     { eauto 12 with iFrame. }
     iModIntro. iSplitR "HQ".
     { iNext. iDestruct "Hln" as "[Hln1 Hln2]". iExists (Quiescent n). by iFrame. }
-    iApply wp_fupd. wp_seq. iApply "HQ".
+    wp_seq. iApply "HQ".
     iApply state_done_extract_Q; done.
   Qed.
 
@@ -437,7 +437,7 @@ Section rdcss.
         iDestruct (mapsto_agree with "Hln Hln'") as %[=->].
         iCombine "Hln Hln'" as "Hln".
         wp_apply (wp_resolve with "Hp"); first done; wp_cmpxchg_suc.
-        iIntros (vs'' ->). simpl.
+        iIntros "!>" (vs'' ->). simpl.
         iDestruct "State" as "[Pending | Accepted]".
         + iDestruct "Pending" as "[_ [%Hvs _]]". by inversion Hvs.
         + iDestruct "Accepted" as "[_ [_ %Hvs]]". by inversion Hvs.
@@ -448,7 +448,7 @@ Section rdcss.
     - (* (injL n) is the current value, hence the CmpXchg fails *)
       (* FIXME: proof duplication *)
       wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
-      iIntros (vs'' ->) "Hp". iModIntro.
+      iIntros "!>" (vs'' ->) "Hp". iModIntro.
       iSplitL "Done Hp". { by eauto 12 with iFrame. }
       iModIntro.
       iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
@@ -465,7 +465,7 @@ Section rdcss.
         rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
       + (* l_descr' ≠ l_descr: The CmpXchg fails. *)
         wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
-        iIntros (vs'' ->) "Hp". iModIntro.
+        iIntros "!>" (vs'' ->) "Hp". iModIntro.
         iSplitL "Done Hp". { by eauto 12 with iFrame. }
         iModIntro.
         iSplitL "Hln Hrest". { by eauto 12 with iFrame. }
@@ -616,7 +616,7 @@ Section rdcss.
         {  destruct (decide _) as [[_ ?] | _]; [done | iFrame ]. }
         iModIntro. iSplitR "HΦ".
         { iModIntro. iExists (Quiescent n''). iFrame. }
-        wp_pures. iFrame.
+        wp_pures. by iFrame.
     - (* l_n ↦ injR l_ndescr' *)
       (* a descriptor l_descr' is currently stored at l_n -> CmpXchg fails
          try to help the on-going operation *)
@@ -643,7 +643,7 @@ Section rdcss.
     {{{ l_n, RET #l_n ; is_rdcss l_n ∗ rdcss_state l_n n }}}.
   Proof.
     iIntros (Hdisj) "#InvGC". iIntros "!>" (Φ) "_ HΦ".
-    wp_lam. wp_apply wp_fupd. wp_apply wp_alloc; first done.
+    wp_lam. iApply wp_fupd. wp_apply wp_alloc; first done.
     iIntros (l_n) "[Hln HMeta]".
     iMod (own_alloc (● Excl' n  ⋅ ◯ Excl' n)) as (γ_n) "[Hn● Hn◯]";
       first by apply auth_both_valid_discrete.

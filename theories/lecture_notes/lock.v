@@ -101,7 +101,7 @@ Section lock_spec.
       wp_proj.
       wp_if.
       iApply "Hcont".
-      iFrame.
+      by iFrame.
     - wp_cmpxchg_fail.
       iMod ("Hcl" with "[Hl]") as "_"; first by iRight.
       iModIntro.

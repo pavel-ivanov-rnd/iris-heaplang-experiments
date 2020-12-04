@@ -372,7 +372,7 @@ Proof.
     + iIntros (x a' ys). iModIntro. iIntros (ϕ') "(H1 & H2) H3".
       do 5 (wp_pure _).
       iDestruct "H2" as (zs) "(% & % & H_list)".
-      iDestruct "H1" as (n2) "%". iSimplifyEq. wp_pures.
+      iDestruct "H1" as (n2) "%". iSimplifyEq. wp_pures. iModIntro.
       iApply "H3". iExists (n2::zs). repeat (iSplit; try done).
       by iExists _.
     + iSplit.

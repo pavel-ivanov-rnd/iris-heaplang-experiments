@@ -58,7 +58,7 @@ Section proof.
   Proof.
     iIntros (Φ) "Hc HΦ".
     iDestruct "Hc" as (c p b bs') "[-> [-> [Hc Hp]]]".
-    wp_lam. wp_load. iApply "HΦ". iSplit; first done.
+    wp_lam. wp_load. iApply "HΦ". iModIntro. iSplit; first done.
     iExists c, p, b, bs'. by iFrame.
   Qed.
 
@@ -72,8 +72,8 @@ Section proof.
     wp_lam. wp_pures. wp_apply nondet_bool_spec; first done.
     iIntros (r) "_". wp_store.
     wp_apply (typed_proph_wp_resolve BoolTypedProph with "[Hp]"); try done.
-    wp_pures. iIntros (bs) "-> Hp". wp_seq.
-    iApply "HΦ"; iSplit; first done.
+    wp_pures. iIntros "!>" (bs) "-> Hp". wp_seq.
+    iModIntro. iApply "HΦ"; iSplit; first done.
     iExists c, p, r, bs. by iFrame.
   Qed.
 

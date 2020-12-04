@@ -100,7 +100,7 @@ Section Helpers.
         rewrite dom_op dom_singleton_L ?gset_op_union (comm union); iFrame.
         iPureIntro.
         { by apply mark_strict_subgraph. }
-      + iModIntro. wp_pures. iLeft; iSplit; trivial. iExists _; iFrame.
+      + iModIntro. wp_pures. iModIntro. iLeft; iSplit; trivial. iExists _; iFrame.
         iPureIntro; eapply of_graph_unmarked; eauto.
   Qed.
 
@@ -311,7 +311,7 @@ Section Helpers.
     iIntros (x Hxpt k q) "key Hx".
     wp_rec.
     destruct Hxpt as [|[l [? Hgsl]]]; subst.
-    { wp_match.
+    { wp_match. iModIntro.
       iFrame; iRight; iFrame; repeat iSplit; trivial; by iLeft. }
     wp_match. wp_bind (try_mark _).
     iDestruct (empty_graph_divide with "Hx") as "[Hx1 Hx2]".
@@ -319,7 +319,7 @@ Section Helpers.
       [|iApply wp_try_mark; try iFrame]; eauto; simpl.
     iIntros (v) "[(% & Hv & Hm & key)|(% & Hx2 & Hm & key)]"; subst;
     [|iCombine "Hx1" "Hx2" as "Hx"; rewrite -graph_divide ucmra_unit_right_id;
-      wp_if; iFrame; iRight; iFrame; iSplit; trivial; iRight;
+      wp_if; iModIntro; iFrame; iRight; iFrame; iSplit; trivial; iRight;
       iExists _; eauto].
     iDestruct "Hv" as (u) "[Hgl Hl]". iDestruct "Hgl" as %Hgl.
     wp_if.
@@ -365,7 +365,7 @@ Section Helpers.
       iCombine "Hxl" "Hxr" as "Hxlr". rewrite -graph_divide.
       iCombine "Hx" "Hxlr" as "Hx". rewrite -graph_divide.
       destruct u1; destruct u2; inversion Hl1eq; inversion Hl2eq; subst.
-      iFrame; iLeft. iSplit; [trivial|].
+      iModIntro. iFrame; iLeft. iSplit; [trivial|].
       iExists _; iSplit; [trivial|]. iFrame.
       iDestruct (own_graph_valid with "Hx") as %Hvl.
       iExists ({[l := Excl (Some l1, Some l2)]} ⋅ (G1 ⋅ G2)).
@@ -389,7 +389,7 @@ Section Helpers.
         [|iApply wp_unmark_snd; eauto; by iFrame "Hgr"; iFrame].
       iIntros (v) "[Hx key]".
       iCombine "Hx" "Hxlr" as "Hx". rewrite -graph_divide.
-      wp_seq.
+      wp_seq. iModIntro.
       iFrame; iLeft. iSplit; [trivial|].
       iExists _; iSplit; [trivial|]. iFrame.
       iDestruct (own_graph_valid with "Hx") as %Hvld.
@@ -422,7 +422,7 @@ Section Helpers.
         [|iApply wp_unmark_fst; eauto; by iFrame "Hgr"; iFrame].
       iIntros (v) "[Hx key]".
       iCombine "Hx" "Hxlr" as "Hx". rewrite -graph_divide.
-      wp_seq. wp_proj. wp_op. wp_if. wp_seq.
+      wp_seq. wp_proj. wp_op. wp_if. wp_seq. iModIntro.
       iFrame; iLeft. iSplit; [trivial|].
       iExists _; iSplit; [trivial|]. iFrame.
       iDestruct (own_graph_valid with "Hx") as %Hvld.
@@ -455,7 +455,7 @@ Section Helpers.
         [|iApply wp_unmark_snd; eauto; by iFrame "Hgr"; iFrame].
       clear v. iIntros (v) "[Hx key]".
       iCombine "Hx" "Hxlr" as "Hx". rewrite -graph_divide.
-      wp_seq.
+      wp_seq. iModIntro.
       iFrame; iLeft. iSplit; [trivial|].
       iExists _; iSplit; [trivial|]. iFrame.
       iDestruct (own_graph_valid with "Hx") as %Hvld.

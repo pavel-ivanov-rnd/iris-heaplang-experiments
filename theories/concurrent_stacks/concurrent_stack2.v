@@ -103,8 +103,7 @@ Section side_channel.
     - wp_cmpxchg_suc.
       iMod ("Hclose" with "[Hl Hγ]") as "_".
       { iRight; iRight; iFrame. }
-      iModIntro.
-      wp_pures.
+      iModIntro. wp_pures. iModIntro.
       by iApply "HΦ"; iLeft; iExists _; iSplit.
     - wp_cmpxchg_fail.
       iMod ("Hclose" with "[H]") as "_".
