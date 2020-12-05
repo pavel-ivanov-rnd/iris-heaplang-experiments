@@ -126,7 +126,6 @@ Section cnt_spec.
     {{{ True }}} newcounter #m @ E {{{ (ℓ : loc), RET #ℓ; ∃ γ, Cnt ℓ γ ∗ γ ⤇½ m}}}.
   Proof.
     iIntros (Hsubset Φ) "#Ht HΦ".
-    rewrite -wp_fupd.
     wp_lam.
     wp_alloc ℓ as "Hl".
     iApply "HΦ".

@@ -215,8 +215,6 @@ Proof.
   (* Introduce things into the Coq and Iris contexts. Throw away the [True]
      precondition. *)
   iIntros (Φ) "_ HΦ".
-  (* We introduce the fancy update modality in our WP (necessary later). *)
-  iApply wp_fupd.
   (* We step through the program: β-reduce and allocate a location [ℓ]. *)
   wp_lam. wp_alloc ℓ as "Hl". (* We have full ownership of [ℓ] in [Hl]. *)
   (* We now need to establish the invariant. First, we allocate an instance of

@@ -92,7 +92,6 @@ Section stacks.
     {{{ True }}} new_stack #() {{{ s, RET s; is_stack P s }}}.
   Proof.
     iIntros (ϕ) "_ Hpost".
-    iApply wp_fupd.
     wp_lam.
     wp_alloc ℓ as "Hl".
     iMod (inv_alloc N ⊤ (stack_inv P #ℓ) with "[Hl]") as "Hinv".

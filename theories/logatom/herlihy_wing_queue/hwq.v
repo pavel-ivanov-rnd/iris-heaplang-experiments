@@ -1482,7 +1482,7 @@ Lemma new_queue_spec sz :
     new_queue #sz
   {{{ v γ, RET v; is_hwq sz γ v ∗ hwq_cont γ [] }}}.
 Proof.
-  iIntros (Hsz Φ) "_ HΦ". wp_lam. wp_apply wp_fupd.
+  iIntros (Hsz Φ) "_ HΦ". wp_lam.
   (** Allocate [q.ar], [q.back] and [q.p]. *)
   wp_apply wp_allocN; [ lia | done | iIntros (ℓa) "[Hℓa _]" ].
   wp_alloc ℓb as "Hℓb".

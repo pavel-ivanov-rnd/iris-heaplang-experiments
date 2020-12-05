@@ -172,7 +172,7 @@ Section stack.
   Lemma new_stack_spec :
     {{{ True }}} new_stack #() {{{ γs s, RET s; is_stack γs s ∗ stack_content γs [] }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". iApply wp_fupd. wp_lam.
+    iIntros (Φ) "_ HΦ". wp_lam.
     wp_apply alloc_spec; first done. iIntros (head) "Hhead". wp_let.
     wp_apply alloc_spec; first done. iIntros (offer) "Hoffer". wp_let.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".

@@ -97,7 +97,6 @@ Section stack_works.
     {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack_pred P v }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
-    rewrite -wp_fupd.
     wp_lam. wp_alloc l as "Hl".
     iMod (inv_alloc N _ (stack_inv P l) with "[Hl HP]") as "#Hinv".
     { iNext; iExists None, []; iFrame. }

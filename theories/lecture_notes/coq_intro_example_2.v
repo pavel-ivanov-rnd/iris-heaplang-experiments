@@ -264,7 +264,7 @@ Section monotone_counter.
   Lemma newCounter_spec: {{{ True }}} newCounter #() {{{ v, RET #v; isCounter v 0 }}}.
   Proof.
     iIntros (Φ) "_ HCont".
-    rewrite /newCounter -wp_fupd. (* See comment below for why we used wp_fupd. *)
+    rewrite /newCounter.
     wp_lam.
     (* We allocate ghost state using the rule/lemma own_alloc. Since the
        conclusion of the rule is under a modality we wrap the application of
@@ -275,10 +275,7 @@ Section monotone_counter.
     iMod (own_alloc (● 0 ⋅ ◯ 0)) as (γ) "[HAuth HFrac]".
     - apply mcounterRA_valid_auth_frag; auto. (* NOTE: We use the validity property of the RA we have constructed. *)
     - wp_alloc ℓ as "Hpt".
-      (* We now allocate an invariant. For this it is crucial we have used the
-         wp_fupd lemma above to have the Φ under a modality. Otherwise we would
-         have been stuck here, since allocating an invariant is only possible
-         under the fancy update modality. *)
+      (* We now allocate an invariant. *)
       iMod (inv_alloc N _ (counter_inv ℓ γ) with "[Hpt HAuth]") as "HInv".
       + iExists 0%nat; iFrame.
       + iApply ("HCont" with "[HFrac HInv]").
@@ -465,7 +462,7 @@ Section monotone_counter'.
   Lemma newCounter_spec': {{{ True }}} newCounter #() {{{ v, RET #v; isCounter' v (MaxNat 0) }}}.
   Proof.
     iIntros (Φ) "_ HCont".
-    rewrite /newCounter -wp_fupd.
+    rewrite /newCounter.
     wp_lam.
     iMod (own_alloc (● MaxNat 0 ⋅ ◯ MaxNat 0)) as (γ) "[HAuth HFrac]".
     - apply mcounterRA_valid_auth_frag'; auto.
@@ -612,7 +609,7 @@ Section ccounter.
         newCounter #()
     {{{ γ ℓ, RET #ℓ; is_ccounter γ ℓ 1 0%nat }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
+    iIntros (Φ) "_ HΦ". rewrite /newCounter /=. wp_lam. wp_alloc ℓ as "Hpt".
     iMod (own_alloc (●F O%nat ⋅ ◯F 0%nat)) as (γ) "[Hγ Hγ']"; first by apply auth_both_valid_discrete.
     iMod (inv_alloc N _ (ccounter_inv γ ℓ) with "[Hpt Hγ]").
     { iNext. iExists 0%nat. by iFrame. }

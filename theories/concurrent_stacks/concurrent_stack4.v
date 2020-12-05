@@ -105,7 +105,6 @@ Section proofs.
     {{{ o γ, RET o; is_offer γ P Q o ∗ revoke_tok γ }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
-    rewrite -wp_fupd.
     wp_lam. wp_alloc l as "Hl".
     iMod (own_alloc (Excl ())) as (γ) "Hγ"; first done.
     iMod (inv_alloc Nside_channel _ (stages γ P Q l v) with "[Hl HP]") as "#Hinv".
@@ -192,7 +191,7 @@ Section proofs.
     {{{ True }}} mk_mailbox #() {{{ v, RET v; is_mailbox P v }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    rewrite -wp_fupd. wp_lam. wp_alloc l as "Hl".
+    wp_lam. wp_alloc l as "Hl".
     iMod (inv_alloc Nmailbox _ (mailbox_inv P l) with "[Hl]") as "#Hinv".
     { iNext; by iLeft. }
     iModIntro.
@@ -320,7 +319,6 @@ Section proofs.
     {{{ P [] }}} mk_stack #() {{{ v, RET v; is_stack_pred P v }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
-    rewrite -wp_fupd.
     wp_lam.
     wp_alloc l as "Hl".
     wp_apply mk_mailbox_works ; first done. iIntros (v) "#Hmailbox".

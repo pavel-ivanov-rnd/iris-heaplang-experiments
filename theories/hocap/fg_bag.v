@@ -132,7 +132,7 @@ Section proof.
     {{{ x γ, RET x; is_bag γ x ∗ bag_contents γ ∅ }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    unfold newBag. wp_rec. iApply wp_fupd.
+    unfold newBag. wp_rec.
     wp_alloc r as "Hr".
     iMod (own_alloc (1%Qp, to_agree ∅)) as (γb) "[Ha Hf]"; first done.
     iMod (inv_alloc N _ (bag_inv γb r) with "[Ha Hr]") as "#Hinv".

@@ -87,7 +87,7 @@ Section lock_spec.
     {{{ True }}} newlock #() {{{v, RET v; ∃ (l: loc) γ, ⌜v = #l⌝ ∧ (∀ P E, P ={E}=∗ is_lock γ l P) }}}.
   Proof.
     iIntros (φ) "Hi Hcont".
-    rewrite -wp_fupd /newlock.
+    rewrite /newlock.
     wp_lam.
     wp_alloc l as "HPt".
     iApply "Hcont".
@@ -147,7 +147,7 @@ Section lock_spec.
     True ⊢ WP newlock #() {{v, ∃ (l: loc) γ, ⌜v = #l⌝ ∧ (∀ P E, P ={E}=∗ is_lock γ l P) }}.
   Proof.
     iIntros "_".
-    rewrite -wp_fupd /newlock.
+    rewrite /newlock.
     wp_lam.
     wp_alloc l as "HPt".
     iExists l.

@@ -82,7 +82,6 @@ Section side_channel.
     {{{ P v }}} mk_offer v {{{ o γ, RET o; is_offer γ P o ∗ revoke_tok γ }}}.
   Proof.
     iIntros (Φ) "HP HΦ".
-    rewrite -wp_fupd.
     wp_lam. wp_alloc l as "Hl".
     iMod (own_alloc (Excl ())) as (γ) "Hγ"; first done.
     iMod (inv_alloc N _ (stages γ P l v) with "[Hl HP]") as "#Hinv".
@@ -162,7 +161,6 @@ Section mailbox.
     {{{ True }}} mk_mailbox #() {{{ v, RET v; is_mailbox P v }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
-    rewrite -wp_fupd.
     wp_lam.
     wp_alloc l as "Hl".
     iMod (inv_alloc N _ (mailbox_inv P l) with "[Hl]") as "#Hinv".
@@ -299,7 +297,6 @@ Section stack_works.
     {{{ True }}} new_stack #() {{{ v, RET v; is_stack P v }}}.
   Proof.
     iIntros (ϕ) "_ Hpost".
-    rewrite -wp_fupd.
     wp_lam.
     wp_alloc l as "Hl".
     wp_apply mk_mailbox_works; first done.

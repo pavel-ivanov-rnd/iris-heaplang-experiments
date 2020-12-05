@@ -130,7 +130,6 @@ Section atomic_snapshot.
   Proof.
     iIntros (Φ _) "Hx". rewrite /new_snapshot. wp_lam.
     repeat (wp_proj; wp_let).
-    iApply wp_fupd.
     wp_alloc lx' as "Hlx'".
     wp_alloc lx as "Hlx".
     set (Excl' v) as p.

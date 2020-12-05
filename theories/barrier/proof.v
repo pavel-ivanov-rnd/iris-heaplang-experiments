@@ -50,7 +50,7 @@ Proof. solve_proper. Qed.
 Lemma newbarrier_spec (P : iProp Σ) :
   {{{ True }}} newbarrier #() {{{ l, RET #l; recv l P ∗ send l P }}}.
 Proof.
-  iIntros (Φ) "_ HΦ". iApply wp_fupd. wp_lam. wp_alloc l as "Hl".
+  iIntros (Φ) "_ HΦ". wp_lam. wp_alloc l as "Hl".
   iApply ("HΦ" with "[> -]").
   iMod (saved_prop_alloc P) as (γsp) "#Hsp".
   iMod (own_alloc (● GSet {[ γsp ]} ⋅ ◯ GSet {[ γsp ]})) as (γ) "[H● H◯]".

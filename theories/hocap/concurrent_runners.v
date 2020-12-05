@@ -220,7 +220,7 @@ Section contents.
     {{{ γ γ' t, RET t; isTask r γ γ' t P Q ∗ task γ γ' t a P Q }}}.
   Proof.
     iIntros (Φ) "[#Hrunner HP] HΦ".
-    wp_rec. wp_pures. iApply wp_fupd.
+    wp_rec. wp_pures.
     wp_alloc res as "Hres".
     wp_alloc status as "Hstatus".
     iMod (new_pending) as (γ) "[Htoken Htask]".
@@ -391,7 +391,7 @@ Section contents.
     {{{ γb r, RET r; runner γb P Q r }}}.
   Proof.
     iIntros (Φ) "#Hf HΦ".
-    unfold newRunner. iApply wp_fupd.
+    unfold newRunner.
     wp_lam. wp_pures.
     wp_bind (newBag b #()).
     iApply (newBag_spec b (N.@"bag") (λ x y, ∃ γ γ', isTask (f,x) γ γ' y P Q)%I); auto.
@@ -400,7 +400,6 @@ Section contents.
     iAssert (runner γb P Q (PairV f bag))%I with "[]" as "#Hrunner".
     { rewrite runner_unfold. iExists _,_. iSplit; eauto. }
     iApply (loop_spec n 0 with "Hrunner [HΦ]"); eauto.
-    iNext. iIntros (r) "Hr". by iApply "HΦ".
   Qed.
 
   Lemma runner_Fork_spec γb (r a:val) P Q :

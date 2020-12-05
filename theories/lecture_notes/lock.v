@@ -72,7 +72,7 @@ Section lock_spec.
     {{{ P }}} newlock #() {{{ l, RET l; ∃ γ, is_lock γ l P }}}.
   Proof.
     iIntros (φ) "Hi Hcont".
-    rewrite -wp_fupd /newlock.
+    rewrite /newlock.
     wp_lam.
     wp_alloc l as "HPt".
     iMod (own_alloc (Excl ())) as (γ) "Hld"; first done.
