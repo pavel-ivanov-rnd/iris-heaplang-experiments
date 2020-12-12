@@ -1,5 +1,6 @@
 (* Counter with contributions. A specification derived from the modular
    specification proved in modular_incr module. *)
+From iris.base_logic Require Import invariants.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.proofmode Require Import tactics.

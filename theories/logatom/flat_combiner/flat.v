@@ -1,6 +1,6 @@
 (* Flat Combiner *)
 From iris.algebra Require Import auth frac agree excl agree gset gmap.
-From iris.base_logic Require Import saved_prop.
+From iris.base_logic Require Import saved_prop invariants.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
@@ -69,7 +69,7 @@ Section proof.
   Definition installed_s R (ts: toks) (f x: val) :=
     let '(γx, γ1, _, γ4, γq) := ts in
     (∃ (P: val → iProp Σ) Q,
-       own γx ((1/2)%Qp, to_agree x) ∗ P x ∗ ({{ R ∗ P x }} f x {{ v, R ∗ Q x v }}) ∗
+       own γx ((1/2)%Qp, to_agree x) ∗ P x ∗ ({{{ R ∗ P x }}} f x {{{ v, RET v; R ∗ Q x v }}}) ∗
        saved_pred_own γq (Q x) ∗ own γ1 (Excl ()) ∗ own γ4 (Excl ()))%I.
 
   Definition received_s (ts: toks) (x: val) γr :=
@@ -102,7 +102,7 @@ Section proof.
     (own γ3 (Excl ()) ∗ own γx ((1/2)%Qp, to_agree x) ∗ saved_pred_own γq Q)%I.
 
   Lemma install_spec R P Q (f x: val) (γm γr: gname) (s: loc):
-    {{{ inv N (srv_bag R γm γr s) ∗ P ∗ ({{ R ∗ P }} f x {{ v, R ∗ Q v }}) }}}
+    {{{ inv N (srv_bag R γm γr s) ∗ P ∗ ({{{ R ∗ P }}} f x {{{ v, RET v; R ∗ Q v }}}) }}}
       install f x #s
     {{{ p ts, RET #p; installed_recp ts x Q ∗ inv N (p_inv R γm γr ts p) }}}.
   Proof.
@@ -149,12 +149,11 @@ Section proof.
       { iDestruct (own_update with "Hx") as "?"; last by iAssumption.
         rewrite -{1}(Qp_div_2 (1/2)%Qp).
         by apply pair_l_frac_op'. }
-      wp_load. iMod ("Hclose" with "[-Hf' Ho1 Hx2 HoQ HR HΦ Hpx]").
-      { iNext. iFrame. iFrame "#". iRight. iRight. iLeft. iExists f, x. iFrame. }
+      wp_load. iMod ("Hclose" with "[-Hf' Ho1 Hx2 HoQ HR HΦ Hpx]") as "_".
+      { iNext. rewrite {2}/p_inv. iRight. iRight. iLeft. iExists f, x. iFrame. }
       iModIntro. wp_match. wp_pures.
-      wp_bind (f _). iApply wp_wand_r. iSplitL "Hpx Hf' HR".
-      { iApply "Hf'". iFrame. }
-      iIntros (v) "[HR HQ]". wp_pures.
+      wp_bind (f _). iApply ("Hf'" with "[$HR $Hpx]").
+      iIntros "!>" (v) "[HR HQ]". wp_pures.
       iInv N as "Hx" "Hclose".
       iDestruct "Hx" as "[Hp | [Hp | [Hp | Hp]]]"; subst.
       * iDestruct "Hp" as (?) "(_ & >Ho1' & _)".
@@ -253,8 +252,9 @@ Section proof.
       iModIntro. wp_match. wp_bind (try_srv _ _). iApply try_srv_spec=>//.
       iFrame "#". wp_seq. iApply ("IH" with "Ho3"); eauto.
     + iDestruct "Hp" as (f x) "(Hp & Hx & Ho2 & Ho4)".
-      wp_load. iMod ("Hclose" with "[-Ho3 HΦ]").
-      { iNext. iRight. iRight. iLeft. iExists f, x. iFrame. }
+      wp_load. iMod ("Hclose" with "[-Ho3 HΦ]") as "_".
+      { iNext. (* FIXME: iFrame here divergses, with an enormous TC trace *)
+        iRight. iRight. iLeft. iExists f, x. iFrame. }
       iModIntro. wp_match.
       wp_bind (try_srv _ _). iApply try_srv_spec=>//.
       iFrame "#". wp_seq. iApply ("IH" with "Ho3"); eauto.
@@ -278,19 +278,19 @@ Section proof.
     iNext. iIntros (s) "#Hss".
     wp_pures. iModIntro. iApply "HΦ".
     iModIntro. iIntros (f). wp_pures.
-    iIntros "!> !>" (P Q x) "#Hf".
-    iIntros "!# Hp". wp_pures. wp_bind (install _ _ _).
-    iApply (install_spec R P Q f x γm γr s with "[-]")=>//.
+    iIntros "!> !>" (P Q x) "#Hf !>".
+    iIntros (Φ') "Hp HΦ'". wp_pures. wp_bind (install _ _ _).
+    iApply (install_spec R P Q f x γm γr s with "[Hp]")=>//.
     { iFrame. iFrame "#". }
     iNext. iIntros (p [[[[γx γ1] γ3] γ4] γq]) "[(Ho3 & Hx & HoQ) #?]".
     wp_let. wp_bind (loop _ _ _).
-    iApply (loop_spec with "[-Hx HoQ]")=>//.
+    iApply (loop_spec with "[-Hx HoQ HΦ']")=>//.
     { iFrame "#". iFrame. }
     iNext. iIntros (v1 v2) "Hs".
     iDestruct "Hs" as (Q') "(Hx' & HoQ' & HQ')".
     destruct (decide (x = v1)) as [->|Hneq].
     - iDestruct (saved_pred_agree _ _ _ v2 with "[$HoQ] [HoQ']") as "Heq"; first by iFrame.
-      wp_let. by iRewrite -"Heq" in "HQ'".
+      wp_let. iApply "HΦ'". by iRewrite -"Heq" in "HQ'".
     - iExFalso. iCombine "Hx" "Hx'" as "Hx".
       iDestruct (own_valid with "Hx") as %[_ H1].
       rewrite //= in H1.

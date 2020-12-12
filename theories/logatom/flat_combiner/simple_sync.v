@@ -26,14 +26,13 @@ Section syncer.
     iApply (newlock_spec R with "[HR]"); first done. iNext.
     iIntros (lk γ) "#Hl". wp_pures. iApply "HΦ". iIntros "!#".
     iIntros (f) "!>". wp_pures.
-    iIntros "!> !>" (P Q x) "#Hf !# HP".
+    iIntros "!> !>" (P Q x) "#Hf !>". iIntros (Φ') "HP HΦ'".
     wp_pures. wp_bind (acquire _).
     iApply (acquire_spec with "Hl"). iNext.
     iIntros "[Hlocked R]". wp_seq. wp_bind (f _).
-    iSpecialize ("Hf" with "[R HP]"); first by iFrame.
-    iApply wp_wand_r.  iSplitL "Hf"; first done.
+    iApply ("Hf" with "[$R $HP //]"). iNext.
     iIntros (v') "[HR HQv]". wp_let. wp_bind (release _).
     iApply (release_spec with "[$Hl $HR $Hlocked]").
-    iNext. iIntros "_". by wp_seq.
+    iNext. iIntros "_". wp_seq. iApply "HΦ'". done.
   Qed.
 End syncer.

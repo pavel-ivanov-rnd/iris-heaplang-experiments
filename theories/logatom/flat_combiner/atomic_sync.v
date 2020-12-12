@@ -23,7 +23,7 @@ Section atomic_sync.
   Definition gHalf (γ: gname) g : iProp Σ := own γ ((1/2)%Qp, to_agree g).
 
   Definition atomic_seq_spec (ϕ: A → iProp Σ) α β (f x: val) :=
-    (∀ g, □ ( ϕ g ∗ α g -∗ WP f x {{ v, ∃ g', ϕ g' ∗ β g g' v }}))%I.
+    (∀ g, {{{ ϕ g ∗ α g }}} f x {{{ v, RET v; ∃ g', ϕ g' ∗ β g g' v }}})%I.
 
   (* TODO: Provide better masks. ∅ as inner mask is pretty weak. *)
   Definition atomic_synced (ϕ: A → iProp Σ) γ (f f': val) :=
@@ -60,29 +60,27 @@ Section atomic_sync.
     iIntros (Φ') "?".
     (* TODO: Why can't I iApply "Hsynced"? *)
     iSpecialize ("Hsynced" $! _ Φ' x).
-    iApply wp_wand_r. iSplitL.
-    - iApply ("Hsynced" with "[]")=>//; last iAccu.
-      iModIntro. iIntros "[HR HP]". iDestruct "HR" as (g) "[Hϕ Hg1]".
-      (* we should view shift at this point *)
-      iApply fupd_wp. iMod "HP" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
-      iDestruct (m_frag_agree with "Hg1 Hg2") as %Heq. subst.
-      iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
-      iModIntro. iApply wp_fupd. iApply wp_wand_r. iSplitL "Hϕ".
-      { iApply "Hseq". iFrame. done. }
-      iIntros (v) "H". iDestruct "H" as (g') "[Hϕ' Hβ]".
-      iMod ("HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
-      iSpecialize ("Hvs2" $! v).
-      iDestruct (m_frag_agree' with "Hg'' Hg1") as "[Hg %]". subst.
-      rewrite Qp_div_2.
-      iAssert (|==> own γ (((1 / 2)%Qp, to_agree g') ⋅ ((1 / 2)%Qp, to_agree g')))%I
-              with "[Hg]" as ">[Hg1 Hg2]".
-      { iApply own_update; last by iAssumption.
-        apply cmra_update_exclusive. by rewrite -pair_op agree_idemp. }
-      iMod ("Hvs2" with "[Hg1 Hβ]").
-      { iExists g'. iFrame. }
-      iModIntro. iSplitL "Hg2 Hϕ'"; last done.
-      iExists g'. by iFrame.
-    - iIntros (?) "?". done.
+    iApply ("Hsynced" with "[] [-]"); [|by iAccu|by auto].
+    iIntros "!#" (Φ) "[HR HP] HΦ". iDestruct "HR" as (g) "[Hϕ Hg1]".
+    (* we should view shift at this point *)
+    iApply fupd_wp. iMod "HP" as (?) "[[Hg2 #Hα] [Hvs1 _]]".
+    iDestruct (m_frag_agree with "Hg1 Hg2") as %Heq. subst.
+    iMod ("Hvs1" with "[Hg2]") as "HP"; first by iFrame.
+    iModIntro. iApply wp_fupd. iApply ("Hseq" with "[$Hϕ]"); first done.
+    iIntros "!>" (v) "H". iDestruct "H" as (g') "[Hϕ' Hβ]".
+    iApply "HΦ".
+    iMod ("HP") as (g'') "[[Hg'' _] [_ Hvs2]]".
+    iSpecialize ("Hvs2" $! v).
+    iDestruct (m_frag_agree' with "Hg'' Hg1") as "[Hg %]". subst.
+    rewrite Qp_div_2.
+    iAssert (|==> own γ (((1 / 2)%Qp, to_agree g') ⋅ ((1 / 2)%Qp, to_agree g')))%I
+      with "[Hg]" as ">[Hg1 Hg2]".
+    { iApply own_update; last by iAssumption.
+      apply cmra_update_exclusive. by rewrite -pair_op agree_idemp. }
+    iMod ("Hvs2" with "[Hg1 Hβ]").
+    { iExists g'. iFrame. }
+    iModIntro. iSplitL "Hg2 Hϕ'"; last done.
+    iExists g'. by iFrame.
   Qed.
 
 End atomic_sync.

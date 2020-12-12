@@ -12,8 +12,8 @@ Section sync.
      How much more annoying? And how much to we gain in terms of things
      becoming easier to prove? *)
   Definition synced R (f f': val) :=
-    (□ ∀ P Q (x: val), □ (R ∗ P -∗ WP f x {{ v, R ∗ Q v }}) →
-                       □ (P -∗ WP f' x {{ Q }}))%I.
+    (□ ∀ P Q (x: val), {{{ R ∗ P }}} f x {{{ v, RET v; R ∗ Q v }}} →
+                       {{{ P }}} f' x {{{ v, RET v; Q v }}})%I.
 
   (* Notice that `s f` is *unconditionally safe* to execute, and only 
      when executing the returned f' we have to provide a spec for f.
