@@ -1,4 +1,4 @@
-From iris.program_logic Require Export weakestpre hoare atomic.
+From iris.program_logic Require Export weakestpre atomic.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import agree frac.
@@ -23,7 +23,7 @@ Section atomic_sync.
   Definition gHalf (γ: gname) g : iProp Σ := own γ ((1/2)%Qp, to_agree g).
 
   Definition atomic_seq_spec (ϕ: A → iProp Σ) α β (f x: val) :=
-    (∀ g, {{ ϕ g ∗ α g }} f x {{ v, ∃ g', ϕ g' ∗ β g g' v }})%I.
+    (∀ g, □ ( ϕ g ∗ α g -∗ WP f x {{ v, ∃ g', ϕ g' ∗ β g g' v }}))%I.
 
   (* TODO: Provide better masks. ∅ as inner mask is pretty weak. *)
   Definition atomic_synced (ϕ: A → iProp Σ) γ (f f': val) :=

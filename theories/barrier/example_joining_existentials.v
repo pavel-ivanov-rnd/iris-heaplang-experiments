@@ -1,4 +1,4 @@
-From iris.program_logic Require Export weakestpre hoare.
+From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.algebra Require Import excl agree csum.
 From iris.heap_lang Require Import notation par proofmode.
@@ -34,12 +34,12 @@ Definition barrier_res γ (Φ : X → iProp Σ) : iProp Σ :=
   (∃ x, own γ (Shot x) ∗ Φ x)%I.
 
 Lemma worker_spec e γ l (Φ Ψ : X → iProp Σ) :
-  recv N l (barrier_res γ Φ) -∗ (∀ x, {{ Φ x }} e {{ _, Ψ x }}) -∗
+  recv N l (barrier_res γ Φ) -∗ (∀ x, Φ x -∗ WP e {{ _, Ψ x }}) -∗
   WP wait #l ;; e {{ _, barrier_res γ Ψ }}.
 Proof.
-  iIntros "Hl #He". wp_apply (wait_spec with "[- $Hl]"); simpl.
+  iIntros "Hl He". wp_apply (wait_spec with "Hl"); simpl.
   iDestruct 1 as (x) "[#Hγ Hx]".
-  wp_seq. iApply (wp_wand with "[Hx]"); [by iApply "He"|].
+  wp_seq. iApply (wp_wand with "[Hx He]"); [by iApply "He"|].
   iIntros (v) "?"; iExists x; by iSplit.
 Qed.
 
@@ -71,19 +71,18 @@ Proof.
 Qed.
 
 Lemma client_spec_new (fM fW1 fW2 : val) :
-  P -∗
-  {{ P }} fM #() {{ _, ∃ x, Φ x }} -∗
-  (∀ x, {{ Φ1 x }} fW1 #() {{ _, Ψ1 x }}) -∗
-  (∀ x, {{ Φ2 x }} fW2 #() {{ _, Ψ2 x }}) -∗
+  WP fM #() {{ _, ∃ x, Φ x }} -∗
+  □ (∀ x, Φ1 x -∗ WP fW1 #() {{ _, Ψ1 x }}) -∗
+  □ (∀ x, Φ2 x -∗ WP fW2 #() {{ _, Ψ2 x }}) -∗
   WP client fM fW1 fW2 {{ _, ∃ γ, barrier_res γ Ψ }}.
 Proof using All.
-  iIntros "/= HP #Hf #Hf1 #Hf2"; rewrite /client.
+  iIntros "/= Hf #Hf1 #Hf2"; rewrite /client.
   iMod (own_alloc (Pending : one_shotR Σ F)) as (γ) "Hγ"; first done.
   wp_lam. wp_pures. wp_apply (newbarrier_spec N (barrier_res γ Φ)); auto.
   iIntros (l) "[Hr Hs]".
   set (workers_post (v : val) := (barrier_res γ Ψ1 ∗ barrier_res γ Ψ2)%I).
-  wp_smart_apply (par_spec  (λ _, True)%I workers_post with "[HP Hs Hγ] [Hr]").
-  - wp_lam. wp_bind (fM #()). iApply (wp_wand with "[HP]"); [by iApply "Hf"|].
+  wp_smart_apply (par_spec  (λ _, True)%I workers_post with "[Hf Hs Hγ] [Hr]").
+  - wp_lam. wp_bind (fM #()). iApply (wp_wand with "Hf").
     iIntros (v) "HP"; iDestruct "HP" as (x) "HP". wp_seq.
     iMod (own_update with "Hγ") as "Hx".
     { by apply (cmra_update_exclusive (Shot x)). }

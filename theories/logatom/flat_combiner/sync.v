@@ -1,6 +1,6 @@
 (* Syncer spec *)
 
-From iris.program_logic Require Export weakestpre hoare.
+From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 
@@ -12,8 +12,8 @@ Section sync.
      How much more annoying? And how much to we gain in terms of things
      becoming easier to prove? *)
   Definition synced R (f f': val) :=
-    (□ ∀ P Q (x: val), {{ R ∗ P }} f x {{ v, R ∗ Q v }} →
-                       {{ P }} f' x {{ Q }})%I.
+    (□ ∀ P Q (x: val), □ (R ∗ P -∗ WP f x {{ v, R ∗ Q v }}) →
+                       □ (P -∗ WP f' x {{ Q }}))%I.
 
   (* Notice that `s f` is *unconditionally safe* to execute, and only 
      when executing the returned f' we have to provide a spec for f.

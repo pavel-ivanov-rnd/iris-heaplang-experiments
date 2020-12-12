@@ -1,6 +1,6 @@
 (* Modular Specifications for Concurrent Modules. *)
 
-From iris.program_logic Require Export hoare weakestpre.
+From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import agree frac frac_auth.
@@ -134,7 +134,7 @@ Section cnt_spec.
 
   Theorem read_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q : Z → iProp Σ) (ℓ : loc):
     ↑(N .@ "internal") ⊆ E →
-    (∀ m, (γ ⤇½ m ∗ P ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ m ∗ Q m)) ⊢
+    (∀ m, □ (γ ⤇½ m ∗ P ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ m ∗ Q m)) ⊢
     {{{ Cnt ℓ γ ∗ P}}} read #ℓ @ E {{{ (m : Z), RET #m; Cnt ℓ γ ∗ Q m }}}.
   Proof.
     iIntros (Hsubset) "#HVS".
@@ -154,7 +154,7 @@ Section cnt_spec.
 
   Theorem incr_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q : Z → iProp Σ) (ℓ : loc):
     ↑(N .@ "internal") ⊆ E →
-    (∀ (n : Z), γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q n) ⊢
+    (∀ (n : Z), □ (γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ (n+1) ∗ Q n)) ⊢
     {{{ Cnt ℓ γ ∗ P }}} incr #ℓ @ E {{{ (m : Z), RET #m; Cnt ℓ γ ∗ Q m}}}.
   Proof.
     iIntros (Hsubset) "#HVS".
@@ -189,7 +189,7 @@ Section cnt_spec.
 
   Theorem wk_incr_spec (γ : gname) (E : coPset) (P Q : iProp Σ) (ℓ : loc) (n : Z) (q : Qp):
     ↑(N .@ "internal") ⊆ E →
-    (γ ⤇½ n ∗ γ ⤇[q] n ∗ P ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q) -∗
+    □ (γ ⤇½ n ∗ γ ⤇[q] n ∗ P ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ (n+1) ∗ Q) -∗
     {{{ Cnt ℓ γ ∗ γ ⤇[q] n ∗ P}}} wk_incr #ℓ @ E {{{ RET #(); Cnt ℓ γ ∗ Q}}}.
   Proof.
     iIntros (Hsubset) "#HVS".
@@ -216,7 +216,7 @@ Section cnt_spec.
 
   Theorem wk_incr_spec' (γ : gname) (E : coPset) (P Q : iProp Σ) (ℓ : loc) (n : Z) (q : Qp):
     ↑(N .@ "internal") ⊆ E →
-    (γ ⤇½ n ∗ γ ⤇[q] n ∗ P ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗  γ ⤇[q] (n + 1) ∗ Q) -∗
+    □ (γ ⤇½ n ∗ γ ⤇[q] n ∗ P ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ (n+1) ∗  γ ⤇[q] (n + 1) ∗ Q) -∗
     {{{ Cnt ℓ γ ∗ γ ⤇[q] n ∗ P}}} wk_incr #ℓ @ E {{{ RET #(); Cnt ℓ γ ∗  γ ⤇[q] (n + 1) ∗ Q}}}.
   Proof.
     iIntros (Hsubset) "#HVS".
@@ -232,9 +232,9 @@ Section incr_twice.
 
   Theorem incr_twice_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q Q' : Z → iProp Σ) (ℓ : loc):
     ↑(N .@ "internal") ⊆ E →
-    (∀ (n : Z), (γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q n))
+    (∀ (n : Z), □ (γ ⤇½ n ∗ P  ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ (n+1) ∗ Q n))
       -∗
-      (∀ (n : Z), γ ⤇½ n ∗ (∃ m, Q m)  ={E ∖ ↑(N .@ "internal")}=> γ ⤇½ (n+1) ∗ Q' n)
+      (∀ (n : Z), □ (γ ⤇½ n ∗ (∃ m, Q m)  ={E ∖ ↑(N .@ "internal")}=∗ γ ⤇½ (n+1) ∗ Q' n))
       -∗
       {{{ Cnt N ℓ γ ∗ P }}} incr_twice #ℓ @ E {{{ (m : Z), RET #m; Cnt N ℓ γ ∗ Q' m}}}.
   Proof.
@@ -284,7 +284,6 @@ Section example_1.
     { iIntros (v1 v2) "_ !>".
       wp_seq.
       wp_apply (read_spec _ _ _ True%I (λ _, True%I)); auto.
-      iIntros (n) "!# [Hown _] !>"; by iFrame.
     }
   Qed.
 End example_1.
