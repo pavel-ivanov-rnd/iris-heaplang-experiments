@@ -263,7 +263,7 @@ Section rdcss.
      which means we know that the [l_descr] there and here cannot be the same. *)
   Definition done_state Qn l_descr (tid_ghost_winner : proph_id) γ_t γ_a :=
     ((Qn ∨ own_token γ_t) ∗ (∃ vs, proph tid_ghost_winner vs) ∗
-     (∃ v, l_descr ↦{1/2} v) ∗ own_token γ_a)%I.
+     (∃ v, l_descr ↦{# 1/2} v) ∗ own_token γ_a)%I.
 
   (* Invariant expressing the descriptor protocol.
      - We always need the [proph] in here so that failing threads coming late can
@@ -280,7 +280,7 @@ Section rdcss.
   Definition descr_inv P Q p n l_n l_descr (tid_ghost_winner : proph_id) γ_t γ_s γ_a: iProp Σ :=
     (∃ vs, proph p vs ∗
       (own γ_s (Cinl $ Excl ()) ∗
-       (l_n ↦{1/2} InjRV #l_descr ∗ ( pending_state P n (proph_extract_winner vs) tid_ghost_winner l_n γ_a
+       (l_n ↦{# 1/2} InjRV #l_descr ∗ ( pending_state P n (proph_extract_winner vs) tid_ghost_winner l_n γ_a
         ∨ accepted_state (Q n) (proph_extract_winner vs) tid_ghost_winner ))
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state (Q n) l_descr tid_ghost_winner γ_t γ_a))%I.
 
@@ -293,13 +293,13 @@ Section rdcss.
 
   Definition rdcss_inv l_n :=
     (∃ (s : abstract_state),
-       l_n ↦{1/2} (state_to_val s) ∗
+       l_n ↦{# 1/2} (state_to_val s) ∗
        match s with
        | Quiescent n =>
            (* (InjLV #n) = state_to_val (Quiescent n) *)
            (* In this state the CmpXchg which expects to read (InjRV _) in
               [complete] fails always.*)
-           l_n ↦{1/2} (InjLV n) ∗ rdcss_state_auth l_n n
+           l_n ↦{# 1/2} (InjLV n) ∗ rdcss_state_auth l_n n
         | Updating l_descr l_m m1 n1 n2 p =>
            ∃ q P Q tid_ghost_winner γ_t γ_s γ_a,
              (* (InjRV #l_descr) = state_to_val (Updating l_descr l_m m1 n1 n2 p) *)
@@ -312,7 +312,7 @@ Section rdcss.
            (* We own *more than* half of [l_descr], which shows that this cannot
               be the [l_descr] of any [descr] protocol in the [done] state. *)
              ⌜val_is_unboxed m1⌝ ∗
-             l_descr ↦{1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗
+             l_descr ↦{# 1/2 + q} (#l_m, m1, n1, n2, #p)%V ∗
              inv descrN (descr_inv P Q p n1 l_n l_descr tid_ghost_winner γ_t γ_s γ_a) ∗
              □ pau P Q l_n l_m m1 n1 n2 ∗ l_m ↦_(λ _, True) □
        end)%I.
@@ -339,12 +339,6 @@ Section rdcss.
   Qed.
 
   (** A few more helper lemmas that will come up later *)
-
-  Lemma mapsto_valid_3 l v1 v2 q :
-    l ↦ v1 -∗ l ↦{q} v2 -∗ ⌜False⌝.
-  Proof.
-    iIntros "Hl1 Hl2". iDestruct (mapsto_ne with "Hl1 Hl2") as %?; done.
-  Qed.
 
   (** Once a [descr] protocol is [done] (as reflected by the [γ_s] token here),
       we can at any later point in time extract the [Q]. *)
@@ -462,7 +456,8 @@ Section rdcss.
         iDestruct "Hld" as (v') "Hld".
         iDestruct "Hrest" as (q P' Q' tid_ghost' γ_t' γ_s' γ_a') "(_ & >[Hld' Hld''] & Hrest)".
         iDestruct (mapsto_combine with "Hld Hld'") as "[Hld _]".
-        rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hld Hld''") as "[]".
+        rewrite dfrac_op_own Qp_half_half.
+        by iDestruct (mapsto_ne with "Hld Hld''") as %[].
       + (* l_descr' ≠ l_descr: The CmpXchg fails. *)
         wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.
         iIntros "!>" (vs'' ->) "Hp". iModIntro.

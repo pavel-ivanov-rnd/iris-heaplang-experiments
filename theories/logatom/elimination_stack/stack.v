@@ -110,8 +110,8 @@ Section stack.
   Fixpoint list_inv (l : list val) (rep : option loc) : iProp :=
     match l with
     | nil => ⌜rep = None⌝
-    | v::l => ∃ (ℓ : loc) q (rep' : option loc), ⌜rep = Some ℓ⌝ ∗
-                              ℓ ↦{q} (v, stack_elem_to_val rep') ∗ list_inv l rep'
+    | v::l => ∃ (ℓ : loc) (rep' : option loc), ⌜rep = Some ℓ⌝ ∗
+                              ℓ ↦□ (v, stack_elem_to_val rep') ∗ list_inv l rep'
     end%I.
 
   Local Hint Extern 0 (environments.envs_entails _ (list_inv (_::_) _)) => simpl : core.
@@ -209,6 +209,7 @@ Section stack.
       [->%stack_elem_to_val_inj|_].
     - (* The CAS succeeded. Update everything accordingly. *)
       iMod "AU" as (l') "[Hl' [_ Hclose]]".
+      iMod (mapsto_persist with "Hhead_new") as "#Hhead_new".
       iDestruct (own_valid_2 with "Hs● Hl'") as
         %[->%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
       iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
@@ -289,12 +290,12 @@ Section stack.
       iSplitR "HΦ"; first by eauto 10 with iFrame.
       iIntros "!>". wp_pures. by iApply "HΦ".
     - (* Non-empty list, let's try to pop. *)
-      iDestruct "Hlist" as (tail q rep) "[>% [[Htail Htail2] Hlist]]". subst stack_rep.
+      iDestruct "Hlist" as (tail rep) "[>% [#Htail Hlist]]". subst stack_rep.
       iSplitR "AU Htail"; first by eauto 15 with iFrame.
       clear offer_rep l.
       iIntros "!>". wp_match.
       wp_apply (atomic_wp_seq $! (load_spec _) with "Htail").
-      iIntros "Htail". wp_pures.
+      iIntros "_". wp_pures.
       (* CAS to change the head *)
       awp_apply cas_spec; [done|].
       iInv stackN as (stack_rep offer_rep l) "(>Hs● & >H↦ & Hlist & Hrem)".
@@ -309,17 +310,17 @@ Section stack.
           %[->%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
         destruct l as [|v' l]; simpl.
         { (* Contradiction. *) iDestruct "Hlist" as ">%". done. }
-        iDestruct "Hlist" as (tail' q' rep') "[>% [>Htail' Hlist]]". simplify_eq.
+        iDestruct "Hlist" as (tail' rep') "[>% [>Htail' Hlist]]". simplify_eq.
         iDestruct (mapsto_agree with "Htail Htail'") as %[= <- <-%stack_elem_to_val_inj].
         iMod (own_update_2 with "Hs● Hl'") as "[Hs● Hl']".
         { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
         iMod ("Hclose" with "Hl'") as "HΦ {Htail Htail'}".
         iSplitR "HΦ"; first by eauto 10 with iFrame.
-        iIntros "!>". clear q' q offer_rep l.
+        iIntros "!>". clear offer_rep l.
         wp_pures. by iApply "HΦ".
       + (* CAS failed.  Go on looking for an offer. *)
         iSplitR "AU"; first by eauto 10 with iFrame.
-        iIntros "!>". wp_if. clear rep stack_rep offer_rep l q tail v.
+        iIntros "!>". wp_if. iClear (rep stack_rep offer_rep l tail v) "Htail".
         wp_proj.
         (* Load the offer pointer. *)
         awp_apply load_spec.

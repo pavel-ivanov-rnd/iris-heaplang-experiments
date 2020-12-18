@@ -37,45 +37,30 @@ Section proof.
 
   Fixpoint is_list (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
-    | [] => (∃ q, hd ↦{ q } NONEV)%I
-    | x :: xs => (∃ (hd': loc) q, hd ↦{ q } SOMEV (x, #hd') ∗ is_list hd' xs)%I
+    | [] => hd ↦□ NONEV
+    | x :: xs => ∃ hd': loc, hd ↦□ SOMEV (x, #hd') ∗ is_list hd' xs
     end.
 
-  Lemma dup_is_list : ∀ xs hd,
-    is_list hd xs ⊢ is_list hd xs ∗ is_list hd xs.
-  Proof.
-    induction xs as [|y xs' IHxs'].
-    - iIntros (hd) "Hs".
-      simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
-    - iIntros (hd) "Hs". simpl.
-      iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & Hs')".
-      iDestruct (IHxs' with "[Hs']") as "[Hs1 Hs2]"; first by iFrame.
-      iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
-  Qed.
+  Global Instance is_list_persistent hd xs : Persistent (is_list hd xs).
+  Proof. revert hd. induction xs; simpl; apply _. Qed.
 
-  Lemma uniq_is_list:
-    ∀ xs ys hd, is_list hd xs ∗ is_list hd ys ⊢ ⌜xs = ys⌝.
+  Lemma uniq_is_list xs ys hd : is_list hd xs ∗ is_list hd ys ⊢ ⌜xs = ys⌝.
   Proof.
-    induction xs as [|x xs' IHxs'].
+    revert ys hd. induction xs as [|x xs' IHxs']; intros ys hd.
     - induction ys as [|y ys' IHys'].
       + auto.
-      + iIntros (hd) "(Hxs & Hys)".
-        simpl. iDestruct "Hys" as (hd' ?) "(Hhd & Hys')".
-        iExFalso. iDestruct "Hxs" as (?) "Hhd'".
-        (* FIXME: If I dont use the @ here and below through this file, it loops. *)
-        by iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %?.
+      + iIntros "[Hxs Hys] /=".
+        iDestruct "Hys" as (hd') "[Hhd Hys']".
+        by iDestruct (mapsto_agree with "Hxs Hhd") as %?.
     - induction ys as [|y ys' IHys'].
-      + iIntros (hd) "(Hxs & Hys)".
-        simpl.
-        iExFalso. iDestruct "Hxs" as (? ?) "(Hhd & _)".
-        iDestruct "Hys" as (?) "Hhd'".
-        by iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %?.
-      + iIntros (hd) "(Hxs & Hys)".
-        simpl. iDestruct "Hxs" as (? ?) "(Hhd & Hxs')".
-        iDestruct "Hys" as (? ?) "(Hhd' & Hys')".
-        iDestruct (@mapsto_agree with "[$Hhd] [$Hhd']") as %[= Heq].
-        subst. iDestruct (IHxs' with "[Hxs' Hys']") as "%"; first by iFrame.
-        by subst.
+      + iIntros "[Hxs Hys] /=".
+        iDestruct "Hxs" as (?) "[Hhd _]".
+        by iDestruct (mapsto_agree with "Hhd Hys") as %?.
+      + iIntros "[Hxs Hys] /=".
+        iDestruct "Hxs" as (?) "[Hhd Hxs']".
+        iDestruct "Hys" as (?) "[Hhd' Hys']".
+        iDestruct (mapsto_agree with "Hhd Hhd'") as %[= -> ->].
+        by iDestruct (IHxs' with "[$Hxs' $Hys']") as %->.
   Qed.
 
   Definition is_stack (s: loc) xs: iProp Σ := (∃ hd: loc, s ↦ #hd ∗ is_list hd xs)%I.
@@ -91,11 +76,11 @@ Section proof.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam.
     wp_bind (ref NONE)%E. wp_alloc l as "Hl".
+    iMod (mapsto_persist with "Hl") as "Hl".
     wp_alloc l' as "Hl'".
-    iApply "HΦ". rewrite /is_stack. iExists l.
-    iFrame. by iExists 1%Qp.
+    iApply "HΦ". rewrite /is_stack. auto.
   Qed.
-  
+
   Lemma push_atomic_spec (s: loc) (x: val) :
     ⊢ <<< ∀ (xs : list val), is_stack s xs >>>
         push #s x @ ⊤
@@ -108,6 +93,7 @@ Section proof.
     iDestruct "Hxs" as (hd) "[Hs Hhd]".
     wp_load. iMod ("Hvs'" with "[Hs Hhd]") as "HP"; first by eauto with iFrame.
     iModIntro. wp_let. wp_alloc l as "Hl". wp_let.
+    iMod (mapsto_persist with "Hl") as "Hl".
     wp_bind (CmpXchg _ _ _)%E.
     iMod "HP" as (xs') "[Hxs' Hvs']".
     iDestruct "Hxs'" as (hd') "[Hs' Hhd']".
@@ -133,18 +119,16 @@ Section proof.
     iIntros (Φ) "HP". iLöb as "IH". wp_rec.
     wp_bind (! _)%E.
     iMod "HP" as (xs) "[Hxs Hvs']".
-    iDestruct "Hxs" as (hd) "[Hs Hhd]".
+    iDestruct "Hxs" as (hd) "[Hs #Hhd]".
     destruct xs as [|y' xs'].
     - simpl. wp_load. iDestruct "Hvs'" as "[_ Hvs']".
-      iDestruct "Hhd" as (q) "[Hhd Hhd']".
-      iMod ("Hvs'" with "[-Hhd]") as "HQ".
+      iMod ("Hvs'" with "[-]") as "HQ".
       { eauto with iFrame. }
       iModIntro. wp_let. wp_load. wp_pures.
       eauto.
-    - simpl. iDestruct "Hhd" as (hd' q) "([[Hhd1 Hhd2] Hhd'] & Hxs')".
-      iDestruct (dup_is_list with "[Hxs']") as "[Hxs1 Hxs2]"; first by iFrame.
+    - simpl. iDestruct "Hhd" as (hd') "(Hhd & Hxs')".
       wp_load. iDestruct "Hvs'" as "[Hvs' _]".
-      iMod ("Hvs'" with "[-Hhd1 Hhd2 Hxs1]") as "HP".
+      iMod ("Hvs'" with "[-]") as "HP".
       { eauto with iFrame. }
       iModIntro. wp_let. wp_load. wp_match. wp_proj.
       wp_bind (CmpXchg _ _ _).
@@ -152,11 +136,10 @@ Section proof.
     iDestruct "Hxs''" as (hd'') "[Hs'' Hhd'']".
       destruct (decide (hd = hd'')) as [->|Hneq].
       + wp_cmpxchg_suc. iDestruct "Hvs'" as "[_ Hvs']".
-        destruct xs'' as [|x'' xs''].
-        { simpl. iDestruct "Hhd''" as (?) "H".
-          iExFalso. by iDestruct (@mapsto_agree with "[$Hhd1] [$H]") as %?. }
-        simpl. iDestruct "Hhd''" as (hd''' ?) "(Hhd'' & Hxs'')".
-        iDestruct (@mapsto_agree with "[$Hhd1] [$Hhd'']") as %[=]. subst.
+        destruct xs'' as [|x'' xs'']; simpl.
+        { by iDestruct (mapsto_agree with "Hhd Hhd''") as %?. }
+        iDestruct "Hhd''" as (hd''') "[Hhd'' Hxs'']".
+        iDestruct (@mapsto_agree with "Hhd Hhd''") as %[= -> ->].
         iMod ("Hvs'" with "[-]") as "HQ".
         { eauto with iFrame.  }
         iModIntro. wp_pures. eauto.

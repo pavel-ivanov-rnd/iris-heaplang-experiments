@@ -94,15 +94,15 @@ Section atomic_snapshot.
   Definition gmap_to_UR T : timestampUR := to_agree <$> T.
 
   Definition snapshot_inv γ1 γ2 l1 : iProp Σ :=
-    (∃ q (l1':loc) (T : gmap Z val) x (t : Z),
+    (∃ (l1':loc) (T : gmap Z val) x (t : Z),
       (* we add the q to make the l1' map fractional. that way,
          we can take a fraction of the l1' map out of the invariant
          and do a case analysis on whether the pointer is the same
          throughout invariant openings *)
-      l1 ↦ #l1' ∗ l1' ↦{q} (x, #t) ∗
+      l1 ↦ #l1' ∗ l1' ↦□ (x, #t) ∗
          own γ1 (● Excl' x) ∗ own γ2 (● gmap_to_UR T) ∗
          ⌜T !! t = Some x⌝ ∗
-         ⌜forall (t' : Z), t' ∈ dom (gset Z) T → (t' <= t)%Z⌝)%I.
+         ⌜∀ (t' : Z), t' ∈ dom (gset Z) T → (t' ≤ t)%Z⌝)%I.
 
   Definition is_snapshot (γs: gname * gname) (p : val) :=
     (∃ (l1 : loc), ⌜p = #l1%V⌝ ∗ inv N (snapshot_inv γs.1 γs.2 l1))%I.
@@ -131,6 +131,7 @@ Section atomic_snapshot.
     iIntros (Φ _) "Hx". rewrite /new_snapshot. wp_lam.
     repeat (wp_proj; wp_let).
     wp_alloc lx' as "Hlx'".
+    iMod (mapsto_persist with "Hlx'") as "Hlx'".
     wp_alloc lx as "Hlx".
     set (Excl' v) as p.
     iMod (own_alloc (● p ⋅ ◯ p)) as (γ1) "[Hx⚫ Hx◯]". {
@@ -143,7 +144,7 @@ Section atomic_snapshot.
     }
     iApply ("Hx" $! (γ1, γ2)).
     iMod (inv_alloc N _ (snapshot_inv γ1 γ2 _) with "[-Hx◯ Ht◯]") as "#Hinv". {
-      iNext. rewrite /snapshot_inv. iExists _, _, _, _, 0. iFrame.
+      iNext. rewrite /snapshot_inv. iExists _, _, _, 0. iFrame.
       iPureIntro. split; first done. intros ?. subst t. rewrite /new_timestamp dom_singleton.
       rewrite elem_of_singleton. lia.
     }
@@ -193,7 +194,7 @@ Section atomic_snapshot.
 
   Lemma timestamp_sub γ (T1 T2 : gmap Z val):
     own γ (● gmap_to_UR T1) ∗ own γ (◯ gmap_to_UR T2) -∗
-    ⌜forall t x, T2 !! t = Some x → T1 !! t = Some x⌝.
+    ⌜∀ t x, T2 !! t = Some x → T1 !! t = Some x⌝.
   Proof.
     iIntros "[Hγ⚫ Hγ◯]".
     iDestruct (own_valid_2 with "Hγ⚫ Hγ◯") as
@@ -217,10 +218,9 @@ Section atomic_snapshot.
     iDestruct "Hx" as (l1 ->) "#Hinv". wp_pures. wp_lam. wp_pures.
     (* first read *)
     (* open invariant *)
-    wp_bind (!_)%E. iInv N as (q l1' T x v') "[Hl1 [Hl1' [Hx⚫ Htime]]]".
+    wp_bind (!_)%E. iInv N as (l1' T x v') "[Hl1 [#Hl1' [Hx⚫ Htime]]]".
       wp_load.
-      iDestruct "Hl1'" as "[Hl1'frac1 Hl1'frac2]".
-      iModIntro. iSplitR "AU Hl1'frac2".
+      iModIntro. iSplitR "AU".
       (* close invariant *)
       { iNext. rewrite /snapshot_inv. eauto 10 with iFrame. }
     wp_let. wp_bind (!_)%E. clear T.
@@ -229,11 +229,12 @@ Section atomic_snapshot.
     (* CAS *)
     wp_bind (CmpXchg _ _ _)%E.
     (* open invariant *)
-    iInv N as (q' l1'' T x' v'') ">[Hl1 [Hl1'' [Hx⚫ [Ht● Ht]]]]".
+    iInv N as (l1'' T x' v'') ">[Hl1 [#Hl1'' [Hx⚫ [Ht● Ht]]]]".
     iDestruct "Ht" as %[Ht Hvt].
     destruct (decide (l1'' = l1')) as [-> | Hn].
     - wp_cmpxchg_suc.
-      iDestruct (mapsto_agree with "Hl1'frac2 Hl1''") as %[= -> ->]. iClear "Hl1'frac2".
+      iMod (mapsto_persist with "Hl1'new") as "Hl1'new".
+      iDestruct (mapsto_agree with "Hl1' Hl1''") as %[= -> ->].
       (* open AU *)
       iMod "AU" as (xv) "[Hx [_ Hclose]]".
         (* update snapshot ghost state to (x2, y') *)
@@ -249,7 +250,7 @@ Section atomic_snapshot.
       iModIntro. iSplitR "HΦ".
       + iNext. rewrite /snapshot_inv.
         set (<[ (v'' + 1)%Z := x2]> T) as T'.
-        iExists 1%Qp, l1'new, T', x2, (v'' + 1)%Z.
+        iExists l1'new, T', x2, (v'' + 1)%Z.
         iFrame.
         iPureIntro. split.
         * apply: lookup_insert.
@@ -277,9 +278,8 @@ Section atomic_snapshot.
     iDestruct "Hx" as (l1 ->) "#Hinv".
     wp_lam. wp_bind (! #l1)%E.
     (* open invariant for 1st read *)
-    iInv N as (q l1' T x v') ">[Hl1 [Hl1' [Hx⚫ Htime]]]".
+    iInv N as (l1' T x v') ">[Hl1 [#Hl1' [Hx⚫ Htime]]]".
       wp_load.
-      iDestruct "Hl1'" as "[Hl1' Hl1'frac]".
       iMod "AU" as (xv) "[Hx [_ Hclose]]".
       iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
       iMod ("Hclose" with "Hx") as "HΦ".
@@ -311,10 +311,9 @@ Section atomic_snapshot.
     (* ************ 1st readX ********** *)
     iDestruct "Hx" as (l1 ->) "#Hinv". wp_bind (! #l1)%E.
     (* open invariant for 1st read *)
-    iInv N as (q_x1 l1' T_x x1 v_x1) ">[Hl1 [Hl1' [Hx⚫ [Ht_x Htime_x]]]]".
+    iInv N as (l1' T_x x1 v_x1) ">[Hl1 [#Hl1' [Hx⚫ [Ht_x Htime_x]]]]".
       iDestruct "Htime_x" as %[Hlookup_x Hdom_x].
       wp_load.
-      iDestruct "Hl1'" as "[Hl1' Hl1'frac]".
       iMod "AU" as (xv yv) "[[Hx Hy] [Hclose _]]".
       iDestruct (excl_sync with "Hx⚫ Hx") as %[= ->].
       iMod ("Hclose" with "[$Hx $Hy]") as "AU".
@@ -327,7 +326,7 @@ Section atomic_snapshot.
     wp_load. wp_let.
     (* ************ readY ********** *)
     repeat (wp_lam; wp_pures). wp_bind (!_)%E.
-    iInv N as (q_y l1'_y T_y x_y v_y) ">[Hl1 [Hl1'_y [Hx⚫ [Ht_y Htime_y]]]]".
+    iInv N as (l1'_y T_y x_y v_y) ">[Hl1 [#Hl1'_y [Hx⚫ [Ht_y Htime_y]]]]".
     iDestruct "Htime_y" as %[Hlookup_y Hdom_y].
     (* linearization point *)
     clear yv.
@@ -351,13 +350,12 @@ Section atomic_snapshot.
       (* ************ 2nd readX ********** *)
       repeat (wp_lam; wp_pures). wp_bind (! #l1)%E.
       (* open invariant *)
-      iInv N as (q_x2 l1'_x2 T_x2 x2 v_x2) ">[Hl1 [Hl1'_x2 [Hx⚫ [Ht_x2 Htime_x2]]]]".
+      iInv N as (l1'_x2 T_x2 x2 v_x2) ">[Hl1 [#Hl1'_x2 [Hx⚫ [Ht_x2 Htime_x2]]]]".
       iDestruct "Htime_x2" as %[Hlookup_x2 Hdom_x2].
-      iDestruct "Hl1'_x2" as "[Hl1'_x2 Hl1'_x2_frag]".
       wp_load.
       (* show that T_y <= T_x2 *)
       iDestruct (timestamp_sub with "[Ht_x2 Ht_y◯]") as "%Hs'"; first by iFrame.
-      iModIntro. iSplitR "HΦ Hl1'_x2_frag Hpr". {
+      iModIntro. iSplitR "HΦ Hpr". {
         iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
       wp_load. wp_pures.
@@ -390,10 +388,9 @@ Section atomic_snapshot.
       (* ************ 2nd readX ********** *)
       wp_bind (! #l1)%E.
       (* open invariant *)
-      iInv N as (q_x2 l1'_x2 T_x2 x2 v_x2) "[Hl1 [Hl1'_x2 [Hx⚫ [Ht_x2 Htime_x2]]]]".
-      iDestruct "Hl1'_x2" as "[Hl1'_x2 Hl1'_x2_frag]".
+      iInv N as (l1'_x2 T_x2 x2 v_x2) "[Hl1 [#Hl1'_x2 [Hx⚫ [Ht_x2 Htime_x2]]]]".
       wp_load.
-      iModIntro. iSplitR "AU Hl1'_x2_frag Hpr". {
+      iModIntro. iSplitR "AU Hpr". {
         iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
       wp_load. wp_pures.

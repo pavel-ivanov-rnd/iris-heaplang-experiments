@@ -248,24 +248,6 @@ Section proofs.
       iIntros (v'') "H"; iApply "HΦ"; auto.
   Qed.
 
-  Local Notation "l ↦{-} v" := (∃ q, l ↦{q} v)%I
-    (at level 20, format "l  ↦{-}  v") : bi_scope.
-
-  Lemma partial_mapsto_duplicable l v :
-    l ↦{-} v -∗ l ↦{-} v ∗ l ↦{-} v.
-  Proof.
-    iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
-  Qed.
-
-  Lemma partial_mapsto_agree l v1 v2 :
-    l ↦{-} v1 -∗ l ↦{-} v2 -∗ ⌜v1 = v2⌝.
-  Proof.
-    iIntros "H1 H2".
-    iDestruct "H1" as (?) "H1".
-    iDestruct "H2" as (?) "H2".
-    iApply (mapsto_agree with "H1 H2").
-  Qed.
-
   Definition oloc_to_val (ol: option loc) : val :=
     match ol with
     | None => NONEV
@@ -277,20 +259,19 @@ Section proofs.
   Fixpoint is_list xs v : iProp Σ :=
     (match xs, v with
      | [], None => True
-     | x :: xs, Some l => ∃ t, l ↦{-} (x, oloc_to_val t)%V ∗ is_list xs t
+     | x :: xs, Some l => ∃ t, l ↦□ (x, oloc_to_val t)%V ∗ is_list xs t
      | _, _ => False
      end)%I.
 
   Lemma is_list_dup xs v :
     is_list xs v -∗ is_list xs v ∗ match v with
       | None => True
-      | Some l => ∃ h t, l ↦{-} (h, oloc_to_val t)%V
+      | Some l => ∃ h t, l ↦□ (h, oloc_to_val t)%V
       end.
   Proof.
     destruct xs, v; simpl; auto; first by iIntros "[]".
-    iIntros "H"; iDestruct "H" as (t) "(Hl & Hstack)".
-    iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]".
-    iSplitR "Hl2"; first by (iExists _; iFrame). by iExists _, _.
+    iIntros "H"; iDestruct "H" as (t) "[#Hl Hstack]".
+    iSplitL; first by (iExists _; iFrame). by iExists _, _.
   Qed.
 
   Lemma is_list_empty xs :
@@ -300,13 +281,13 @@ Section proofs.
   Qed.
 
   Lemma is_list_cons xs l h t :
-    l ↦{-} (h, t)%V -∗
+    l ↦□ (h, t) -∗
     is_list xs (Some l) -∗
     ∃ ys, ⌜xs = h :: ys⌝.
   Proof.
     destruct xs; first by iIntros "? %".
     iIntros "Hl Hstack"; iDestruct "Hstack" as (t') "(Hl' & Hrest)".
-    iDestruct (partial_mapsto_agree with "Hl Hl'") as "%"; simplify_eq; iExists _; auto.
+    iDestruct (mapsto_agree with "Hl Hl'") as "%"; simplify_eq; iExists _; auto.
   Qed.
 
   Definition stack_inv P l :=
@@ -352,10 +333,11 @@ Section proofs.
       iInv Nstack as (list' xs) "(Hl & Hlist & HP)" "Hclose".
       destruct (decide (list = list')) as [ -> |].
       * wp_cmpxchg_suc. { destruct list'; left; done. }
+        iMod (mapsto_persist with "Hl'") as "#Hl'".
         iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
         iMod ("Hupd" with "HP") as "[HP HΨ]".
         iMod "Hupd'" as "_".
-        iMod ("Hclose" with "[Hl Hl' HP Hlist]") as "_".
+        iMod ("Hclose" with "[Hl HP Hlist]") as "_".
         { iNext; iExists (Some _), (v' :: xs); iFrame; iExists _; iFrame; auto. }
         iModIntro.
         wp_pures.
@@ -419,7 +401,6 @@ Section proofs.
         iModIntro.
         wp_match. wp_bind (Load _).
         iInv Nstack as (v xs') "(Hl & Hlist & HP)" "Hclose".
-        iDestruct "Hl'" as (q) "Hl'".
         wp_load.
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
         { iNext; iExists _, _; iFrame. }
@@ -428,14 +409,13 @@ Section proofs.
         iInv Nstack as (v' xs'') "(Hl & Hlist & HP)" "Hclose".
         destruct (decide (v' = (Some l'))) as [ -> |].
         + wp_cmpxchg_suc.
-          iDestruct (is_list_cons with "[Hl'] Hlist") as (ys) "%"; first by iExists _.
+          iDestruct (is_list_cons with "Hl' Hlist") as (ys) "%".
           simplify_eq.
           iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
           iDestruct "Hupd" as "[Hupdcons _]".
           iMod ("Hupdcons" with "HP") as "[HP HΨ]".
           iMod "Hupd'" as "_".
           iDestruct "Hlist" as (t') "(Hl'' & Hlist)".
-          iDestruct "Hl''" as (q') "Hl''".
           iDestruct (mapsto_agree with "Hl' Hl''") as "%"; simplify_eq.
           iMod ("Hclose" with "[Hlist Hl HP]") as "_".
           { iNext; iExists _, _; iFrame. }

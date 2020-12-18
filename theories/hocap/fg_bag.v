@@ -44,11 +44,6 @@ Section proof.
   Context `{heapG Σ, bagG Σ}.
   Variable N : namespace.
 
-  Definition rown (l : loc) (v : val) :=
-    (∃ q, l ↦{q} v)%I.
-  Lemma rown_duplicate l v : rown l v -∗ rown l v ∗ rown l v.
-  Proof. iDestruct 1 as (q) "[Hl Hl']". iSplitL "Hl"; iExists _; eauto. Qed.
-
   Definition oloc_to_val (ol: option loc) : val :=
     match ol with
     | None => NONEV
@@ -61,7 +56,7 @@ Section proof.
     match xs, hd with
     | [], None => True
     | x::xs, Some l => ∃ (tl : option loc),
-                   rown l (x, oloc_to_val tl) ∗ is_list tl xs
+                   l ↦□ (x, oloc_to_val tl) ∗ is_list tl xs
     | _, _ => False
     end%I.
 
@@ -69,8 +64,7 @@ Section proof.
   Proof.
     iInduction xs as [ | x xs ] "IH" forall (hd); simpl; eauto.
     destruct hd; last by auto.
-    iDestruct 1 as (tl) "[Hro Htl]".
-    rewrite rown_duplicate. iDestruct "Hro" as "[Hro Hro']".
+    iDestruct 1 as (tl) "[#Hro Htl]".
     iDestruct ("IH" with "Htl") as "[Htl Htl']".
     iSplitL "Hro Htl"; iExists _; iFrame; eauto.
   Qed.
@@ -84,10 +78,7 @@ Section proof.
       destruct ys as [| y ys]; eauto. simpl.
       iDestruct 1 as (tl) "(Hro & Hls)".
       iDestruct 1 as (tl') "(Hro' & Hls')".
-      iDestruct "Hro" as (q) "Hro".
-      iDestruct "Hro'" as (q') "Hro'".
-      iDestruct (mapsto_agree l q q' (PairV x (oloc_to_val tl)) (PairV y (oloc_to_val tl'))
-                with "Hro Hro'") as %?. simplify_eq/=.
+      iDestruct (mapsto_agree l with "Hro Hro'") as %?; simplify_eq/=.
       iDestruct ("IH" with "Hls Hls'") as %->. done.
   Qed.
 
@@ -166,10 +157,11 @@ Section proof.
     iInv N as (o' ls) "[Ho [Hls >Hb]]" "Hcl".
     destruct (decide (o = o')) as [->|?].
     - wp_cmpxchg_suc. { destruct o'; left; done. }
+      iMod (mapsto_persist with "Hn") as "#Hn".
       iMod ("Hvs" with "[$Hb $HP]") as "[Hb HQ]".
       iMod ("Hcl" with "[Ho Hn Hls Hb]") as "_".
       { iNext. iExists (Some _),(v::ls). iFrame "Ho Hb".
-        simpl. iExists _. iFrame. by iExists 1%Qp. }
+        simpl. iExists _. by iFrame. }
       iModIntro. wp_pures. by iApply "HΦ".
     - wp_cmpxchg_fail.
       { destruct o, o'; simpl; congruence. }
@@ -206,14 +198,11 @@ Section proof.
       iModIntro. repeat wp_pure _.
       by iApply "HΦ".
     - destruct o as [hd|]; last done.
-      iDestruct "Hls" as (tl) "(Hhd & Hls)"; simplify_eq/=.
-      rewrite rown_duplicate. iDestruct "Hhd" as "[Hhd Hhd']".
+      iDestruct "Hls" as (tl) "[#Hhd Hls]"; simplify_eq/=.
       rewrite is_list_duplicate. iDestruct "Hls" as "[Hls Hls']".
       iMod ("Hcl" with "[Ho Hb Hhd Hls]") as "_".
-      { iNext. iExists (Some _),(x::ls). simpl; iFrame; eauto.
-        iExists _; eauto. by iFrame. }
+      { iNext. iExists (Some _),(x::ls). simpl; iFrame; eauto. }
       iModIntro. repeat wp_pure _.
-      iDestruct "Hhd'" as (q) "Hhd".
       wp_load. wp_pures.
       wp_bind (CmpXchg _ _ _).
       iInv N as (o' ls') "[Ho [Hls >Hb]]" "Hcl".
@@ -222,7 +211,7 @@ Section proof.
         (* The list is still the same *)
         rewrite (is_list_duplicate tl). iDestruct "Hls'" as "[Hls' Htl]".
         iAssert (is_list (Some hd) (x::ls)) with "[Hhd Hls']" as "Hls'".
-        { simpl. iExists tl. iFrame. iExists q. iFrame. }
+        { simpl. iExists tl. by iFrame. }
         iDestruct (is_list_agree with "Hls Hls'") as %?. simplify_eq.
         iClear "Hls'".
         iDestruct "Hls" as (tl') "(Hro' & Htl')".

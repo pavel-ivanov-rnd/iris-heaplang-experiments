@@ -234,15 +234,6 @@ Section stack_works.
 
   Definition Nmailbox := N .@ "mailbox".
 
-  Local Notation "l ↦{-} v" := (∃ q, l ↦{q} v)%I
-    (at level 20, format "l  ↦{-}  v") : bi_scope.
-
-  Lemma partial_mapsto_duplicable l v :
-    l ↦{-} v -∗ l ↦{-} v ∗ l ↦{-} v.
-  Proof.
-    iIntros "H"; iDestruct "H" as (?) "[Hl Hl']"; iSplitL "Hl"; eauto.
-  Qed.
-
   Definition oloc_to_val (ol: option loc) : val :=
     match ol with
     | None => NONEV
@@ -254,7 +245,7 @@ Section stack_works.
   Definition is_list_pre (P : val → iProp Σ) (F : option loc -d> iPropO Σ) :
      option loc -d> iPropO Σ := λ v, match v with
      | None => True
-     | Some l => ∃ (h : val) (t : option loc), l ↦{-} (h, oloc_to_val t)%V ∗ P h ∗ ▷ F t
+     | Some l => ∃ (h : val) (t : option loc), l ↦□ (h, oloc_to_val t)%V ∗ P h ∗ ▷ F t
      end%I.
 
   Local Instance is_list_contr (P : val → iProp Σ) : Contractive (is_list_pre P).
@@ -278,14 +269,13 @@ Section stack_works.
   Lemma is_list_dup (P : val → iProp Σ) v :
     is_list P v -∗ is_list P v ∗ match v with
       | None => True
-      | Some l => ∃ h t, l ↦{-} (h, oloc_to_val t)%V
+      | Some l => ∃ h t, l ↦□ (h, oloc_to_val t)%V
       end.
   Proof.
     iIntros "Hstack". iDestruct (is_list_unfold with "Hstack") as "Hstack".
     destruct v as [l|].
-    - iDestruct "Hstack" as (h t) "(Hl & Hlist)".
-      iDestruct (partial_mapsto_duplicable with "Hl") as "[Hl1 Hl2]".
-      rewrite (is_list_unfold _ (Some _)); iSplitR "Hl2"; iExists _, _; by iFrame.
+    - iDestruct "Hstack" as (h t) "[#Hl Hlist]".
+      rewrite (is_list_unfold _ (Some _)); iSplitL; iExists _, _; by iFrame.
     - rewrite is_list_unfold; iSplitR; eauto.
   Qed.
 
@@ -326,7 +316,8 @@ Section stack_works.
       iInv N as (list) "(Hl & Hlist)" "Hclose".
       destruct (decide (v'' = list)) as [ -> |].
       * wp_cmpxchg_suc. { destruct list; left; done. }
-        iMod ("Hclose" with "[HP Hl Hl' Hlist]") as "_".
+        iMod (mapsto_persist with "Hl'") as "#Hl'".
+        iMod ("Hclose" with "[HP Hl Hlist]") as "_".
         { iNext; iExists (Some _); iFrame.
           rewrite (is_list_unfold _ (Some _)). iExists _, _; iFrame; eauto. }
         iModIntro.
@@ -364,7 +355,7 @@ Section stack_works.
         iApply "HΦ"; by iLeft.
       * wp_match. wp_bind (Load _).
         iInv N as (v') "[>Hl Hlist]" "Hclose".
-        iDestruct "Hlist2" as (???) "Hl'".
+        iDestruct "Hlist2" as (??) "Hl'".
         wp_load.
         iMod ("Hclose" with "[Hl Hlist]") as "_".
         { iNext; iExists _; by iFrame. }
@@ -374,7 +365,6 @@ Section stack_works.
         destruct (decide (v'' = Some list)) as [-> |].
         + rewrite is_list_unfold.
           iDestruct "Hlist" as (h' t') "(Hl'' & HP & Hlist)".
-          iDestruct "Hl''" as (q') "Hl''".
           wp_cmpxchg_suc.
           iDestruct (mapsto_agree with "Hl'' Hl'") as "%"; simplify_eq.
           iMod ("Hclose" with "[Hl Hlist]") as "_".

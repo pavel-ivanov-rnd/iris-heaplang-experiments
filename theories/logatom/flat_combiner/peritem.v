@@ -15,23 +15,14 @@ Section defs.
 
   Fixpoint is_list_R (hd: loc) (xs: list val) : iProp Σ :=
     match xs with
-    | [] => (∃ q, hd ↦{ q } NONEV)%I
-    | x :: xs => (∃ (hd': loc) q, hd ↦{q} SOMEV (x, #hd') ∗ inv N (R x) ∗ is_list_R hd' xs)%I
+    | [] => hd ↦□ NONEV
+    | x :: xs => ∃ hd': loc, hd ↦□ SOMEV (x, #hd') ∗ inv N (R x) ∗ is_list_R hd' xs
     end.
 
   Definition is_bag_R xs s := (∃ hd: loc, s ↦ #hd ∗ is_list_R hd xs)%I.
 
-  Lemma dup_is_list_R : ∀ xs hd,
-    is_list_R hd xs ⊢ |==> is_list_R hd xs ∗ is_list_R hd xs.
-  Proof.
-    induction xs as [|y xs' IHxs'].
-    - iIntros (hd) "Hs".
-      simpl. iDestruct "Hs" as (q) "[Hhd Hhd']". iSplitL "Hhd"; eauto.
-    - iIntros (hd) "Hs". simpl.
-      iDestruct "Hs" as (hd' q) "([Hhd Hhd'] & #Hinv & Hs')".
-      iDestruct (IHxs' with "[Hs']") as ">[Hs1 Hs2]"; first by iFrame.
-      iModIntro. iSplitL "Hhd Hs1"; iExists hd', (q / 2)%Qp; by iFrame.
-  Qed.
+  Global Instance is_list_R_persistent hd xs : Persistent (is_list_R hd xs).
+  Proof. revert hd. induction xs; apply _. Qed.
 
   Definition f_spec (R: iProp Σ) (f: val) (Rf: iProp Σ) x :=
     {{{ inv N R ∗ Rf }}}
@@ -51,14 +42,15 @@ Section proofs.
   Proof.
     iIntros (Φ) "_ HΦ".
     wp_lam. wp_bind (ref NONE)%E. wp_alloc l as "Hl".
+    iMod (mapsto_persist with "Hl") as "#Hl".
     wp_alloc s as "Hs".
-    iAssert ((∃ xs, is_bag_R N R xs s))%I with "[-HΦ]" as "Hxs".
+    iAssert (∃ xs, is_bag_R N R xs s)%I with "[-HΦ]" as "Hxs".
     { iFrame. iExists [], l.
       iFrame. simpl. eauto. }
     iMod (inv_alloc N _ (∃ xs : list val, is_bag_R N R xs s)%I with "[-HΦ]") as "#?"; first eauto.
     iApply "HΦ". iFrame "#". done.
   Qed.
-  
+
   Lemma push_spec (s: loc) (x: val):
     {{{ R x ∗ bag_inv s }}} push #s x {{{ RET #() ; inv N (R x) }}}.
   Proof.
@@ -75,10 +67,11 @@ Section proofs.
     iDestruct "H1" as (xs' hd') "[>Hs H1]".
     destruct (decide (hd = hd')) as [->|Hneq].
     - wp_cmpxchg_suc.
+      iMod (mapsto_persist with "Hl") as "#Hl".
       iMod (inv_alloc N _ (R x) with "[HRx]") as "#HRx"; first eauto.
       iMod ("Hclose" with "[Hs Hl H1]").
       { iNext. iFrame. iExists (x::xs'), l.
-        iFrame. simpl. iExists hd', 1%Qp. iFrame.
+        iFrame. simpl. iExists hd'. iFrame.
         by iFrame "#". }
       iModIntro. wp_pures. by iApply "HΦ".
     - wp_cmpxchg_fail.

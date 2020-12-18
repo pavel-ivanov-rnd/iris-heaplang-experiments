@@ -557,7 +557,7 @@ Section ccounter.
   Proof.
     intros ?.
     (* This property follows directly from the generic properties of the relevant RAs. *)
-    by apply nat_included, (frac_auth_included_total q).
+    apply nat_included. by apply: (frac_auth_included_total q).
   Qed.
 
   Lemma ccounterRA_valid_full (m n : natR): ✓ (●F m ⋅ ◯F n) → (n = m)%nat.

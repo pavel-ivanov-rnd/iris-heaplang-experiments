@@ -159,7 +159,7 @@ Section conditional_counter.
   (* After the prophecy said we are going to win the race, we commit and run the AU,
      switching from [pending] to [accepted]. *)
   Definition accepted_state Q (proph_winner : option loc) (l_ghost_winner : loc) :=
-    ((∃ v, l_ghost_winner ↦{1/2} v) ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
+    ((∃ v, l_ghost_winner ↦{#1/2} v) ∗ match proph_winner with None => True | Some l => ⌜l = l_ghost_winner⌝ ∗ Q end)%I.
 
   (* The same thread then wins the CmpXchg and moves from [accepted] to [done].
      Then, the [γ_t] token guards the transition to take out [Q].
@@ -171,7 +171,7 @@ Section conditional_counter.
      owns *more than* half of its [l], which means we know that the [l] there
      and here cannot be the same. *)
   Definition done_state Q (l l_ghost_winner : loc) (γ_t : gname) :=
-    ((Q ∨ own_token γ_t) ∗ (∃ v, l_ghost_winner ↦ v) ∗ (∃ v, l ↦{1/2} v))%I.
+    ((Q ∨ own_token γ_t) ∗ (∃ v, l_ghost_winner ↦ v) ∗ (∃ v, l ↦{#1/2} v))%I.
 
   (* We always need the [proph] in here so that failing threads coming late can
      always resolve their stuff.
@@ -180,7 +180,7 @@ Section conditional_counter.
   Definition state_inv P Q (p : proph_id) n (c_l l l_ghost_winner : loc) γ_n γ_t γ_s : iProp Σ :=
     (∃ vs, proph p vs ∗
       (own γ_s (Cinl $ Excl ()) ∗
-       (c_l ↦{1/2} #l ∗ ( pending_state P n (val_to_some_loc vs) l_ghost_winner γ_n
+       (c_l ↦{#1/2} #l ∗ ( pending_state P n (val_to_some_loc vs) l_ghost_winner γ_n
         ∨ accepted_state Q (val_to_some_loc vs) l_ghost_winner ))
        ∨ own γ_s (Cinr $ to_agree ()) ∗ done_state Q l l_ghost_winner γ_t))%I.
 
@@ -192,9 +192,9 @@ Section conditional_counter.
     (∃ (l : loc) (q : Qp) (s : abstract_state),
        (* We own *more than* half of [l], which shows that this cannot
           be the [l] of any [state] protocol in the [done] state. *)
-       c ↦{1/2} #l ∗ l ↦{1/2 + q} (state_to_val s) ∗
+       c ↦{#1/2} #l ∗ l ↦{#1/2 + q} (state_to_val s) ∗
        match s with
-        | Quiescent n => c ↦{1/2} #l ∗ own γ_n (● Excl' n)
+        | Quiescent n => c ↦{#1/2} #l ∗ own γ_n (● Excl' n)
         | Updating f n p =>
            ∃ P Q l_ghost_winner γ_t γ_s,
              (* There are two pieces of per-[state]-protocol ghost state:
@@ -260,7 +260,7 @@ Section conditional_counter.
         (m n : Z) (l l_ghost l_new : loc) Φ :
     inv counterN (counter_inv γ_n c_l) -∗
     inv stateN (state_inv P Q p m c_l l l_ghost γ_n γ_t γ_s) -∗
-    l_ghost ↦{1 / 2} #() -∗
+    l_ghost ↦{# 1 / 2} #() -∗
     (□(own_token γ_t ={⊤}=∗ ▷ Q) -∗ Φ #()) -∗
     own γ_n (● Excl' n) -∗
     l_new ↦ InjLV #n -∗
@@ -339,7 +339,8 @@ Section conditional_counter.
       iDestruct "Done" as "(_ & _ & >Hl'')".
       iDestruct "Hl''" as (v') "Hl''".
       iDestruct (mapsto_combine with "Hl Hl''") as "[Hl _]".
-      rewrite Qp_half_half. iDestruct (mapsto_valid_3 with "Hl Hl'") as "[]".
+      rewrite dfrac_op_own Qp_half_half.
+      iDestruct (mapsto_valid_3 with "Hl Hl'") as "[]".
     }
     (* The CmpXchg fails. *)
     wp_apply (wp_resolve with "Hp"); first done. wp_cmpxchg_fail.

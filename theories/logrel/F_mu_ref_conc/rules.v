@@ -21,9 +21,14 @@ Instance heapIG_irisG `{heapIG Σ} : irisG F_mu_ref_conc_lang Σ := {
 }.
 Global Opaque iris_invG.
 
-Notation "l ↦ᵢ{ q } v" := (mapsto (L:=loc) (V:=val) l q v)
-  (at level 20, q at level 50, format "l  ↦ᵢ{ q }  v") : bi_scope.
-Notation "l ↦ᵢ v" := (mapsto (L:=loc) (V:=val) l 1 v) (at level 20) : bi_scope.
+Notation "l ↦ᵢ{ dq } v" := (mapsto (L:=loc) (V:=val) l dq v)
+  (at level 20, format "l  ↦ᵢ{ dq }  v") : bi_scope.
+Notation "l ↦ᵢ□ v" := (mapsto (L:=loc) (V:=val) l DfracDiscarded v)
+  (at level 20, format "l  ↦ᵢ□  v") : bi_scope.
+Notation "l ↦ᵢ{# q } v" := (mapsto (L:=loc) (V:=val) l (DfracOwn q) v)
+  (at level 20, format "l  ↦ᵢ{# q }  v") : bi_scope.
+Notation "l ↦ᵢ v" := (mapsto (L:=loc) (V:=val) l (DfracOwn 1) v)
+  (at level 20, format "l  ↦ᵢ  v") : bi_scope.
 
 Section lang_rules.
   Context `{heapIG Σ}.
@@ -64,8 +69,8 @@ Section lang_rules.
     iModIntro; iSplit=> //. iFrame. by iApply "HΦ".
   Qed.
 
-  Lemma wp_load E l q v :
-    {{{ ▷ l ↦ᵢ{q} v }}} Load (Loc l) @ E {{{ RET v; l ↦ᵢ{q} v }}}.
+  Lemma wp_load E l dq v :
+    {{{ ▷ l ↦ᵢ{dq} v }}} Load (Loc l) @ E {{{ RET v; l ↦ᵢ{dq} v }}}.
   Proof.
     iIntros (Φ) ">Hl HΦ". iApply wp_lift_atomic_head_step_no_fork; auto.
     iIntros (σ1 ???) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
@@ -87,10 +92,10 @@ Section lang_rules.
     iModIntro. iSplit=>//. by iApply "HΦ".
   Qed.
 
-  Lemma wp_cas_fail E l q v' e1 v1 e2 v2 :
+  Lemma wp_cas_fail E l dq v' e1 v1 e2 v2 :
     IntoVal e1 v1 → IntoVal e2 v2 → v' ≠ v1 →
-    {{{ ▷ l ↦ᵢ{q} v' }}} CAS (Loc l) e1 e2 @ E
-    {{{ RET (BoolV false); l ↦ᵢ{q} v' }}}.
+    {{{ ▷ l ↦ᵢ{dq} v' }}} CAS (Loc l) e1 e2 @ E
+    {{{ RET (BoolV false); l ↦ᵢ{dq} v' }}}.
   Proof.
     iIntros (<- <- ? Φ) ">Hl HΦ".
     iApply wp_lift_atomic_head_step_no_fork; auto.

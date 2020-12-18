@@ -89,7 +89,7 @@ Fixpoint phys_list (lopt : option loc) (xs : list val) : iProp :=
   | (None  , []     ) => True
   | (None  , _ :: _ ) => False
   | (Some _, []     ) => False
-  | (Some ℓ, x :: xs) => ∃r q, ℓ ↦{q} (x, to_val r) ∗ phys_list r xs
+  | (Some ℓ, x :: xs) => ∃ r, ℓ ↦□ (x, to_val r) ∗ phys_list r xs
   end%I.
 
 (** Representation relation for stacks: the location [ℓ] physically represents
@@ -132,15 +132,9 @@ Proof.
   intros l1 l2 H. case l1, l2; try done. inversion H. reflexivity.
 Qed.
 
-(** Duplicability of the [phys_list] relation. *)
-Lemma phys_list_dup l xs : phys_list l xs -∗ phys_list l xs ∗ phys_list l xs.
-Proof.
-  iInduction xs as [|x xs] "IH" forall (l); destruct l as [l|]; try done.
-  simpl. iIntros "H".
-  iDestruct "H" as (r q) "[[Hl1 Hl2] HPhys]".
-  iDestruct ("IH" with "HPhys") as "[HPhys1 HPhys2]".
-  iSplitL "Hl1 HPhys1"; eauto with iFrame.
-Qed.
+(** Persistence of the [phys_list] relation. *)
+Global Instance phys_list_dup l xs : Persistent (phys_list l xs).
+Proof. revert l. induction xs; apply _. Qed.
 
 (** Timelessness of the [phys_list] relation. *)
 Global Instance phys_list_timeless l xs : Timeless (phys_list l xs).
@@ -274,6 +268,7 @@ Proof.
     (* Commit operation. *)
     iMod ("HClose" with "Hγ◯") as "H".
     (* We can eliminate the modality. *)
+    iMod (mapsto_persist with "Hr") as "Hr".
     iModIntro. iSplitR "H"; first by eauto 10 with iFrame.
     (* And conclude the proof easily, after some computation steps. *)
     wp_pures. iExact "H".
@@ -303,16 +298,14 @@ Proof.
   iIntros "#HInv" (Φ) "AU". iLöb as "IH". wp_lam. wp_bind (! _)%E.
   (* We can then use the invariant to be able to perform the load. *)
   iInv "HInv" as (xs) ">[HPhys Hγ●]".
-  iDestruct "HPhys" as (w) "[Hl HPhys]". wp_load.
-  (* We now duplicate [phys_list w xs] as we will need two copies. *)
-  iDestruct (phys_list_dup with "HPhys") as "[HPhys1 HPhys2]".
+  iDestruct "HPhys" as (w) "[Hl #HPhys]". wp_load.
   (* We then inspect the contents of the stack and the optional location. They
      must agree, otherwise the proof is trivial. *)
   destruct w as [w|], xs as [|x xs]; try done; simpl.
   - (* The stack is non-empty, we eliminate the modality. *)
-    iModIntro. iSplitL "Hl Hγ● HPhys1"; first by eauto 10 with iFrame.
+    iModIntro. iSplitL "Hl Hγ●"; first by eauto 10 with iFrame.
     (* We continue stepping through the program, and focus on the CAS. *)
-    wp_let. wp_match. iDestruct "HPhys2" as (r q) "[Hw HP]".
+    wp_let. wp_match. iDestruct "HPhys" as (r) "[Hw HP]".
     wp_load. wp_let. wp_proj. wp_bind (CmpXchg _ _ _)%E.
     (* We need to use the invariant again to gain information on [ℓ]. *)
     iInv "HInv" as (ys) ">[H Hγ●]".
@@ -332,7 +325,7 @@ Proof.
       (* Update the value of [γ] to [ys] (the tail of previous value). *)
       iMod (auth_update γ ys with "Hγ● Hγ◯") as "[Hγ● Hγ◯]".
       (* We need to learn that [r = u] (true since mapsto must agree). *)
-      iDestruct "HPhys" as (u q') "[Hw' HPhys]".
+      iDestruct "HPhys" as (u) "[Hw' HPhys]".
       iDestruct (mapsto_agree with "Hw Hw'") as %[=-> ->%to_val_inj].
       (* Perform the commit. *)
       iMod ("HClose" with "Hγ◯") as "HΦ".
@@ -348,7 +341,7 @@ Proof.
       wp_pures. iApply "IH". iExact "AU".
   - (* The stack is empty, the load was the linearization point,  we can hence
        commit (without updating the stack). So we access the precondition. *)
-    iClear "HPhys1 HPhys2". iMod "AU" as (xs) "[Hγ◯ [_ HClose]]".
+    iMod "AU" as (xs) "[Hγ◯ [_ HClose]]".
     (* Thanks to agreement, we learn that [xs] must be the empty list. *)
     iDestruct (auth_agree with "Hγ● Hγ◯") as %<-.
     (* And we can commit (we are still at the linearization point). *)

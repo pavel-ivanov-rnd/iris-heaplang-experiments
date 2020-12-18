@@ -192,10 +192,9 @@ Section proof.
     induction xs as [|x xs' IHxs].
     - iIntros (hd Φ) "[Hxs ?] HΦ".
       simpl. wp_rec. wp_let.
-      iDestruct "Hxs" as (?) "Hhd".
       wp_load. wp_match. by iApply "HΦ".
     - iIntros (hd Φ) "[Hxs HRf] HΦ". simpl.
-      iDestruct "Hxs" as (hd' ?) "(Hhd & #Hinv & Hxs')".
+      iDestruct "Hxs" as (hd') "(#Hhd & #Hinv & Hxs')".
       wp_rec. wp_let. wp_bind (! _)%E.
       iInv N as "H" "Hclose".
       iDestruct "H" as (ts p) "[>% #?]". subst.
@@ -221,12 +220,12 @@ Section proof.
     iIntros "[Hlocked [Ho2 HR]]".
     wp_if. wp_bind (! _)%E.
     iInv N as "H" "Hclose".
-    iDestruct "H" as (xs' hd') "[>Hs Hxs]".
-    wp_load. iDestruct (dup_is_list_R with "[Hxs]") as ">[Hxs1 Hxs2]"; first by iFrame.
-    iMod ("Hclose" with "[Hs Hxs1]").
+    iDestruct "H" as (xs' hd') "[>Hs #Hxs]".
+    wp_load.
+    iMod ("Hclose" with "[Hs]").
     { iNext. iFrame. iExists xs', hd'. by iFrame. }
     iModIntro. wp_let. wp_bind (treiber.iter _ _).
-    iApply wp_wand_r. iSplitL "HR Ho2 Hxs2".
+    iApply wp_wand_r. iSplitL "HR Ho2".
     { iApply (loop_iter_doOp_spec R _ _ _ _ (λ _, own γr (Excl ()) ∗ R)%I with "[-]")=>//.
       iFrame "#". iFrame. eauto. }
     iIntros (f') "[Ho HR]". wp_seq.
@@ -255,14 +254,14 @@ Section proof.
       iFrame "#". wp_seq. iApply ("IH" with "Ho3"); eauto.
     + iDestruct "Hp" as (f x) "(Hp & Hx & Ho2 & Ho4)".
       wp_load. iMod ("Hclose" with "[-Ho3 HΦ]").
-      { iNext. iFrame. iRight. iRight. iLeft. iExists f, x. iFrame. }
+      { iNext. iRight. iRight. iLeft. iExists f, x. iFrame. }
       iModIntro. wp_match.
       wp_bind (try_srv _ _). iApply try_srv_spec=>//.
       iFrame "#". wp_seq. iApply ("IH" with "Ho3"); eauto.
     + iDestruct "Hp" as (x y) "[>Hp Hs']".
       iDestruct "Hs'" as (Q) "(>Hx & HoQ & HQ & >Ho1 & >Ho4)".
       wp_load. iMod ("Hclose" with "[-Ho4 HΦ Hx HoQ HQ]").
-      { iNext. iFrame. iLeft. iExists y. iFrame. }
+      { iNext. iLeft. iExists y. iFrame. }
       iModIntro. wp_match. iApply ("HΦ" with "[-]"). iFrame.
       iExists Q. iFrame.
   Qed.
