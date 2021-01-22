@@ -7,17 +7,22 @@ TaDA-style and HoCAP-style.  The key difference between these specs is as follow
   (which usually involves changing the abstract state), and gives that back to
   the client for a "closing" mask-changing view shift, where the client can
   close the invariants again.
-  A TaDA-style specs have an "atomic pre/postcondition", making them easy to
+  The flow of resources at the lineraization point is "client gives resources to
+  library; library gives altered resources back to client".
+  A TaDA-style specs has an "atomic pre/postcondition", making them easy to
   relate to a sequential spec for the same kind of data structure.
 - HoCAP-style specs require the client to prove a non-mask-changing view shift
   which may assume as an assumption the "old" abstract state of the library, and
   has to produce the "new" abstract state. Unlike TaDA-style specs,
   it is up to the *client* to change the abstract state to match the current
   operation.
-  This pattern also does not really have a notion of "atomic pre/postcondition";
-  the relation between a sequential specification and its atomic counterpart is
-  much more complex with HoCAP-style specs than it is with
-  TaDA-style specs.
+  The flow of resources at the linearization point is "library gives resources
+  to client; client gives altered resources back to library".
+  This pattern also does not really have a notion of "atomic pre/postcondition"
+  (it might be tempting to use this term for the LHS of the view shift, but note
+  that the LHS is *covariant*, not contravariant like preconditions should be).
+  The relation between a sequential specification and its atomic counterpart is
+  more complex with HoCAP-style specs than it is with TaDA-style specs.
   HoCAP-style specs come in two variants: "authoritative" and "predicate".
   Both can be found below.
 
