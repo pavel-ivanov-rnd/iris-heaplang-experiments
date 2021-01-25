@@ -30,7 +30,7 @@ Section excl.
 End excl.
 
 Section big_op_later.
-  Context {M : ucmraT}.
+  Context {M : ucmra}.
   Context `{Countable K} {A : Type}.
   Implicit Types m : gmap K A.
   Implicit Types Φ Ψ : K → A → uPred M. 
@@ -47,7 +47,7 @@ Section big_op_later.
 End big_op_later.
 
 Section pair.
-  Context {A : ofeT} `{EqDecision A, !OfeDiscrete A, !LeibnizEquiv A, !inG Σ (prodR fracR (agreeR A))}.
+  Context {A : ofe} `{EqDecision A, !OfeDiscrete A, !LeibnizEquiv A, !inG Σ (prodR fracR (agreeR A))}.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
     own γm (q1, to_agree a1) -∗ own γm (q2, to_agree a2) -∗ ⌜a1 = a2⌝.

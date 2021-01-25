@@ -9,8 +9,8 @@ Definition specN := nroot .@ "spec".
 
 
 (** The CMRA for the heap of the specification. *)
-Definition tpoolUR : ucmraT := gmapUR nat (exclR exprO).
-Definition heapUR (L V : Type) `{Countable L} : ucmraT :=
+Definition tpoolUR : ucmra := gmapUR nat (exclR exprO).
+Definition heapUR (L V : Type) `{Countable L} : ucmra :=
   gmapUR L (prodR fracR (agreeR (leibnizO V))).
 Definition cfgUR := prodUR tpoolUR (heapUR loc val).
 

@@ -14,11 +14,11 @@ From iris_examples.spanning_tree Require Import graph.
 Canonical Structure chlO := leibnizO (option loc * option loc).
 (* The graph monoid. *)
 Definition graphN : namespace := nroot .@ "SPT_graph".
-Definition graphUR : ucmraT :=
+Definition graphUR : ucmra :=
   optionUR (prodR fracR (gmapR loc (exclR chlO))).
 (* The monoid for talking about which nodes are marked.
 These markings are duplicatable. *)
-Definition markingUR : ucmraT := gsetUR loc.
+Definition markingUR : ucmra := gsetUR loc.
 
 (** The CMRA we need. *)
 Class graphG Σ := GraphG

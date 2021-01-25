@@ -628,7 +628,7 @@ Proof.
     by eapply shot_not_equiv_not_shot'.
 Qed.
 
-Lemma None_op {A : cmraT} : (None : optionUR A) ⋅ None = None.
+Lemma None_op {A : cmra} : (None : optionUR A) ⋅ None = None.
 Proof. done. Qed.
 
 Lemma use_pending_tok γs i γ slots :

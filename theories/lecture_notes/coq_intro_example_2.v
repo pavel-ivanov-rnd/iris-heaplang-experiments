@@ -367,7 +367,7 @@ From iris.algebra Require Import auth.
    The two updates in the following section are the same as stated in the exercise in the notes.
 *)
 Section auth_update.
-  Context {U : ucmraT}.
+  Context {U : ucmra}.
 
   Lemma auth_update_add (x y z : U): ✓ (x ⋅ z) → ● x ⋅ ◯ y ~~> ● (x ⋅ z) ⋅ ◯ (y ⋅ z).
   Proof.
