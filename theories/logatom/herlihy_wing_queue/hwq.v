@@ -1485,7 +1485,7 @@ Proof.
   iIntros (Hsz Φ) "_ HΦ". wp_lam.
   (** Allocate [q.ar], [q.back] and [q.p]. *)
   wp_apply wp_allocN; [ lia | done | iIntros (ℓa) "[Hℓa _]" ].
-  wp_alloc ℓb as "Hℓb".
+  wp_alloc ℓb as "Hℓb". wp_pures.
   wp_apply wp_new_proph; [ done | iIntros (rs p) "Hp" ].
   wp_pures.
   (* Allocate the remaining ghost state. *)
@@ -1552,7 +1552,7 @@ Proof.
       destruct cont as [i1 i2|bs]; last done.
       destruct Hcont as ((H1 & H2) & H3 & H4).
       by repeat (split; first lia).
-    - wp_pures. rewrite (bool_decide_false _ Hback_sz). wp_apply wp_diverge. }
+    - wp_pures. rewrite (bool_decide_false _ Hback_sz). wp_smart_apply wp_diverge. }
   (* We now have a reserved slot [i], which is still free. *)
   pose (i := back). pose (elts := map (get_value slots deqs) pref ++ rest).
   assert (slots !! back = None) as Hi_free.

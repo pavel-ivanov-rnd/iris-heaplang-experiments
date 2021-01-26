@@ -79,10 +79,10 @@ Lemma client_spec_new (fM fW1 fW2 : val) :
 Proof using All.
   iIntros "/= HP #Hf #Hf1 #Hf2"; rewrite /client.
   iMod (own_alloc (Pending : one_shotR Σ F)) as (γ) "Hγ"; first done.
-  wp_lam. wp_apply (newbarrier_spec N (barrier_res γ Φ)); auto.
+  wp_lam. wp_pures. wp_apply (newbarrier_spec N (barrier_res γ Φ)); auto.
   iIntros (l) "[Hr Hs]".
   set (workers_post (v : val) := (barrier_res γ Ψ1 ∗ barrier_res γ Ψ2)%I).
-  wp_apply (par_spec  (λ _, True)%I workers_post with "[HP Hs Hγ] [Hr]").
+  wp_smart_apply (par_spec  (λ _, True)%I workers_post with "[HP Hs Hγ] [Hr]").
   - wp_lam. wp_bind (fM #()). iApply (wp_wand with "[HP]"); [by iApply "Hf"|].
     iIntros (v) "HP"; iDestruct "HP" as (x) "HP". wp_seq.
     iMod (own_update with "Hγ") as "Hx".
@@ -91,10 +91,10 @@ Proof using All.
     iExists x; auto.
   - iDestruct (recv_weaken with "[] Hr") as "Hr"; first by iApply P_res_split.
     iMod (recv_split with "Hr") as "[H1 H2]"; first done.
-    wp_apply (par_spec (λ _, barrier_res γ Ψ1)%I
+    wp_smart_apply (par_spec (λ _, barrier_res γ Ψ1)%I
                        (λ _, barrier_res γ Ψ2)%I with "[H1] [H2]").
-    + wp_apply (worker_spec with "H1"); auto.
-    + wp_apply (worker_spec with "H2"); auto.
+    + wp_smart_apply (worker_spec with "H1"); auto.
+    + wp_smart_apply (worker_spec with "H2"); auto.
     + auto.
   - iIntros (_ v) "[_ [H1 H2]]". iDestruct (Q_res_join with "H1 H2") as "?". auto.
 Qed.

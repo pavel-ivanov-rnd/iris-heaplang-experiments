@@ -638,7 +638,7 @@ Section rdcss.
     {{{ l_n, RET #l_n ; is_rdcss l_n ∗ rdcss_state l_n n }}}.
   Proof.
     iIntros (Hdisj) "#InvGC". iIntros "!>" (Φ) "_ HΦ".
-    wp_lam. iApply wp_fupd. wp_apply wp_alloc; first done.
+    wp_lam. wp_pures. iApply wp_fupd. wp_apply wp_alloc; first done.
     iIntros (l_n) "[Hln HMeta]".
     iMod (own_alloc (● Excl' n  ⋅ ◯ Excl' n)) as (γ_n) "[Hn● Hn◯]";
       first by apply auth_both_valid_discrete.

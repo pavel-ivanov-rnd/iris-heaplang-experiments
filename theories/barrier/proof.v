@@ -84,7 +84,7 @@ Proof.
   iInv N as ([] γsps) "(>Hl & >H● & HRs)"; last first.
   { wp_load. iModIntro. iSplitL "Hl H● HRs".
     { iExists false, γsps. iFrame. }
-    by wp_apply ("IH" with "[$] [$]"). }
+    wp_pures. by wp_apply ("IH" with "[$] [$]"). }
   iSpecialize ("HRs" with "[//]"). wp_load.
   iDestruct (own_valid_2 with "H● H◯")
     as %[Hvalid%gset_disj_included%elem_of_subseteq_singleton _]%auth_both_valid_discrete.

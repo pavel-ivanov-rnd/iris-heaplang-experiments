@@ -465,13 +465,13 @@ Lemma inc_with_map hd (xs : list Z) :
     incr hd
   {{{ v, RET v; is_list v (List.map (fun (n : Z) => #n) (List.map Z.succ xs)) }}}.
 Proof.
-  iIntros (ϕ) "H_isList H_ϕ".
-  wp_rec. wp_apply (map_spec
-                            (fun x => (∃ (n : Z), ⌜x = #n⌝)%I)
-                            (fun x r =>  (∃ (n' : Z),
-                                       ⌜r = #(Z.succ n')⌝
-                                             ∗ ⌜x = #n'⌝)%I)
-                    with "[$H_isList] [H_ϕ]").
+  iIntros (ϕ) "H_isList H_ϕ". wp_rec. wp_pures.
+  wp_apply (map_spec
+             (fun x => (∃ (n : Z), ⌜x = #n⌝)%I)
+             (fun x r =>  (∃ (n' : Z),
+                             ⌜r = #(Z.succ n')⌝
+                                ∗ ⌜x = #n'⌝)%I)
+           with "[$H_isList] [H_ϕ]").
   - iSplit. iIntros (x) "!#". iIntros (ϕ') "H1 H2". wp_lam. iDestruct "H1" as (n) "H_x".
     iSimplifyEq. wp_binop. iApply "H2". by iExists n.
     rewrite big_sepL_fmap. rewrite big_sepL_forall. eauto.

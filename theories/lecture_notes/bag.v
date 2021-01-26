@@ -86,13 +86,13 @@ Section spec.
     iIntros (v) "[P HLocked]". iDestruct "P" as (b) "[Hp Hb]".
     wp_load.
     destruct b; try (iDestruct "Hb" as "%"; contradiction).
-    - wp_apply (release_spec with "[$IL $HLocked Hp Hb]"); first done.
+    - wp_smart_apply (release_spec with "[$IL $HLocked Hp Hb]"); first done.
       { iExists _. iFrame. }
       iIntros. wp_pures. iApply "Hcont". iLeft. done.
     - destruct b; try (iDestruct "Hb" as "%"; contradiction).
       simpl. iDestruct "Hb" as "[Hψ Hb]".
       wp_store.
-      wp_apply (release_spec with "[$IL $HLocked Hp Hb]"); first done.
+      wp_smart_apply (release_spec with "[$IL $HLocked Hp Hb]"); first done.
       { iExists _. iFrame. }
       iIntros (_).
       wp_pures.

@@ -159,12 +159,12 @@ Section proof.
     iApply (wp_mask_mono _ (⊤∖↑N)); first done.
     destruct ls as [|v ls]; simpl.
     - iMod ("Hvs2" with "[$Ha $HP]") as "[Hbc HQ]".
-      wp_load. iModIntro.
+      wp_load. iModIntro. wp_pures.
       wp_apply (release_spec with  "[$Hlk $Htok Hbc Hb]").
       { iExists []; iFrame. }
       iIntros "_". repeat wp_pure _. by iApply "HΦ".
     - iMod ("Hvs1" with "[$Ha $HP]") as "[Hbc HQ]".
-      wp_load. iModIntro. wp_store. do 2 wp_pure _.
+      wp_load. iModIntro. wp_store. wp_pures.
       wp_apply (release_spec with  "[$Hlk $Htok Hbc Hb]").
       { iExists ls; iFrame. }
       iIntros "_". repeat wp_pure _. by iApply "HΦ".
