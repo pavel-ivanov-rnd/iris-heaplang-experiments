@@ -7,11 +7,13 @@ Set Default Proof Using "Type".
 (** A general logically atomic interface for RDCSS.
     See [rdcss.v] for references and more details about this data structure.
 
-_Note on the use of GC locations_:  the specification of the [rdcss] operation
-as given by [rdcss_spec] relies on the [gc_mapsto l_m m] assertion. It roughly
-corresponds to the usual [l_m ↦ m] but with an additional guarantee that [l_m]
-will not be deallocated. This guarantees that unique immutable descriptors can
-be associated to each operation, and that they cannot be "reused". *)
+_Note on the use of "invariant" locations_: the specification of the [rdcss]
+operation as given by [rdcss_spec] relies on the [inv_mapsto l_m m] assertion,
+written [l_m ↦_(λ _, True) m]. It roughly corresponds to the usual [l_m ↦ m] but
+with an additional guarantee that [l_m] will not be deallocated (and the value
+stored there satisfies the given predicate, which is trivial in this case). This
+guarantees that unique immutable descriptors can be associated to each
+operation, and that they cannot be "reused". *)
 Record atomic_rdcss {Σ} `{!heapG Σ} := AtomicRdcss {
   (* -- operations -- *)
   new_rdcss : val;
