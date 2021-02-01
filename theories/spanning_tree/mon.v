@@ -80,7 +80,7 @@ Definition Gmon_graph (G : Gmon) : graph loc := omap excl_chlC_chl G.
 Definition Gmon_graph_dom (G : Gmon) :
   ✓ G → dom (gset loc) (Gmon_graph G) = dom (gset _) G.
 Proof.
-  intros Hvl; apply elem_of_equiv_L=> i. rewrite !elem_of_dom lookup_omap.
+  intros Hvl; apply set_eq=> i. rewrite !elem_of_dom lookup_omap.
   specialize (Hvl i). split.
   - revert Hvl; case _ : (G !! i) => [[]|] //=; eauto.
     intros _ [? Hgi]; inversion Hgi.
@@ -230,7 +230,7 @@ Proof. intros H. by rewrite lookup_op lookup_singleton_ne //= left_id_L. Qed.
 
 Lemma of_graph_dom g G : dom (gset loc) (of_graph g G) = dom (gset _) g.
 Proof.
-  apply elem_of_equiv_L=>i.
+  apply set_eq=>i.
   rewrite ?elem_of_dom map_lookup_imap /of_graph_elem lookup_omap.
   case _ : (g !! i) => [x|]; case _ : (G !! i) => [[]|] //=; split;
   intros [? Hcn]; inversion Hcn; eauto.
