@@ -236,7 +236,7 @@ Theorem fact_ctx_equiv :
   [] ⊨ fact ≤ctx≤ fact_acc : (TArrow TNat TNat) ∧
   [] ⊨ fact_acc ≤ctx≤ fact : (TArrow TNat TNat).
 Proof.
-  set (Σ := #[invΣ ; gen_heapΣ loc val ; GFunctor (auth.authR cfgUR)]).
+  set (Σ := #[invΣ ; gen_heapΣ loc val ; soundness_binaryΣ]).
   set (HG := soundness_unary.HeapPreIG Σ _ _).
   split.
   - eapply (binary_soundness Σ _); auto using fact_acc_typed, fact_typed.

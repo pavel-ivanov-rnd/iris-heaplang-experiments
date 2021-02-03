@@ -4,6 +4,12 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc Require Import soundness_unary.
 
+Definition soundness_binaryΣ : gFunctors := #[ GFunctor (authR cfgUR) ].
+
+(* FIXME: Really we should define a [soundnessG] as well. *)
+Global Instance inG_soundness_binaryΣ Σ : subG soundness_binaryΣ Σ → inG Σ (authR cfgUR).
+Proof. solve_inG. Qed.
+
 Lemma basic_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}
     e e' τ v thp hp :
   (∀ `{heapIG Σ, cfgSG Σ}, [] ⊨ e ≤log≤ e' : τ) →

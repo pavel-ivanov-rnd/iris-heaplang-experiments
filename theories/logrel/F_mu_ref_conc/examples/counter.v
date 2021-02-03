@@ -351,7 +351,7 @@ Theorem counter_ctx_refinement :
   [] ⊨ FG_counter ≤ctx≤ CG_counter :
          TProd (TArrow TUnit TUnit) (TArrow TUnit TNat).
 Proof.
-  set (Σ := #[invΣ ; gen_heapΣ loc val ; GFunctor (authR cfgUR) ]).
+  set (Σ := #[invΣ ; gen_heapΣ loc val ; soundness_binaryΣ ]).
   set (HG := soundness_unary.HeapPreIG Σ _ _).
   eapply (binary_soundness Σ _); auto using FG_counter_type, CG_counter_type.
   intros. apply FG_CG_counter_refinement.

@@ -315,7 +315,7 @@ Theorem stack_ctx_refinement :
         (TArrow TUnit (TSum TUnit (TVar 0))))
         (TArrow (TArrow (TVar 0) TUnit) TUnit)).
 Proof.
-  set (Σ := #[invΣ; gen_heapΣ loc val; GFunctor (authR cfgUR)]).
+  set (Σ := #[invΣ; gen_heapΣ loc val; soundness_binaryΣ]).
   set (HG := soundness_unary.HeapPreIG Σ _ _).
   eapply (binary_soundness Σ); eauto using FG_stack_type, CG_stack_type.
   intros; apply FG_CG_counter_refinement.
