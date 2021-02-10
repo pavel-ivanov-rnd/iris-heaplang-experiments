@@ -26,7 +26,7 @@ Section proof.
     bagPart γ q1 X -∗ bagPart γ q2 Y -∗ bagPart γ (q1+q2) (X ⊎ Y).
   Proof.
     iIntros "Hp1 Hp2".
-    rewrite /bagPart -gmultiset_op_disj_union -frac_op'.
+    rewrite /bagPart -gmultiset_op -frac_op.
     rewrite frac_auth_frag_op own_op. iFrame.
   Qed.
   Lemma bagPart_decompose (γ: gname) (q: Qp) (X Y : gmultiset val) :
@@ -35,7 +35,7 @@ Section proof.
     iIntros "Hp".
     assert (q = (q/2)+(q/2))%Qp as Hq by (by rewrite Qp_div_2).
     rewrite /bagPart {1}Hq.
-    rewrite -gmultiset_op_disj_union -frac_op'.
+    rewrite -gmultiset_op -frac_op.
     rewrite frac_auth_frag_op own_op. iFrame.
   Qed.
 

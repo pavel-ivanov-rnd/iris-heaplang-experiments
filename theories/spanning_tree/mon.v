@@ -60,7 +60,7 @@ Section marking_definitions.
     own graph_marking_name (● m) ∗ is_marked l.
   Proof.
     iIntros (Hl) "Hm". iMod (new_marked with "Hm") as "[H1 H2]"; iFrame.
-    rewrite gset_op_union (comm _ m) (subseteq_union_1_L {[l]} m); trivial.
+    rewrite gset_op (comm _ m) (subseteq_union_1_L {[l]} m); trivial.
     by apply elem_of_subseteq_singleton.
   Qed.
 
@@ -398,7 +398,7 @@ Section graph.
     iDestruct (own_valid with "H") as %Hvl.
     move : Hvl => /auth_both_valid_discrete [[z Hvl'] _].
     iPureIntro.
-    rewrite Hvl' /= !gset_op_union !elem_of_union elem_of_singleton; tauto.
+    rewrite Hvl' /= !gset_op !elem_of_union elem_of_singleton; tauto.
   Qed.
 
   Lemma marked_is_marked_in_auth_sepS (mr : gset loc) m :

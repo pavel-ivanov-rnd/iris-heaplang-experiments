@@ -97,7 +97,7 @@ Section Helpers.
           rewrite mark_update_lookup; eauto. }
       iMod ("Hclose" with "[Hi1 Hi2 Hi3]") as "_".
       + iNext; unfold graph_inv at 2. iExists _; iFrame.
-        rewrite dom_op dom_singleton_L ?gset_op_union (comm union); iFrame.
+        rewrite dom_op dom_singleton_L ?gset_op (comm union); iFrame.
         iPureIntro.
         { by apply mark_strict_subgraph. }
       + iModIntro. wp_pures. iModIntro. iLeft; iSplit; trivial. iExists _; iFrame.

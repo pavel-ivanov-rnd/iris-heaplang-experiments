@@ -430,7 +430,7 @@ Section monotone_counter'.
   Qed.
 
   Lemma max_nat_op_succ m : MaxNat (S m) = MaxNat m ⋅ MaxNat (S m).
-  Proof. rewrite max_nat_op_max. apply f_equal. lia. Qed.
+  Proof. rewrite max_nat_op. apply f_equal. lia. Qed.
 
   Lemma mcounterRA_update' (m n : max_natUR) :
     ● m ⋅ ◯ n ~~> ● MaxNat (S (max_nat_car m)) ⋅ ◯ MaxNat (S (max_nat_car n)).
@@ -439,7 +439,7 @@ Section monotone_counter'.
     rewrite (max_nat_op_succ m) (max_nat_op_succ n).
     apply cmra_update_valid0. intros ?%cmra_discrete_valid%mcounterRA_valid_auth_frag'.
     simpl in *. apply auth_update_add'; first reflexivity.
-    exists (MaxNat (S m)). rewrite max_nat_op_max. apply f_equal. lia.
+    exists (MaxNat (S m)). rewrite max_nat_op. apply f_equal. lia.
   Qed.
 
   (* We can now verify the programs. *)

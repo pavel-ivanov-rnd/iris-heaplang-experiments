@@ -154,7 +154,7 @@ Section algebra.
     split; try apply _; try done.
     - intros ???. rewrite /op /addb_op /=. apply f_equal, assoc, _.
     - intros ??. rewrite /op /addb_op /=. apply f_equal, comm, _.
-    - intros [[?[?]]] [[?[?]]]. rewrite 2!sumRA_valid nat_op_plus /=. lia.
+    - intros [[?[?]]] [[?[?]]]. rewrite 2!sumRA_valid nat_op /=. lia.
   Qed.
 
   Canonical Structure sumRA := discreteR addb sumRA_mixin.
@@ -525,7 +525,7 @@ Section proof.
       set_solver.
     - apply prod_local_update; simpl.
       * apply option_local_update, exclusive_local_update. done.
-      * rewrite Nat.sub_0_r Nat.add_1_r -gset_op_union -gset_disj_union.
+      * rewrite Nat.sub_0_r Nat.add_1_r -gset_op -gset_disj_union.
         apply gset_disj_dealloc_empty_local_update.
         apply set_seq_S_start_disjoint.
   Qed.
