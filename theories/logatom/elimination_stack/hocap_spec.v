@@ -247,8 +247,8 @@ Section tada_hocap_pred.
     iInv "Hinv" as (l) "[>Hcont HP]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont".
-    iMod fupd_intro_mask' as "Hclose";
-      last iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]"; first solve_ndisj.
+    iMod (fupd_mask_subseteq (⊤ ∖ ↑N)) as "Hclose"; first solve_ndisj.
+    iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
     iMod "Hclose" as "_". iIntros "!>".
     eauto with iFrame.
   Qed.
@@ -265,12 +265,12 @@ Section tada_hocap_pred.
     iInv "Hinv" as (l) "[>Hcont HP]".
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont". destruct l.
-    - iMod fupd_intro_mask' as "Hclose";
-        last iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]"; first solve_ndisj.
-       iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
-    - iMod fupd_intro_mask' as "Hclose";
-        last iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]"; first solve_ndisj.
-       iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
+    - iMod (fupd_mask_subseteq (⊤ ∖ ↑N)) as "Hclose"; first solve_ndisj.
+      iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
+      iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
+    - iMod (fupd_mask_subseteq (⊤ ∖ ↑N))  as "Hclose"; first solve_ndisj.
+      iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
+      iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
   Qed.
 
   Program Definition tada_hocap_pred : hocap_pred.stack Σ :=

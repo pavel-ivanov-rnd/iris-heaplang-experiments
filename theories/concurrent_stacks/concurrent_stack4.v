@@ -78,7 +78,7 @@ Section proofs.
      (P ={⊤ ∖ ↑ N}=∗ Q) -∗ (P ={inner_mask}=∗ Q).
   Proof.
     iIntros "Himp P".
-    iMod (fupd_intro_mask' inner_mask (⊤ ∖ ↑ N)) as "H"; first by apply inner_mask_includes.
+    iMod (fupd_mask_subseteq (⊤ ∖ ↑ N)) as "H"; first by apply inner_mask_includes.
     iDestruct ("Himp" with "P") as "HQ".
     iMod "HQ".
     by iMod "H".
@@ -159,7 +159,7 @@ Section proofs.
       iMod ("Hcloser" with "HP") as "_".
       iMod ("Hclose" with "[Hl HQ]") as "_".
       { iRight; iLeft; iFrame. }
-      iApply fupd_intro_mask; first done.
+      iApply fupd_mask_intro_subseteq; first done.
       wp_pures.
       iApply "HΦ"; iLeft; auto.
     - wp_cmpxchg_fail.
@@ -335,7 +335,7 @@ Section proofs.
       destruct (decide (list = list')) as [ -> |].
       * wp_cmpxchg_suc. { destruct list'; left; done. }
         iMod (mapsto_persist with "Hl'") as "#Hl'".
-        iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
+        iMod (fupd_mask_subseteq inner_mask) as "Hupd'"; first solve_ndisj.
         iMod ("Hupd" with "HP") as "[HP HΨ]".
         iMod "Hupd'" as "_".
         iMod ("Hclose" with "[Hl HP Hlist]") as "_".
@@ -388,7 +388,7 @@ Section proofs.
       iDestruct (is_list_dup with "Hlist") as "[Hlist H]".
     destruct v as [l'|]; last first.
       * iDestruct (is_list_empty with "Hlist") as %->.
-        iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
+        iMod (fupd_mask_subseteq inner_mask) as "Hupd'"; first solve_ndisj.
         iMod ("Hupd" with "HP") as "[HP HΨ]".
         iMod "Hupd'" as "_".
         iMod ("Hclose" with "[Hlist Hl HP]") as "_".
@@ -412,7 +412,7 @@ Section proofs.
         + wp_cmpxchg_suc.
           iDestruct (is_list_cons with "Hl' Hlist") as (ys) "%".
           simplify_eq.
-          iMod (fupd_intro_mask' (⊤ ∖ ↑Nstack) inner_mask) as "Hupd'"; first solve_ndisj.
+          iMod (fupd_mask_subseteq inner_mask) as "Hupd'"; first solve_ndisj.
           iDestruct "Hupd" as "[Hupdcons _]".
           iMod ("Hupdcons" with "HP") as "[HP HΨ]".
           iMod "Hupd'" as "_".
