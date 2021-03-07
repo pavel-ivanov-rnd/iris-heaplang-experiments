@@ -17,6 +17,6 @@ Proof.
     first by intros [_ Hsafe]; eapply Hsafe; eauto.
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
   iModIntro. iExists (λ _ _, True%I), (λ _, True%I). iSplit=>//.
-  set (HΣ := IrisG _ _ Hinv (λ _ _ _, True)%I (λ _, True)%I).
+  set (HΣ := IrisG _ _ Hinv (λ _ _ _ _, True)%I (λ _, True)%I).
   iApply (wp_wand with "[]"). by iApply wp_soundness. eauto.
 Qed.
