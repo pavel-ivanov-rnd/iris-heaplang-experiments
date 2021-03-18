@@ -8,7 +8,7 @@ dev-repo: "git+https://gitlab.mpi-sws.org/iris/examples.git"
 synopsis: "A collection of case studies for Iris"
 
 depends: [
-  "coq-iris-heap-lang" { (= "dev.2021-03-06.3.b0708b01") | (= "dev") }
+  "coq-iris-heap-lang" { (= "dev.2021-03-18.2.eb532c13") | (= "dev") }
   "coq-autosubst" { = "dev" }
   "coq-iris-string-ident"
 ]

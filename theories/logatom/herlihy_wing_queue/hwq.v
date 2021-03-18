@@ -1177,9 +1177,9 @@ Proof.
   - rewrite HEq. done.
 Qed.
 
-Definition get_value slots (deqs : gset nat) i :=
+Definition get_value slots (deqs : gset nat) i : loc :=
   match slots !! i with
-  | None   => Build_loc 0
+  | None   => inhabitant
   | Some d => val_of d
   end.
 
