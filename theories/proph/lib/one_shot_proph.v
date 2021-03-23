@@ -2,7 +2,6 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris_string_ident Require Import ltac2_string_ident.
 Set Default Proof Using "Type".
 
 Definition val_of_list (vs : list (val * val)) : val :=

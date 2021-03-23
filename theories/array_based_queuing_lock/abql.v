@@ -16,7 +16,6 @@ From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 From iris.base_logic.lib Require Export invariants.
 From iris.algebra Require Import numbers excl auth gset frac.
-From iris_string_ident Require Import ltac2_string_ident.
 
 Section abql_code.
 

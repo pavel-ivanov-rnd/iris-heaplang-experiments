@@ -4,7 +4,6 @@ From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.rdcss Require Import spec.
-From iris_string_ident Require Import ltac2_string_ident.
 Import uPred bi List Decidable.
 Set Default Proof Using "Type".
 
