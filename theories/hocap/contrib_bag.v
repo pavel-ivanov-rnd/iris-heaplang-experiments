@@ -59,18 +59,18 @@ Section proof.
   Lemma pushBag_spec γb γ x v q Y :
     {{{ bagM γb γ x ∗ bagPart γ q Y }}}
        pushBag b x (of_val v)
-    {{{ RET #(); bagPart γ q ({[v]} ⊎ Y) }}}.
+    {{{ RET #(); bagPart γ q ({[+ v +]} ⊎ Y) }}}.
   Proof.
     iIntros (Φ) "[#[Hbag Hinv] HP] HΦ". rewrite /bagM_inv.
-    iApply (pushBag_spec b NB (bagPart γ q Y)%I (bagPart γ q ({[v]} ⊎ Y))%I with "[] [Hbag HP]"); eauto.
+    iApply (pushBag_spec b NB (bagPart γ q Y)%I (bagPart γ q ({[+ v +]} ⊎ Y))%I with "[] [Hbag HP]"); eauto.
     iModIntro. iIntros (X) "[Hb1 HP]".
     iInv NI as (X') "[>Hb2 >Hown]" "Hcl".
     iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
-    iMod (bag_contents_update b ({[v]} ⊎ X) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
+    iMod (bag_contents_update b ({[+ v +]} ⊎ X) with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
     rewrite /bagPart.
     iMod (own_update_2 with "Hown HP") as "[Hown HP]".
-    { apply (frac_auth_update _ _ _ ({[v]} ⊎ X) ({[v]} ⊎ Y)).
-      do 2 rewrite (comm _ {[v]}).
+    { apply (frac_auth_update _ _ _ ({[+ v +]} ⊎ X) ({[+ v +]} ⊎ Y)).
+      do 2 rewrite (comm _ {[+ v +]}).
       apply gmultiset_local_update_alloc. }
     iFrame. iApply "Hcl".
     iNext. iExists _; iFrame.
@@ -86,31 +86,32 @@ Section proof.
        popBag b x
     {{{ v, RET v;
         (⌜v = NONEV⌝ ∧ ⌜X = ∅⌝ ∗ bagPart γ 1 X)
-       ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ ⌜y ∈ X⌝ ∗ bagPart γ 1 (X ∖ {[y]})) }}}.
+       ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ ⌜y ∈ X⌝ ∗ bagPart γ 1 (X ∖ {[+ y +]})) }}}.
   Proof.
     iIntros (Φ) "[[#Hbag #Hinv] Hpart] HΦ".
     iApply (popBag_spec b NB (bagPart γ 1 X)%I
              (fun v => (⌜v = NONEV⌝ ∧ ⌜X = ∅⌝ ∗ bagPart γ 1 X)
-                     ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ ⌜y ∈ X⌝ ∗ bagPart γ 1 (X ∖ {[y]})))%I with "[] [] [Hpart]"); eauto.
+                     ∨ (∃ y, ⌜v = SOMEV y⌝ ∧ ⌜y ∈ X⌝ ∗ bagPart γ 1 (X ∖ {[+ y +]})))%I with "[] [] [Hpart]"); eauto.
     { iModIntro. iIntros (Y y) "[Hb1 Hpart]".
       iInv NI as (X') "[>Hb2 >HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
       iMod (bag_contents_update b Y with "[$Hb1 $Hb2]") as "[Hb1 Hb2]".
       rewrite /bagPart.
-      iAssert (⌜X = ({[y]} ⊎ Y)⌝)%I with "[Hpart HPs]" as %->.
+      iAssert (⌜X = ({[+ y +]} ⊎ Y)⌝)%I with "[Hpart HPs]" as %->.
       { iDestruct (own_valid_2 with "HPs Hpart") as %Hfoo.
         apply frac_auth_agree in Hfoo. by unfold_leibniz. }
       iMod (own_update_2 with "HPs Hpart") as "Hown".
-      { apply (frac_auth_update _ _ _ (({[y]} ⊎ Y) ∖ {[y]}) (({[y]} ⊎ Y) ∖ {[y]})).
+      { apply (frac_auth_update _ _ _ (({[+ y +]} ⊎ Y) ∖ {[+ y +]}) (({[+ y +]} ⊎ Y) ∖ {[+ y +]})).
         apply gmultiset_local_update_dealloc; multiset_solver. }
       iDestruct "Hown" as "[HPs Hpart]".
       iMod ("Hcl" with "[-Hpart Hb1]") as "_".
       { iNext. iExists _; iFrame.
-        assert (Y = (({[y]} ⊎ Y) ∖ {[y]})) as <-
+        assert (Y = (({[+ y +]} ⊎ Y) ∖ {[+ y +]})) as <-
           by (unfold_leibniz; multiset_solver).
         iFrame. }
       iModIntro. iNext. iFrame. iRight. iExists y; repeat iSplit; eauto.
-      iPureIntro. apply gmultiset_elem_of_disj_union. left. by apply elem_of_singleton. }
+      iPureIntro. apply gmultiset_elem_of_disj_union. left.
+      by apply gmultiset_elem_of_singleton. }
     { iModIntro. iIntros "[Hb1 Hpart]".
       iInv NI as (X') "[>Hb2 >HPs]" "Hcl".
       iDestruct (bag_contents_agree with "Hb1 Hb2") as %<-.
