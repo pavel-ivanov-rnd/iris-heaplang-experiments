@@ -34,6 +34,11 @@ This repository contains the following case studies:
 
 * [barrier](theories/barrier): Implementation and proof of a barrier as
   described in ["Higher-Order Ghost State"](http://doi.acm.org/10.1145/2818638).
+* [cl_logic](theories/cl_logic): An embedding of classical logic into Coq using
+  the Gödel-Gentzen translation. It defines `clProp` as the subset of Coq
+  propositions that are stable under double negation. The logic `clProp` is a
+  BI, so the proof mode can be used to carry out proofs in classical logic,
+  without axioms.
 * [logrel](theories/logrel): Logical relations.
   - [logrel/stlc](theories/logrel/stlc): A unary logical relation for semantic
     typing STLC (simply-typed lambda calculus) with De Bruijn indices (using
