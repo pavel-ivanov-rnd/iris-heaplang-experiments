@@ -11,6 +11,10 @@ theories/barrier/barrier.v
 theories/barrier/example_client.v
 theories/barrier/example_joining_existentials.v
 
+theories/cl_logic/clprop.v
+theories/cl_logic/bi.v
+theories/cl_logic/tests.v
+
 theories/lecture_notes/coq_intro_example_1.v
 theories/lecture_notes/coq_intro_example_2.v
 theories/lecture_notes/lists.v
