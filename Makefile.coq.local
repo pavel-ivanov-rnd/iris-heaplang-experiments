@@ -31,3 +31,6 @@ array_based_queuing_lock: $(filter theories/array_based_queuing_lock/%,$(VOFILES
 
 proph: $(filter theories/proph/%,$(VOFILES))
 .PHONY: proph
+
+cl_logic: $(filter theories/cl_logic/%,$(VOFILES))
+.PHONY: cl_logic
