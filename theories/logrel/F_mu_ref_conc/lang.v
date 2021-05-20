@@ -41,6 +41,9 @@ Module F_mu_ref_conc.
   (* Polymorphic Types *)
   | TLam (e : expr)
   | TApp (e : expr)
+  (* Existential Types *)
+  | Pack (e : expr)
+  | UnpackIn (e1 : expr) (e2 : {bind expr})
   (* Concurrency *)
   | Fork (e : expr)
   (* Reference Types *)
@@ -49,8 +52,9 @@ Module F_mu_ref_conc.
   | Load (e : expr)
   | Store (e1 : expr) (e2 : expr)
   (* Compare and swap used for fine-grained concurrency *)
-  | CAS (e0 : expr) (e1 : expr) (e2 : expr).
-
+  | CAS (e0 : expr) (e1 : expr) (e2 : expr)
+  (* Fetch and add for fine-grained concurrency *)
+  | FAA (e1 : expr) (e2 : expr).
   Instance Ids_expr : Ids expr. derive. Defined.
   Instance Rename_expr : Rename expr. derive. Defined.
   Instance Subst_expr : Subst expr. derive. Defined.
@@ -67,6 +71,7 @@ Module F_mu_ref_conc.
   | RecV (e : {bind 1 of expr})
   | LamV (e : {bind expr})
   | TLamV (e : {bind 1 of expr})
+  | PackV (v : val)
   | UnitV
   | NatV (n : nat)
   | BoolV (b : bool)
@@ -100,6 +105,7 @@ Module F_mu_ref_conc.
     | RecV e => Rec e
     | LamV e => Lam e
     | TLamV e => TLam e
+    | PackV v => Pack (of_val v)
     | UnitV => Unit
     | NatV v => Nat v
     | BoolV v => Bool v
@@ -115,6 +121,7 @@ Module F_mu_ref_conc.
     | Rec e => Some (RecV e)
     | Lam e => Some (LamV e)
     | TLam e => Some (TLamV e)
+    | Pack e => PackV <$> to_val e
     | Unit => Some UnitV
     | Nat n => Some (NatV n)
     | Bool b => Some (BoolV b)
@@ -133,6 +140,8 @@ Module F_mu_ref_conc.
   | LetInCtx (e2 : expr)
   | SeqCtx (e2 : expr)
   | TAppCtx
+  | PackCtx
+  | UnpackInCtx (e2 : expr)
   | PairLCtx (e2 : expr)
   | PairRCtx (v1 : val)
   | BinOpLCtx (op : binop) (e2 : expr)
@@ -151,7 +160,9 @@ Module F_mu_ref_conc.
   | StoreRCtx (v1 : val)
   | CasLCtx (e1 : expr)  (e2 : expr)
   | CasMCtx (v0 : val) (e2 : expr)
-  | CasRCtx (v0 : val) (v1 : val).
+  | CasRCtx (v0 : val) (v1 : val)
+  | FAALCtx (e2 : expr)
+  | FAARCtx (v1 : val).
 
   Definition fill_item (Ki : ectx_item) (e : expr) : expr :=
     match Ki with
@@ -160,6 +171,8 @@ Module F_mu_ref_conc.
     | LetInCtx e2 => LetIn e e2
     | SeqCtx e2 => Seq e e2
     | TAppCtx => TApp e
+    | PackCtx => Pack e
+    | UnpackInCtx e2 => UnpackIn e e2
     | PairLCtx e2 => Pair e e2
     | PairRCtx v1 => Pair (of_val v1) e
     | BinOpLCtx op e2 => BinOp op e e2
@@ -179,6 +192,8 @@ Module F_mu_ref_conc.
     | CasLCtx e1 e2 => CAS e e1 e2
     | CasMCtx v0 e2 => CAS (of_val v0) e e2
     | CasRCtx v0 v1 => CAS (of_val v0) (of_val v1) e
+    | FAALCtx e2 => FAA e e2
+    | FAARCtx v1 => FAA (of_val v1) e
     end.
 
   Definition state : Type := gmap loc val.
@@ -229,6 +244,10 @@ Module F_mu_ref_conc.
   (* Polymorphic Types *)
   | TBeta e σ :
       head_step (TApp (TLam e)) σ [] e σ []
+  (* Existential Types *)
+  | UnpackS e1 v e2 σ :
+      to_val e1 = Some v →
+      head_step (UnpackIn (Pack e1) e2) σ [] e2.[e1/] σ []
   (* Concurrency *)
   | ForkS e σ:
       head_step (Fork e) σ [] Unit σ [e]
@@ -250,7 +269,11 @@ Module F_mu_ref_conc.
   | CasSucS l e1 v1 e2 v2 σ :
      to_val e1 = Some v1 → to_val e2 = Some v2 →
      σ !! l = Some v1 →
-     head_step (CAS (Loc l) e1 e2) σ [] (#♭ true) (<[l:=v2]>σ) [].
+     head_step (CAS (Loc l) e1 e2) σ [] (#♭ true) (<[l:=v2]>σ) []
+  | FAAS l m e2 k σ :
+      to_val e2 = Some (NatV k) →
+      σ !! l = Some (NatV m) →
+      head_step (FAA (Loc l) e2) σ [] (#n m) (<[l:=NatV (m + k)]>σ) [].
 
   (** Basic properties about the language *)
   Lemma to_of_val v : to_val (of_val v) = Some v.
@@ -317,15 +340,19 @@ Canonical Structure F_mu_ref_conc_lang :=
 
 Export F_mu_ref_conc.
 
-Hint Extern 20 (PureExec _ _ _) => progress simpl : typeclass_instances.
+Global Hint Extern 20 (PureExec _ _ _) => progress simpl : typeclass_instances.
 
-Hint Extern 5 (IntoVal _ _) => eapply of_to_val; fast_done : typeclass_instances.
-Hint Extern 10 (IntoVal _ _) =>
-  rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
+Global Hint Extern 5 (IntoVal _ _) =>
+  eapply of_to_val; fast_done : typeclass_instances.
+Global Hint Extern 10 (IntoVal _ _) =>
+  rewrite /IntoVal; eapply of_to_val;
+  rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
 
-Hint Extern 5 (AsVal _) => eexists; eapply of_to_val; fast_done : typeclass_instances.
-Hint Extern 10 (AsVal _) =>
-  eexists; rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
+Global Hint Extern 5 (AsVal _) =>
+  eexists; eapply of_to_val; fast_done : typeclass_instances.
+Global Hint Extern 10 (AsVal _) =>
+  eexists; rewrite /IntoVal; eapply of_to_val;
+  rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
 
 Definition is_atomic (e : expr) : Prop :=
   match e with
@@ -334,6 +361,7 @@ Definition is_atomic (e : expr) : Prop :=
   | Store e1 e2 => is_Some (to_val e1) ∧ is_Some (to_val e2)
   | CAS e1 e2 e3 => is_Some (to_val e1) ∧ is_Some (to_val e2)
                    ∧ is_Some (to_val e3)
+  | FAA e1 e2 => is_Some (to_val e1) ∧ is_Some (to_val e2)
   | _ => False
   end.
 Local Hint Resolve language.val_irreducible : core.
@@ -354,5 +382,5 @@ Ltac solve_atomic :=
   apply is_atomic_correct; simpl; repeat split;
     rewrite ?to_of_val; eapply mk_is_Some; fast_done.
 
-Hint Extern 0 (Atomic _ _) => solve_atomic : core.
-Hint Extern 0 (Atomic _ _) => solve_atomic : typeclass_instances.
+Global Hint Extern 0 (Atomic _ _) => solve_atomic : core.
+Global Hint Extern 0 (Atomic _ _) => solve_atomic : typeclass_instances.

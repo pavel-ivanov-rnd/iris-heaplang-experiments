@@ -1,8 +1,8 @@
-From iris_examples.logrel.F_mu_ref_conc Require Export context_refinement.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Export context_refinement.
 From iris.algebra Require Import auth frac agree.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
-From iris_examples.logrel.F_mu_ref_conc Require Import soundness_unary.
+From iris_examples.logrel.F_mu_ref_conc.unary Require Import soundness.
 
 Definition soundness_binaryΣ : gFunctors := #[ GFunctor (authR cfgUR) ].
 
@@ -12,7 +12,7 @@ Proof. solve_inG. Qed.
 
 Lemma basic_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}
     e e' τ v thp hp :
-  (∀ `{heapIG Σ, cfgSG Σ}, [] ⊨ e ≤log≤ e' : τ) →
+  (∀ `{heapIG Σ, cfgSG Σ}, ⊢ [] ⊨ e ≤log≤ e' : τ) →
   rtc erased_step ([e], ∅) (of_val v :: thp, hp) →
   (∃ thp' hp' v', rtc erased_step ([e'], ∅) (of_val v' :: thp', hp')).
 Proof.
@@ -31,10 +31,11 @@ Proof.
   iExists (λ σ _, gen_heap_interp σ), (λ _, True%I); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
-  iPoseProof ((Hlog _ _ [] []) with "[]") as "Hrel".
+  iPoseProof ((Hlog _ _)) as "Hrel".
+  iSpecialize ("Hrel" $! [] [] with "[]").
   { iSplit.
     - by iExists ([e'], ∅).
-    - by iApply (@logrel_binary.interp_env_nil Σ HeapΣ). }
+    - by iApply (@interp_env_nil Σ HeapΣ []). }
   simpl.
   replace e with e.[env_subst[]] at 2 by by asimpl.
   iApply ("Hrel" $! 0 []).
@@ -53,11 +54,12 @@ Qed.
 Lemma binary_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}
     Γ e e' τ :
   (Γ ⊢ₜ e : τ) → (Γ ⊢ₜ e' : τ) →
-  (∀ `{heapIG Σ, cfgSG Σ}, Γ ⊨ e ≤log≤ e' : τ) →
+  (∀ `{heapIG Σ, cfgSG Σ}, ⊢ Γ ⊨ e ≤log≤ e' : τ) →
   Γ ⊨ e ≤ctx≤ e' : τ.
 Proof.
   intros He He' Hlog; repeat split; auto.
   intros K thp σ v ?. eapply (basic_soundness Σ _)=> ??.
-  eapply (bin_log_related_under_typed_ctx _ _ _ _ []);
-    eauto using typed_n_closed.
+  iApply (bin_log_related_under_typed_ctx _ _ _ _ []);
+    [by eapply typed_n_closed|by eapply typed_n_closed|done|].
+  iApply Hlog.
 Qed.

@@ -1,4 +1,4 @@
-From iris_examples.logrel.F_mu_ref_conc Require Export fundamental_unary.
+From iris_examples.logrel.F_mu_ref_conc Require Export fundamental.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 
@@ -8,7 +8,7 @@ Class heapPreIG Σ := HeapPreIG {
 }.
 
 Theorem soundness Σ `{heapPreIG Σ} e τ e' thp σ σ' :
-  (∀ `{heapIG Σ}, [] ⊨ e : τ) →
+  (∀ `{heapIG Σ}, ⊢ [] ⊨ e : τ) →
   rtc erased_step ([e], σ) (thp, σ') → e' ∈ thp →
   not_stuck e' σ'.
 Proof.
@@ -21,7 +21,7 @@ Proof.
   set (HeapΣ := (HeapIG Σ Hinv Hheap)).
   iApply (wp_wand with "[]").
   - replace e with e.[env_subst[]] by by asimpl.
-    iApply (Hlog HeapΣ [] []). iApply (@interp_env_nil _ HeapΣ).
+    iApply (Hlog HeapΣ $! [] []). iApply (@interp_env_nil _ HeapΣ).
   - eauto.
 Qed.
 

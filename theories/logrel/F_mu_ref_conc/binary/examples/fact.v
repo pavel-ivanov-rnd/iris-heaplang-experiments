@@ -1,7 +1,7 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
-From iris_examples.logrel.F_mu_ref_conc Require Import
-     soundness_binary rules rules_binary.
+From iris_examples.logrel.F_mu_ref_conc Require Import rules.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Import soundness rules.
 
 Definition fact : expr :=
   Rec (If (BinOp Eq (Var 1) (#n 0))
@@ -66,9 +66,9 @@ Section fact_equiv.
   Context `{heapIG Σ, cfgSG Σ}.
 
   Lemma fact_fact_acc_refinement :
-    [] ⊨ fact ≤log≤ fact_acc : (TArrow TNat TNat).
+    ⊢ [] ⊨ fact ≤log≤ fact_acc : (TArrow TNat TNat).
   Proof.
-    iIntros (? vs _) "[#HE HΔ]".
+    iIntros (? vs) "!# [#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
@@ -144,9 +144,9 @@ Section fact_equiv.
   Qed.
 
   Lemma fact_acc_fact_refinement :
-    [] ⊨ fact_acc ≤log≤ fact : (TArrow TNat TNat).
+    ⊢ [] ⊨ fact_acc ≤log≤ fact : (TArrow TNat TNat).
   Proof.
-    iIntros (? vs _) "[#HE HΔ]".
+    iIntros (? vs) "!# [#HE HΔ]".
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; simplify_eq.
     iClear "HΔ". simpl.
     iIntros (j K) "Hj"; simpl.
@@ -237,7 +237,7 @@ Theorem fact_ctx_equiv :
   [] ⊨ fact_acc ≤ctx≤ fact : (TArrow TNat TNat).
 Proof.
   set (Σ := #[invΣ ; gen_heapΣ loc val ; soundness_binaryΣ]).
-  set (HG := soundness_unary.HeapPreIG Σ _ _).
+  set (HG := soundness.HeapPreIG Σ _ _).
   split.
   - eapply (binary_soundness Σ _); auto using fact_acc_typed, fact_typed.
     intros; apply fact_fact_acc_refinement.

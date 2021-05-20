@@ -10,6 +10,7 @@ Inductive type :=
   | TRec (τ : {bind 1 of type})
   | TVar (x : var)
   | TForall (τ : {bind 1 of type})
+  | TExist (τ : {bind 1 of type})
   | Tref (τ : type).
 
 Instance Ids_type : Ids type. derive. Defined.
@@ -61,6 +62,12 @@ Inductive typed (Γ : list type) : expr → type → Prop :=
   | TLam_typed e τ :
      subst (ren (+1)) <$> Γ ⊢ₜ e : τ → Γ ⊢ₜ TLam e : TForall τ
   | TApp_typed e τ τ' : Γ ⊢ₜ e : TForall τ → Γ ⊢ₜ TApp e : τ.[τ'/]
+  | Pack_typed e τ τ' :
+     Γ ⊢ₜ e : τ.[τ'/] → Γ ⊢ₜ Pack e : TExist τ
+  | UnpackIn_typed e1 e2 τ τ' :
+     Γ ⊢ₜ e1 : TExist τ →
+     τ :: (subst (ren (+1)) <$> Γ) ⊢ₜ e2 : τ'.[ren (+1)] →
+     Γ ⊢ₜ UnpackIn e1 e2 : τ'
   | TFold e τ : Γ ⊢ₜ e : τ.[TRec τ/] → Γ ⊢ₜ Fold e : TRec τ
   | TUnfold e τ : Γ ⊢ₜ e : TRec τ → Γ ⊢ₜ Unfold e : τ.[TRec τ/]
   | TFork e : Γ ⊢ₜ e : TUnit → Γ ⊢ₜ Fork e : TUnit
@@ -70,6 +77,7 @@ Inductive typed (Γ : list type) : expr → type → Prop :=
   | TCAS e1 e2 e3 τ :
      EqType τ → Γ ⊢ₜ e1 : Tref τ → Γ ⊢ₜ e2 : τ → Γ ⊢ₜ e3 : τ →
      Γ ⊢ₜ CAS e1 e2 e3 : TBool
+  | TFAA e1 e2 : Γ ⊢ₜ e1 : Tref TNat → Γ ⊢ₜ e2 : TNat → Γ ⊢ₜ FAA e1 e2 : TNat
 where "Γ ⊢ₜ e : τ" := (typed Γ e τ).
 
 Lemma typed_subst_invariant Γ e τ s1 s2 :
@@ -77,7 +85,7 @@ Lemma typed_subst_invariant Γ e τ s1 s2 :
 Proof.
   intros Htyped; revert s1 s2.
   assert (∀ x Γ, x < length (subst (ren (+1)) <$> Γ) → x < length Γ).
-  { intros ??. by rewrite fmap_length. } 
+  { intros ??. by rewrite fmap_length. }
   assert (∀ {A} `{Ids A} `{Rename A} (s1 s2 : nat → A) x,
     (x ≠ 0 → s1 (pred x) = s2 (pred x)) → up s1 x = up s2 x).
   { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal lia. }
@@ -121,6 +129,10 @@ Proof.
     + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
     + intros [|x] H2; [by cbv |].
       asimpl; rewrite H1; auto with lia.
+  - apply (IHe0 (S m)).
+    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
+    + intros [|x] H2; [by cbv |].
+      asimpl; rewrite H1; auto with lia.
 Qed.
 
 Fixpoint env_subst (vs : list val) : var → expr :=
@@ -145,6 +157,7 @@ Proof.
   - apply lookup_lt_Some in H. rewrite iter_up. destruct lt_dec; auto with lia.
   - f_equal. apply IHtyped.
   - by f_equal; rewrite map_length in IHtyped.
+  - rewrite map_length in IHtyped2; by f_equal.
 Qed.
 
 (** Weakening *)
@@ -172,6 +185,12 @@ Proof.
       (subst (ren (+1)) <$> Γ1) (subst (ren (+1)) <$> Γ2) (subst (ren (+1)) <$> ξ)).
     asimpl in *. rewrite ?map_length in IHtyped.
     repeat rewrite fmap_app. apply IHtyped.
+    by repeat rewrite fmap_app.
+  - econstructor; eauto.
+    specialize (IHtyped2
+      (τ :: (subst (ren (+1)) <$> Γ1)) (subst (ren (+1)) <$> Γ2) (subst (ren (+1)) <$> ξ)).
+    asimpl in *. rewrite ?map_length in IHtyped2.
+    repeat rewrite fmap_app. apply IHtyped2.
     by repeat rewrite fmap_app.
 Qed.
 

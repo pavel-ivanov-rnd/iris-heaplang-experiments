@@ -1,8 +1,8 @@
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import auth list.
 From iris.program_logic Require Import adequacy.
-From iris_examples.logrel.F_mu_ref_conc Require Export examples.lock.
-From iris_examples.logrel.F_mu_ref_conc Require Import soundness_binary.
+From iris_examples.logrel.F_mu_ref_conc.binary.examples Require Export lock.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Import soundness.
 
 Definition CG_increment (x : expr) : expr :=
   Lam (Store x.[ren (+ 1)] (BinOp Add (#n 1) (Load x.[ren (+ 1)]))).
@@ -35,7 +35,7 @@ Definition FG_counter : expr :=
 Section CG_Counter.
   Context `{heapIG Σ, cfgSG Σ}.
 
-  Notation D := (prodO valO valO -n> iPropO Σ).
+  Notation D := (persistent_predO (val * val) (iPropI Σ)).
   Implicit Types Δ : listO D.
 
   (* Coarse-grained increment *)
@@ -245,9 +245,9 @@ Section CG_Counter.
   Definition counterN : namespace := nroot .@ "counter".
 
   Lemma FG_CG_counter_refinement :
-    [] ⊨ FG_counter ≤log≤ CG_counter : TProd (TArrow TUnit TUnit) (TArrow TUnit TNat).
+    ⊢ [] ⊨ FG_counter ≤log≤ CG_counter : TProd (TArrow TUnit TUnit) (TArrow TUnit TNat).
   Proof.
-    iIntros (Δ [|??] ?) "#(Hspec & HΓ)"; iIntros (j K) "Hj"; last first.
+    iIntros (Δ [|??]) "!# #(Hspec & HΓ)"; iIntros (j K) "Hj"; last first.
     { iDestruct (interp_env_length with "HΓ") as %[=]. }
     iClear "HΓ". cbn -[FG_counter CG_counter].
     rewrite ?empty_env_subst /CG_counter /FG_counter.
@@ -352,7 +352,7 @@ Theorem counter_ctx_refinement :
          TProd (TArrow TUnit TUnit) (TArrow TUnit TNat).
 Proof.
   set (Σ := #[invΣ ; gen_heapΣ loc val ; soundness_binaryΣ ]).
-  set (HG := soundness_unary.HeapPreIG Σ _ _).
+  set (HG := soundness.HeapPreIG Σ _ _).
   eapply (binary_soundness Σ _); auto using FG_counter_type, CG_counter_type.
   intros. apply FG_CG_counter_refinement.
 Qed.

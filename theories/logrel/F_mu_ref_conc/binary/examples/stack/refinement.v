@@ -1,8 +1,8 @@
 From iris.algebra Require Import auth list.
 From iris.program_logic Require Import adequacy ectxi_language.
-From iris_examples.logrel.F_mu_ref_conc Require Import soundness_binary.
-From iris_examples.logrel.F_mu_ref_conc.examples Require Import lock.
-From iris_examples.logrel.F_mu_ref_conc.examples.stack Require Import
+From iris_examples.logrel.F_mu_ref_conc.binary Require Import soundness.
+From iris_examples.logrel.F_mu_ref_conc.binary.examples Require Import lock.
+From iris_examples.logrel.F_mu_ref_conc.binary.examples.stack Require Import
   CG_stack FG_stack stack_rules.
 From iris.proofmode Require Import tactics.
 
@@ -10,23 +10,23 @@ Definition stackN : namespace := nroot .@ "stack".
 
 Section Stack_refinement.
   Context `{heapIG Σ, cfgSG Σ}.
-  Notation D := (prodO valO valO -n> iPropO Σ).
+  Notation D := (persistent_predO (val * val) (iPropI Σ)).
   Implicit Types Δ : listO D.
 
   Lemma FG_CG_counter_refinement :
-    [] ⊨ FG_stack ≤log≤ CG_stack : TForall (TProd (TProd
+    ⊢ [] ⊨ FG_stack ≤log≤ CG_stack : TForall (TProd (TProd
            (TArrow (TVar 0) TUnit)
            (TArrow TUnit (TSum TUnit (TVar 0))))
            (TArrow (TArrow (TVar 0) TUnit) TUnit)).
   Proof.
     (* executing the preambles *)
-    iIntros (Δ [|??] ?) "#[Hspec HΓ]"; iIntros (j K) "Hj"; last first.
+    iIntros (Δ [|??]) "!# #[Hspec HΓ]"; iIntros (j K) "Hj"; last first.
     { iDestruct (interp_env_length with "HΓ") as %[=]. }
     iClear "HΓ". cbn -[FG_stack CG_stack].
     rewrite ?empty_env_subst /CG_stack /FG_stack.
     iApply wp_value; eauto.
     iExists (TLamV _); iFrame "Hj".
-    clear j K. iModIntro. iIntros (τi) "%". iIntros (j K) "Hj /=".
+    clear j K. iModIntro. iIntros (τi j K) "Hj /=".
     iMod (do_step_pure with "[$Hj]") as "Hj"; eauto.
     iApply wp_pure_step_later; auto. iNext.
     iMod (steps_newlock _ j (LetInCtx _ :: K) with "[$Hj]")
@@ -316,7 +316,7 @@ Theorem stack_ctx_refinement :
         (TArrow (TArrow (TVar 0) TUnit) TUnit)).
 Proof.
   set (Σ := #[invΣ; gen_heapΣ loc val; soundness_binaryΣ]).
-  set (HG := soundness_unary.HeapPreIG Σ _ _).
+  set (HG := soundness.HeapPreIG Σ _ _).
   eapply (binary_soundness Σ); eauto using FG_stack_type, CG_stack_type.
   intros; apply FG_CG_counter_refinement.
 Qed.
