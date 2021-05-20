@@ -1,12 +1,12 @@
 From iris.proofmode Require Import tactics.
-From iris_examples.logrel.F_mu_ref_conc Require Import logrel_binary.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Import logrel.
 
 Section Rules.
   Context `{heapIG Σ}.
-  Notation D := (prodO valO valO -n> iPropO Σ).
+  Notation D := (persistent_predO (val * val) (iPropI Σ)).
 
-  Program Definition StackLink_pre (Q : D) : D -n> D := λne P v,
-    (∃ l w, ⌜v.1 = LocV l⌝ ∗ l ↦ᵢ□ w ∗
+  Program Definition StackLink_pre (Q : D) : D -n> D := λne P,
+    PersPred (λ v, ∃ l w, ⌜v.1 = LocV l⌝ ∗ l ↦ᵢ□ w ∗
             ((⌜w = InjLV UnitV⌝ ∧ ⌜v.2 = FoldV (InjLV UnitV)⌝) ∨
             (∃ y1 z1 y2 z2, ⌜w = InjRV (PairV y1 (FoldV z1))⌝ ∗
               ⌜v.2 = FoldV (InjRV (PairV y2 z2))⌝ ∗ Q (y1, y2) ∗ ▷ P(z1, z2))))%I.

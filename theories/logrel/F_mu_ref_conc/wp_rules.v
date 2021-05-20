@@ -120,6 +120,19 @@ Section lang_rules.
     iModIntro. iSplit=>//. by iApply "HΦ".
   Qed.
 
+  Lemma wp_FAA E l m e2 k :
+    IntoVal e2 (#nv k) →
+    {{{ ▷ l ↦ᵢ (#nv m) }}} FAA (Loc l) e2 @ E
+    {{{ RET (#nv m); l ↦ᵢ #nv (m + k) }}}.
+  Proof.
+    iIntros (<- Φ) ">Hl HΦ".
+    iApply wp_lift_atomic_head_step_no_fork; auto.
+    iIntros (σ1 ????) "Hσ !>". iDestruct (@gen_heap_valid with "Hσ Hl") as %?.
+    iSplit; first by eauto. iNext; iIntros (v2' σ2 efs Hstep); inv_head_step.
+    iMod (@gen_heap_update with "Hσ Hl") as "[$ Hl]".
+    iModIntro. iSplit=>//. by iApply "HΦ".
+  Qed.
+
   Lemma wp_fork E e Φ :
     ▷ (|={E}=> Φ UnitV) ∗ ▷ WP e {{ _, True }} ⊢ WP Fork e @ E {{ Φ }}.
   Proof.
@@ -153,6 +166,10 @@ Section lang_rules.
   Proof. solve_pure_exec. Qed.
 
   Global Instance pure_tlam e : PureExec True 1 (TApp (TLam e)) e.
+  Proof. solve_pure_exec. Qed.
+
+  Global Instance pure_pack e1 `{!AsVal e1} e2:
+    PureExec True 1 (UnpackIn (Pack e1) e2) e2.[e1/].
   Proof. solve_pure_exec. Qed.
 
   Global Instance pure_fold e `{!AsVal e}:

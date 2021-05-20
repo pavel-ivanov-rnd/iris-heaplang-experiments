@@ -1,4 +1,6 @@
-From iris_examples.logrel.F_mu_ref_conc Require Export lang fundamental_binary.
+From iris_examples.logrel.F_mu_ref_conc Require Export lang.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Export fundamental.
+From iris.proofmode Require Import tactics.
 
 Export F_mu_ref_conc.
 
@@ -234,75 +236,53 @@ Section bin_log_related_under_typed_ctx.
     (∀ f, e.[upn (length Γ) f] = e) →
     (∀ f, e'.[upn (length Γ) f] = e') →
     typed_ctx K Γ τ Γ' τ' →
-    Γ ⊨ e ≤log≤ e' : τ → Γ' ⊨ fill_ctx K e ≤log≤ fill_ctx K e' : τ'.
+    Γ ⊨ e ≤log≤ e' : τ -∗ Γ' ⊨ fill_ctx K e ≤log≤ fill_ctx K e' : τ'.
   Proof.
     revert Γ τ Γ' τ' e e'.
-    induction K as [|k K]=> Γ τ Γ' τ' e e' H1 H2; simpl.
-    - inversion_clear 1; trivial.
-    - inversion_clear 1 as [|? ? ? ? ? ? ? ? Hx1 Hx2]. intros H3.
-      specialize (IHK _ _ _ _ e e' H1 H2 Hx2 H3).
-      inversion Hx1; subst; simpl; try fold_interp.
-      + eapply bin_log_related_rec; eauto;
-          match goal with
-            H : _ |- _ => eapply (typed_ctx_n_closed _ _ _ _ _ _ _ H)
-          end.
-      + eapply bin_log_related_app; eauto using binary_fundamental.
-      + eapply bin_log_related_app; eauto using binary_fundamental.
-      + eapply bin_log_related_pair; eauto using binary_fundamental.
-      + eapply bin_log_related_pair; eauto using binary_fundamental.
-      + eapply bin_log_related_fst; eauto.
-      + eapply bin_log_related_snd; eauto.
-      + eapply bin_log_related_injl; eauto.
-      + eapply bin_log_related_injr; eauto.
-      + match goal with
-          H : typed_ctx_item _ _ _ _ _ |- _ => inversion H; subst
-        end.
-        eapply bin_log_related_case;
-          eauto using binary_fundamental;
-          match goal with
-            H : _ |- _ => eapply (typed_n_closed _ _ _ H)
-          end.
-      + match goal with
-          H : typed_ctx_item _ _ _ _ _ |- _ => inversion H; subst
-        end.
-        eapply bin_log_related_case;
-          eauto using binary_fundamental;
-          try match goal with
-                H : _ |- _ => eapply (typed_n_closed _ _ _ H)
-              end;
-          match goal with
-            H : _ |- _ => eapply (typed_ctx_n_closed _ _ _ _ _ _ _ H)
-          end.
-      + match goal with
-          H : typed_ctx_item _ _ _ _ _ |- _ => inversion H; subst
-        end.
-        eapply bin_log_related_case;
-          eauto using binary_fundamental;
-          try match goal with
-                H : _ |- _ => eapply (typed_n_closed _ _ _ H)
-              end;
-          match goal with
-            H : _ |- _ => eapply (typed_ctx_n_closed _ _ _ _ _ _ _ H)
-          end.
-      + eapply bin_log_related_if; eauto using typed_ctx_typed, binary_fundamental.
-      + eapply bin_log_related_if; eauto using typed_ctx_typed, binary_fundamental.
-      + eapply bin_log_related_if; eauto using typed_ctx_typed, binary_fundamental.
-      + eapply bin_log_related_nat_binop;
-          eauto using typed_ctx_typed, binary_fundamental.
-      + eapply bin_log_related_nat_binop;
-          eauto using typed_ctx_typed, binary_fundamental.
-      + eapply bin_log_related_fold; eauto.
-      + eapply bin_log_related_unfold; eauto.
-      + eapply bin_log_related_tlam; eauto with typeclass_instances.
-      + eapply bin_log_related_tapp; eauto.
-      + eapply bin_log_related_fork; eauto.
-      + eapply bin_log_related_alloc; eauto.
-      + eapply bin_log_related_load; eauto.
-      + eapply bin_log_related_store; eauto using binary_fundamental.
-      + eapply bin_log_related_store; eauto using binary_fundamental.
-      + eapply bin_log_related_CAS; eauto using binary_fundamental.
-      + eapply bin_log_related_CAS; eauto using binary_fundamental.
-      + eapply bin_log_related_CAS; eauto using binary_fundamental.
-        Unshelve. all: trivial.
+    induction K as [|k K IHK]=> Γ τ Γ' τ' e e' H1 H2; simpl.
+    { inversion_clear 1; trivial. }
+    inversion_clear 1 as [|? ? ? ? ? ? ? ? Hx1 Hx2].
+    iIntros "#H".
+    iPoseProof (IHK with "H") as "H'"; [done|done|done|].
+    iClear "H".
+    inversion Hx1; subst; simpl; try fold_interp.
+    - iApply bin_log_related_rec; done.
+    - iApply bin_log_related_app; last iApply binary_fundamental; done.
+    - iApply bin_log_related_app; first iApply binary_fundamental; done.
+    - iApply bin_log_related_pair; last iApply binary_fundamental; done.
+    - iApply bin_log_related_pair; first iApply binary_fundamental; done.
+    - iApply bin_log_related_fst; eauto.
+    - iApply bin_log_related_snd; eauto.
+    - iApply bin_log_related_injl; eauto.
+    - iApply bin_log_related_injr; eauto.
+    - iApply bin_log_related_case;
+        [|iApply binary_fundamental|iApply binary_fundamental]; done.
+    - iApply bin_log_related_case;
+        [iApply binary_fundamental| |iApply binary_fundamental]; done.
+    - iApply bin_log_related_case;
+        [iApply binary_fundamental|iApply binary_fundamental|]; done.
+    - iApply bin_log_related_if;
+        [|iApply binary_fundamental|iApply binary_fundamental]; done.
+    - iApply bin_log_related_if;
+        [iApply binary_fundamental| |iApply binary_fundamental]; done.
+    - iApply bin_log_related_if;
+        [iApply binary_fundamental|iApply binary_fundamental|]; done.
+    - iApply bin_log_related_nat_binop; [|iApply binary_fundamental]; done.
+    - iApply bin_log_related_nat_binop; [iApply binary_fundamental|]; done.
+    - iApply bin_log_related_fold; done.
+    - iApply bin_log_related_unfold; done.
+    - iApply bin_log_related_tlam; done.
+    - iApply bin_log_related_tapp; done.
+    - iApply bin_log_related_fork; done.
+    - iApply bin_log_related_alloc; done.
+    - iApply bin_log_related_load; done.
+    - iApply bin_log_related_store; [|iApply binary_fundamental]; done.
+    - iApply bin_log_related_store; [iApply binary_fundamental|]; done.
+    - iApply bin_log_related_CAS;
+        [done| |iApply binary_fundamental|iApply binary_fundamental]; done.
+    - iApply bin_log_related_CAS;
+        [done|iApply binary_fundamental| |iApply binary_fundamental]; done.
+    - iApply bin_log_related_CAS;
+        [done|iApply binary_fundamental|iApply binary_fundamental|]; done.
   Qed.
 End bin_log_related_under_typed_ctx.

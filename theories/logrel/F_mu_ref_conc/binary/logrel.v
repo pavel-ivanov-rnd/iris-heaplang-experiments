@@ -3,7 +3,9 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import weakestpre.
 From iris.base_logic Require Import invariants.
 From iris.algebra Require Import list.
-From iris_examples.logrel.F_mu_ref_conc Require Export rules_binary typing.
+From iris_examples.logrel Require Export persistent_pred.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Export rules.
+From iris_examples.logrel.F_mu_ref_conc Require Export typing.
 Import uPred.
 
 (* HACK: move somewhere else *)
@@ -28,10 +30,12 @@ Definition logN : namespace := nroot .@ "logN".
 (** interp : is a unary logical relation. *)
 Section logrel.
   Context `{heapIG Σ, cfgSG Σ}.
-  Notation D := (prodO valO valO -n> iPropO Σ).
+  Notation D := (persistent_predO (val * val) (iPropI Σ)).
   Implicit Types τi : D.
   Implicit Types Δ : listO D.
-  Implicit Types interp : listO D → D.
+  Implicit Types interp : listO D -n> D.
+
+  Local Arguments ofe_car !_.
 
   Definition interp_expr (τi : listO D -n> D) (Δ : listO D)
       (ee : expr * expr) : iProp Σ := (∀ j K,
@@ -41,67 +45,85 @@ Section logrel.
     Proper (dist n ==> dist n ==> (=) ==> dist n) interp_expr.
   Proof. unfold interp_expr; solve_proper. Qed.
 
-  Program Definition ctx_lookup (x : var) : listO D -n> D := λne Δ,
-    from_option id (cconst True)%I (Δ !! x).
+  Global Instance interp_expr_proper :
+    Proper ((≡) ==> (≡) ==> (=) ==> (≡)) interp_expr.
+  Proof. unfold interp_expr; solve_proper. Qed.
+
+  Program Definition ctx_lookup (x : var) : listO D -n> D :=
+    λne Δ, PersPred (default (inhabitant : persistent_pred _ _) (Δ !! x)).
   Solve Obligations with solve_proper.
 
-  Program Definition interp_unit : listO D -n> D := λne Δ ww,
-    (⌜ww.1 = UnitV⌝ ∧ ⌜ww.2 = UnitV⌝)%I.
-  Solve Obligations with solve_proper_alt.
-  Program Definition interp_nat : listO D -n> D := λne Δ ww,
-    (∃ n : nat, ⌜ww.1 = #nv n⌝ ∧ ⌜ww.2 = #nv n⌝)%I.
-  Solve Obligations with solve_proper.
+  Program Definition interp_unit : listO D -n> D :=
+    λne Δ, PersPred (λ ww, ⌜ww.1 = UnitV⌝ ∧ ⌜ww.2 = UnitV⌝)%I.
+  Program Definition interp_nat : listO D -n> D :=
+    λne Δ, PersPred (λ ww, ∃ n : nat, ⌜ww.1 = #nv n⌝ ∧ ⌜ww.2 = #nv n⌝)%I.
 
-  Program Definition interp_bool : listO D -n> D := λne Δ ww,
-    (∃ b : bool, ⌜ww.1 = #♭v b⌝ ∧ ⌜ww.2 = #♭v b⌝)%I.
-  Solve Obligations with solve_proper.
+  Program Definition interp_bool : listO D -n> D :=
+    λne Δ, PersPred (λ ww, ∃ b : bool, ⌜ww.1 = #♭v b⌝ ∧ ⌜ww.2 = #♭v b⌝)%I.
 
   Program Definition interp_prod
-      (interp1 interp2 : listO D -n> D) : listO D -n> D := λne Δ ww,
-    (∃ vv1 vv2, ⌜ww = (PairV (vv1.1) (vv2.1), PairV (vv1.2) (vv2.2))⌝ ∧
-                interp1 Δ vv1 ∧ interp2 Δ vv2)%I.
+      (interp1 interp2 : listO D -n> D) : listO D -n> D :=
+    λne Δ,
+      PersPred (λ ww, ∃ vv1 vv2,
+                 ⌜ww = (PairV (vv1.1) (vv2.1), PairV (vv1.2) (vv2.2))⌝ ∧
+                 interp1 Δ vv1 ∧ interp2 Δ vv2)%I.
   Solve Obligations with solve_proper.
 
   Program Definition interp_sum
-      (interp1 interp2 : listO D -n> D) : listO D -n> D := λne Δ ww,
-    ((∃ vv, ⌜ww = (InjLV (vv.1), InjLV (vv.2))⌝ ∧ interp1 Δ vv) ∨
-     (∃ vv, ⌜ww = (InjRV (vv.1), InjRV (vv.2))⌝ ∧ interp2 Δ vv))%I.
+      (interp1 interp2 : listO D -n> D) : listO D -n> D :=
+    λne Δ, PersPred
+             (λ ww,
+              (∃ vv, ⌜ww = (InjLV (vv.1), InjLV (vv.2))⌝ ∧ interp1 Δ vv) ∨
+              (∃ vv, ⌜ww = (InjRV (vv.1), InjRV (vv.2))⌝ ∧ interp2 Δ vv))%I.
   Solve Obligations with solve_proper.
 
   Program Definition interp_arrow
           (interp1 interp2 : listO D -n> D) : listO D -n> D :=
-    λne Δ ww,
-    (□ ∀ vv, interp1 Δ vv →
-             interp_expr
-               interp2 Δ (App (of_val (ww.1)) (of_val (vv.1)),
-                          App (of_val (ww.2)) (of_val (vv.2))))%I.
+    λne Δ,
+    PersPred
+      (λ ww, □ ∀ vv, interp1 Δ vv →
+                      interp_expr
+                        interp2 Δ (App (of_val (ww.1)) (of_val (vv.1)),
+                                   App (of_val (ww.2)) (of_val (vv.2))))%I.
   Solve Obligations with solve_proper.
 
   Program Definition interp_forall
-      (interp : listO D -n> D) : listO D -n> D := λne Δ ww,
-    (□ ∀ τi,
-          ⌜∀ ww, Persistent (τi ww)⌝ →
-          interp_expr
-            interp (τi :: Δ) (TApp (of_val (ww.1)), TApp (of_val (ww.2))))%I.
+      (interp : listO D -n> D) : listO D -n> D :=
+    λne Δ,
+    PersPred
+      (λ ww,
+       □ ∀ τi,
+           interp_expr
+             interp (τi :: Δ) (TApp (of_val (ww.1)), TApp (of_val (ww.2))))%I.
   Solve Obligations with solve_proper.
 
+  Program Definition interp_exist (interp : listO D -n> D) : listO D -n> D :=
+    λne Δ,
+    PersPred
+      (λ ww, □ ∃ (τi : D) vv, ⌜ww = (PackV vv.1, PackV vv.2)⌝ ∗
+                 interp (τi :: Δ) vv)%I.
+  Solve Obligations with repeat intros ?; simpl; solve_proper.
+
   Program Definition interp_rec1
-      (interp : listO D -n> D) (Δ : listO D) (τi : D) : D := λne ww,
-    (□ ∃ vv, ⌜ww = (FoldV (vv.1), FoldV (vv.2))⌝ ∧ ▷ interp (τi :: Δ) vv)%I.
-  Solve Obligations with solve_proper.
+      (interp : listO D -n> D) (Δ : listO D) (τi : D) : D :=
+    PersPred (λ ww, □ ∃ vv, ⌜ww = (FoldV (vv.1), FoldV (vv.2))⌝ ∧
+                          ▷ interp (τi :: Δ) vv)%I.
 
   Global Instance interp_rec1_contractive
     (interp : listO D -n> D) (Δ : listO D) : Contractive (interp_rec1 interp Δ).
   Proof. solve_contractive. Qed.
 
   Lemma fixpoint_interp_rec1_eq (interp : listO D -n> D) Δ x :
-    fixpoint (interp_rec1 interp Δ) x ≡ interp_rec1 interp Δ (fixpoint (interp_rec1 interp Δ)) x.
+    fixpoint (interp_rec1 interp Δ) x ≡
+    interp_rec1 interp Δ (fixpoint (interp_rec1 interp Δ)) x.
   Proof. exact: (fixpoint_unfold (interp_rec1 interp Δ) x). Qed.
 
-  Program Definition interp_rec (interp : listO D -n> D) : listO D -n> D := λne Δ,
-    fixpoint (interp_rec1 interp Δ).
+  Program Definition interp_rec (interp : listO D -n> D) : listO D -n> D :=
+    λne Δ, fixpoint (interp_rec1 interp Δ).
   Next Obligation.
-    intros interp n Δ1 Δ2 HΔ; apply fixpoint_ne => τi ww. solve_proper.
+    intros interp n Δ1 Δ2 HΔ ?; simpl.
+    rewrite fixpoint_ne; first done.
+    solve_proper.
   Qed.
 
   Program Definition interp_ref_inv (ll : loc * loc) : D -n> iPropO Σ := λne τi,
@@ -109,9 +131,11 @@ Section logrel.
   Solve Obligations with solve_proper.
 
   Program Definition interp_ref
-      (interp : listO D -n> D) : listO D -n> D := λne Δ ww,
-    (∃ ll, ⌜ww = (LocV (ll.1), LocV (ll.2))⌝ ∧
-           inv (logN .@ ll) (interp_ref_inv ll (interp Δ)))%I.
+      (interp : listO D -n> D) : listO D -n> D :=
+    λne Δ,
+    PersPred (λ ww,
+            ∃ ll, ⌜ww = (LocV (ll.1), LocV (ll.2))⌝ ∧
+                  inv (logN .@ ll) (interp_ref_inv ll (interp Δ)))%I.
   Solve Obligations with solve_proper.
 
   Fixpoint interp (τ : type) : listO D -n> D :=
@@ -124,6 +148,7 @@ Section logrel.
     | TArrow τ1 τ2 => interp_arrow (interp τ1) (interp τ2)
     | TVar x => ctx_lookup x
     | TForall τ' => interp_forall (interp τ')
+    | TExist τ' => interp_exist (interp τ')
     | TRec τ' => interp_rec (interp τ')
     | Tref τ' => interp_ref (interp τ')
     end.
@@ -134,76 +159,56 @@ Section logrel.
     (⌜length Γ = length vvs⌝ ∗ [∗] zip_with (λ τ, ⟦ τ ⟧ Δ) Γ vvs)%I.
   Notation "⟦ Γ ⟧*" := (interp_env Γ).
 
-  Class env_Persistent Δ :=
-    ctx_persistentP : Forall (λ τi, ∀ vv, Persistent (τi vv)) Δ.
-  Global Instance ctx_persistent_nil : env_Persistent [].
-  Proof. by constructor. Qed.
-  Global Instance ctx_persistent_cons τi Δ :
-    (∀ vv, Persistent (τi vv)) → env_Persistent Δ → env_Persistent (τi :: Δ).
-  Proof. by constructor. Qed.
-  Global Instance ctx_persistent_lookup Δ x vv :
-    env_Persistent Δ → Persistent (ctx_lookup x Δ vv).
-  Proof. intros HΔ; revert x; induction HΔ=>-[|?] /=; apply _. Qed.
-  Global Instance interp_persistent τ Δ vv :
-    env_Persistent Δ → Persistent (⟦ τ ⟧ Δ vv).
-  Proof.
-    revert vv Δ; induction τ=> vv Δ HΔ; simpl; try apply _.
-    rewrite /Persistent fixpoint_interp_rec1_eq /interp_rec1 /= intuitionistically_into_persistently.
-    by apply persistently_intro'.
-  Qed.
   Global Instance interp_env_base_persistent Δ Γ vs :
-  env_Persistent Δ → TCForall Persistent (zip_with (λ τ, ⟦ τ ⟧ Δ) Γ vs).
+    TCForall Persistent (zip_with (λ τ, ⟦ τ ⟧ Δ) Γ vs).
   Proof.
-    intros HΔ. revert vs.
+    revert vs.
     induction Γ => vs; simpl; destruct vs; constructor; apply _.
   Qed.
   Global Instance interp_env_persistent Γ Δ vvs :
-    env_Persistent Δ → Persistent (⟦ Γ ⟧* Δ vvs) := _.
+    Persistent (⟦ Γ ⟧* Δ vvs) := _.
 
   Lemma interp_weaken Δ1 Π Δ2 τ :
     ⟦ τ.[upn (length Δ1) (ren (+ length Π))] ⟧ (Δ1 ++ Π ++ Δ2)
     ≡ ⟦ τ ⟧ (Δ1 ++ Δ2).
   Proof.
-    revert Δ1 Π Δ2. induction τ=> Δ1 Π Δ2; simpl; auto.
-    - intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
-    - intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
+    revert Δ1 Π Δ2. induction τ=> Δ1 Π Δ2 vv; simpl; auto.
+    - properness; auto. by apply IHτ1. by apply IHτ2.
+    - properness; auto. by apply IHτ1. by apply IHτ2.
     - unfold interp_expr.
-      intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
-    - apply fixpoint_proper=> τi ww /=.
+      properness; auto. by apply IHτ1. by apply IHτ2.
+    - rewrite fixpoint_proper; first done. intros τi ww; simpl.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
-      (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
-      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
-      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
+      rewrite !lookup_app_r; [|lia..]. do 3 f_equiv. lia.
     - unfold interp_expr.
-      intros ww; simpl; properness; auto. by apply (IHτ (_ :: _)).
-    - intros ww; simpl; properness; auto. by apply IHτ.
+      properness; auto. by apply (IHτ (_ :: _)).
+    - properness; auto. by apply (IHτ (_ :: _)).
+    - properness; auto. by apply IHτ.
   Qed.
 
   Lemma interp_subst_up Δ1 Δ2 τ τ' :
     ⟦ τ ⟧ (Δ1 ++ interp τ' Δ2 :: Δ2)
     ≡ ⟦ τ.[upn (length Δ1) (τ' .: ids)] ⟧ (Δ1 ++ Δ2).
   Proof.
-    revert Δ1 Δ2; induction τ=> Δ1 Δ2; simpl; auto.
-    - intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
-    - intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
+    revert Δ1 Δ2; induction τ=> Δ1 Δ2 vv; simpl; auto.
+    - properness; auto. by apply IHτ1. by apply IHτ2.
+    - properness; auto. by apply IHτ1. by apply IHτ2.
     - unfold interp_expr.
-      intros ww; simpl; properness; auto. by apply IHτ1. by apply IHτ2.
-    - apply fixpoint_proper=> τi ww /=.
+      properness; auto. by apply IHτ1. by apply IHτ2.
+    - rewrite fixpoint_proper; first done; intros τi ww; simpl.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
-      (* FIXME: Ideally we wouldn't have to do this kinf of surgery. *)
-      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
       rewrite !lookup_app_r; [|lia ..].
       case EQ: (x - length Δ1) => [|n]; simpl.
       { symmetry. asimpl. apply (interp_weaken [] Δ1 Δ2 τ'). }
-      change (bi_ofeO (uPredI (iResUR Σ))) with (uPredO (iResUR Σ)).
-      rewrite !lookup_app_r; [|lia ..]. do 2 f_equiv. lia.
+      rewrite !lookup_app_r; [|lia ..]. do 3 f_equiv. lia.
     - unfold interp_expr.
-      intros ww; simpl; properness; auto. apply (IHτ (_ :: _)).
-    - intros ww; simpl; properness; auto. by apply IHτ.
+      properness; auto. apply (IHτ (_ :: _)).
+    - properness; auto. apply (IHτ (_ :: _)).
+    - properness; auto. by apply IHτ.
   Qed.
 
   Lemma interp_subst Δ2 τ τ' v : ⟦ τ ⟧ (⟦ τ' ⟧ Δ2 :: Δ2) v ≡ ⟦ τ.[τ'/] ⟧ Δ2 v.
@@ -270,7 +275,7 @@ Section logrel.
   Qed.
 
   Lemma interp_ref_open' Δ τ l l' :
-    env_Persistent Δ → EqType τ →
+    EqType τ →
     ⟦ Tref τ ⟧ Δ (LocV l, LocV l') -∗
                |={⊤, ⊤ ∖ ↑logN.@(l, l')}=>
   ∃ w w', ▷ l ↦ᵢ w ∗ ▷ l' ↦ₛ w' ∗ ▷ ⟦ τ ⟧ Δ (w, w') ∗
@@ -281,7 +286,7 @@ Section logrel.
             ∗ (▷ (∃ vv : val * val, l ↦ᵢ vv.1 ∗ l' ↦ₛ vv.2 ∗ ⟦ τ ⟧ Δ vv)
           ={⊤ ∖ ↑logN.@(l, l'), ⊤}=∗ True).
   Proof.
-    iIntros (HΔ Heqt); simpl.
+    iIntros (Heqt); simpl.
     iDestruct 1 as ((l1, l1')) "[% H1]"; simplify_eq.
     iInv (logN.@(l1, l1')) as "Hi" "$"; simpl.
     iDestruct "Hi" as ((v1, v2))  "(Hl1 & Hl1' & Hrl)"; simpl in *.

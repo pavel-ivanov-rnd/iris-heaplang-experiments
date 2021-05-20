@@ -1,5 +1,6 @@
 From iris.proofmode Require Import tactics.
-From iris_examples.logrel.F_mu_ref_conc Require Export rules_binary typing.
+From iris_examples.logrel.F_mu_ref_conc.binary Require Export rules.
+From iris_examples.logrel.F_mu_ref_conc Require Export typing.
 
 (** [newlock = alloc false] *)
 Definition newlock : expr := Alloc (#♭ false).
