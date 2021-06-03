@@ -36,7 +36,7 @@ Section recursion_through_the_store.
    Iris instantiation has sufficient structure to manipulate the heap, e.g.,
    it allows us to use the points-to predicate. *)
 
-Context `{!heapG Σ}.
+Context `{!heapGS Σ}.
 Implicit Types l : loc.
 
 
@@ -83,7 +83,7 @@ Qed.
 End recursion_through_the_store.
 
 Section factorial_client.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
   Implicit Types l : loc.
 
   (* In this section we show how to specify and prove correctness of a

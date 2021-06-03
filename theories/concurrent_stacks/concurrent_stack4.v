@@ -60,7 +60,7 @@ Definition channelR := exclR unitR.
 Class channelG Σ := {channel_inG :> inG Σ channelR}.
 
 Section proofs.
-  Context `{!heapG Σ, !channelG Σ} (N : namespace).
+  Context `{!heapGS Σ, !channelG Σ} (N : namespace).
 
   Implicit Types l : loc.
 
@@ -432,6 +432,6 @@ Section proofs.
   Qed.
 End proofs.
 
-Program Definition spec {Σ} `{heapG Σ, channelG Σ} : concurrent_stack Σ :=
+Program Definition spec {Σ} `{heapGS Σ, channelG Σ} : concurrent_stack Σ :=
   {| is_stack := is_stack_pred; new_stack := mk_stack; stack_push := push; stack_pop := pop |} .
 Solve Obligations of spec with eauto using pop_works, push_works, mk_stack_works.

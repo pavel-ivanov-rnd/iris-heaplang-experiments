@@ -3,7 +3,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export proofmode notation.
 
 (** General (CAP-style) spec for a concurrent bag ("per-element spec") *)
-Record concurrent_bag {Σ} `{!heapG Σ} := ConcurrentBag {
+Record concurrent_bag {Σ} `{!heapGS Σ} := ConcurrentBag {
   is_bag (P : val → iProp Σ) (s : val) : iProp Σ;
   bag_pers (P : val → iProp Σ) (s : val) : Persistent (is_bag P s);
   new_bag : val;
@@ -22,7 +22,7 @@ Arguments concurrent_bag _ {_}.
 
 (** General (HoCAP-style) spec for a concurrent stack *)
 
-Record concurrent_stack {Σ} `{!heapG Σ} := ConcurrentStack {
+Record concurrent_stack {Σ} `{!heapGS Σ} := ConcurrentStack {
   is_stack (N : namespace) (P : list val → iProp Σ) (s : val) : iProp Σ;
   stack_pers (N : namespace) (P : list val → iProp Σ) (s : val) : Persistent (is_stack N P s);
   new_stack : val;

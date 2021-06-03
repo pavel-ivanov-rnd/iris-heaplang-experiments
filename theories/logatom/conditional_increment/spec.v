@@ -5,7 +5,7 @@ From iris.heap_lang Require Export proofmode notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for conditional increment. *)
-Record atomic_cinc {Σ} `{!heapG Σ} := AtomicCinc {
+Record atomic_cinc {Σ} `{!heapGS Σ} := AtomicCinc {
   (* -- operations -- *)
   new_counter : val;
   cinc : val;

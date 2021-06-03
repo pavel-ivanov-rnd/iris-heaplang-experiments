@@ -224,7 +224,7 @@ Section monotone_counter.
 
   (* We can now verify the programs. *)
   (* We start off as in the previous example, with some boilerplate code. *)
-  Context `{!heapG Σ, !mcounterG Σ} (N : namespace).
+  Context `{!heapGS Σ, !mcounterG Σ} (N : namespace).
   Notation iProp := (iProp Σ).
 
   (* The counter invariant as defined in the notes. The only difference is that
@@ -444,7 +444,7 @@ Section monotone_counter'.
 
   (* We can now verify the programs. *)
   (* We start off as in the previous example, with some boilerplate code. *)
-  Context `{!heapG Σ, !mcounterG' Σ} (N : namespace).
+  Context `{!heapGS Σ, !mcounterG' Σ} (N : namespace).
   Notation iProp := (iProp Σ).
 
   (* The rest of this section is exactly the same as the preceding one. We use
@@ -581,7 +581,7 @@ Section ccounter.
      not hold if we were to existentially quantify γ as we did in the previous
      examples.
   *)
-  Context `{!heapG Σ, !ccounterG Σ} (N : namespace).
+  Context `{!heapGS Σ, !ccounterG Σ} (N : namespace).
 
   Definition ccounter_inv (γ : gname) (l : loc) : iProp Σ :=
     (∃ n, own γ (●F n) ∗ l ↦ #n)%I.

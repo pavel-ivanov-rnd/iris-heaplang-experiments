@@ -32,7 +32,7 @@ Class graphG Σ := GraphG
 (*Definition graphΣ : gFunctors := #[authΣ graphUR].*)
 
 Section marking_definitions.
-  Context `{irisG heap_lang Σ, graphG Σ}.
+  Context `{irisGS heap_lang Σ, graphG Σ}.
 
   Definition is_marked (l : loc) : iProp Σ :=
     own graph_marking_name (◯ {[ l ]}).
@@ -145,7 +145,7 @@ Proof.
 Qed.
 
 Section definitions.
-  Context `{heapG Σ, graphG Σ}.
+  Context `{heapGS Σ, graphG Σ}.
 
   Definition own_graph (q : frac) (G : Gmon) : iProp Σ :=
     own graph_name (◯ (Some (q, G) : graphUR)).
@@ -179,7 +179,7 @@ Notation "l [↦] v" := ({[l := Excl v]}) (at level 70, format "l  [↦]  v").
 Typeclasses Opaque graph_ctx graph_inv own_graph.
 
 Section graph_ctx_alloc.
-  Context `{heapG Σ, cinvG Σ, inG Σ (authR markingUR), inG Σ (authR graphUR)}.
+  Context `{heapGS Σ, cinvG Σ, inG Σ (authR markingUR), inG Σ (authR graphUR)}.
 
   Lemma graph_ctx_alloc (E : coPset) (g : graph loc) (markings : gmap loc loc)
         (HNE : (nclose graphN) ⊆ E)
@@ -268,7 +268,7 @@ Proof.
 Qed.
 
 Section graph.
-  Context `{heapG Σ, graphG Σ}.
+  Context `{heapGS Σ, graphG Σ}.
 
   Lemma own_graph_valid q G : own_graph q G ⊢ ✓ G.
   Proof.

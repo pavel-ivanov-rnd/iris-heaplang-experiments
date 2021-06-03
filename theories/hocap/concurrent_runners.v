@@ -90,7 +90,7 @@ Proof.
 Qed.
 
 Section contents.
-  Context `{heapG Σ, !oneshotG Σ, !saG Σ}.
+  Context `{heapGS Σ, !oneshotG Σ, !saG Σ}.
   Variable b : bag Σ.
   Variable N : namespace.
 

@@ -11,7 +11,7 @@ Set Default Proof Using "Type".
 heap. *)
 
 (** The CMRA & functor we need. *)
-(* Not bundling heapG, as it may be shared with other users. *)
+(* Not bundling heapGS, as it may be shared with other users. *)
 Class stackG Σ := StackG {
   stack_tokG :> inG Σ (exclR unitO);
   stack_stateG :> inG Σ (authR (optionUR $ exclR (listO valO)));
@@ -23,7 +23,7 @@ Instance subG_stackΣ {Σ} : subG stackΣ Σ → stackG Σ.
 Proof. solve_inG. Qed.
 
 Section stack.
-  Context `{!heapG Σ, stackG Σ} {aheap: atomic_heap Σ} (N : namespace).
+  Context `{!heapGS Σ, stackG Σ} {aheap: atomic_heap Σ} (N : namespace).
   Notation iProp := (iProp Σ).
 
   Let offerN := N .@ "offer".
@@ -363,7 +363,7 @@ Section stack.
 
 End stack.
 
-Definition elimination_stack `{!heapG Σ, stackG Σ} {aheap: atomic_heap Σ} :
+Definition elimination_stack `{!heapGS Σ, stackG Σ} {aheap: atomic_heap Σ} :
   atomic_stack Σ :=
   {| spec.new_stack_spec := new_stack_spec;
      spec.push_spec := push_spec;

@@ -5,7 +5,7 @@ From iris_examples.logrel.stlc Require Export lang.
 From stdpp Require Import fin_maps.
 
 Section stlc_rules.
-  Context `{irisG stlc_lang Σ}.
+  Context `{irisGS stlc_lang Σ}.
   Implicit Types e : expr.
 
   Ltac inv_head_step :=

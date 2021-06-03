@@ -8,7 +8,7 @@ Reserved Notation "⟦ Γ ⟧*" (at level 0, Γ at level 70).
 
 (** interp : is a unary logical relation. *)
 Section logrel.
-Context `{irisG stlc_lang Σ}.
+Context `{irisGS stlc_lang Σ}.
 
 Fixpoint interp (τ : type) (w : val) : iProp Σ :=
   match τ with

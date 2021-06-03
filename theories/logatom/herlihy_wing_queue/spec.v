@@ -3,7 +3,7 @@ From iris.heap_lang Require Import proofmode notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for Herlihy-Wing queues. *)
-Record atomic_hwq {Σ} `{!heapG Σ} := AtomicHWQ {
+Record atomic_hwq {Σ} `{!heapGS Σ} := AtomicHWQ {
   (* -- operations -- *)
   new_queue : val;
   enqueue : val;

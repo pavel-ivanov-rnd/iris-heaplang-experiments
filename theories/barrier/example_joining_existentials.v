@@ -26,7 +26,7 @@ Definition client : val :=
 
 Section proof.
 Local Set Default Proof Using "Type*".
-Context `{!heapG Σ, !barrierG Σ, !spawnG Σ, !oneShotG Σ F}.
+Context `{!heapGS Σ, !barrierG Σ, !spawnG Σ, !oneShotG Σ F}.
 Context (N : namespace).
 Local Notation X := (oFunctor_apply F (iPropO Σ)).
 

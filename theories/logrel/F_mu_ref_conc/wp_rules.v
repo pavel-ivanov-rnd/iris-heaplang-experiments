@@ -10,11 +10,11 @@ Import uPred.
 (** The CMRA for the heap of the implementation. This is linked to the
     physical heap. *)
 Class heapIG Σ := HeapIG {
-  heapI_invG : invG Σ;
-  heapI_gen_heapG :> gen_heapG loc val Σ;
+  heapI_invG : invGS Σ;
+  heapI_gen_heapG :> gen_heapGS loc val Σ;
 }.
 
-Instance heapIG_irisG `{heapIG Σ} : irisG F_mu_ref_conc_lang Σ := {
+Instance heapIG_irisG `{heapIG Σ} : irisGS F_mu_ref_conc_lang Σ := {
   iris_invG := heapI_invG;
   num_laters_per_step _ := 0;
   state_interp σ  _ _ _ := gen_heap_interp σ;

@@ -39,7 +39,7 @@ Section proof.
      analogous way as other ghost state. This line states that we assume the
      Iris instantiation has sufficient structure to manipulate the heap, e.g.,
      it allows us to use the points-to predicate. *)
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
   (* Recall that parallel composition construct is defined in terms of fork. To
      prove the expected rules for this construct we need some particular ghost
      state in the instantiation of Iris, as explained in the lecture notes. The

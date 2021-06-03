@@ -5,7 +5,7 @@ Set Default Proof Using "Type".
 (** Specifying snapshots with histories
     Implementing atomic pair snapshot data structure from Sergey et al. (ESOP 2015) *)
 
-Record atomic_snapshot {Σ} `{!heapG Σ} := AtomicSnapshot {
+Record atomic_snapshot {Σ} `{!heapGS Σ} := AtomicSnapshot {
     new_snapshot : val;
     read : val;
     write : val;

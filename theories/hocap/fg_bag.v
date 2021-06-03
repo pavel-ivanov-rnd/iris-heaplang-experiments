@@ -41,7 +41,7 @@ Class bagG Σ := BagG
 
 (** Generic specification for the bag, using view shifts. *)
 Section proof.
-  Context `{heapG Σ, bagG Σ}.
+  Context `{heapGS Σ, bagG Σ}.
   Variable N : namespace.
 
   Definition oloc_to_val (ol: option loc) : val :=
@@ -229,7 +229,7 @@ End proof.
 
 Typeclasses Opaque bag_contents is_bag.
 
-Definition cg_bag `{!heapG Σ, !bagG Σ} : bag Σ :=
+Definition cg_bag `{!heapGS Σ, !bagG Σ} : bag Σ :=
   {| abstract_bag.is_bag := is_bag;
      abstract_bag.is_bag_persistent := is_bag_persistent;
      abstract_bag.bag_contents_timeless := bag_contents_timeless;

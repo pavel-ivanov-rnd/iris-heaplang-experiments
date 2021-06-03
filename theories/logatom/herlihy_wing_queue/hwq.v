@@ -136,7 +136,7 @@ Proof. solve_inG. Qed.
 
 Section herlihy_wing_queue.
 
-Context `{!heapG Σ, !savedPropG Σ, !hwqG Σ}.
+Context `{!heapGS Σ, !savedPropG Σ, !hwqG Σ}.
 Context (N : namespace).
 Notation iProp := (iProp Σ).
 Implicit Types γe γc γs : gname.
@@ -2757,7 +2757,7 @@ End herlihy_wing_queue.
 
 (** * Instantiation of the specification  ***********************************)
 
-Definition atomic_cinc `{!heapG Σ, !savedPropG Σ, !hwqG Σ} :
+Definition atomic_cinc `{!heapGS Σ, !savedPropG Σ, !hwqG Σ} :
   spec.atomic_hwq Σ :=
   {| spec.new_queue_spec := new_queue_spec;
      spec.enqueue_spec := enqueue_spec;

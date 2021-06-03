@@ -2,7 +2,7 @@ From iris_examples.logrel.stlc Require Export fundamental.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 
-Lemma wp_soundness `{irisG stlc_lang Σ} e τ : [] ⊢ₜ e : τ → ⊢ WP e {{ ⟦ τ ⟧ }}.
+Lemma wp_soundness `{irisGS stlc_lang Σ} e τ : [] ⊢ₜ e : τ → ⊢ WP e {{ ⟦ τ ⟧ }}.
 Proof.
   iIntros (?).
   replace e with e.[env_subst[]] by by asimpl.

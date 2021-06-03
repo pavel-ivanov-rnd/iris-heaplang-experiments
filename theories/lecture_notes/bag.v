@@ -33,7 +33,7 @@ Definition remove : val :=
           in release "lock" ;; "res".
 
 Section spec.
-  Context `{!heapG Σ, lockG Σ}.
+  Context `{!heapGS Σ, lockG Σ}.
   Local Notation iProp := (iProp Σ).
 
   Fixpoint isBag (Ψ : val → iProp) (v : val) : iProp :=

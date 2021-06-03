@@ -5,7 +5,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 
 Section sync.
-  Context `{!heapG Σ} (N : namespace).
+  Context `{!heapGS Σ} (N : namespace).
 
   (* TODO: We could get rid of the x, and hard-code a unit. That would
      be no loss in expressiveness, but probably more annoying to apply.

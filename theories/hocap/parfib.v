@@ -13,7 +13,7 @@ From iris.heap_lang.lib Require Import lock spin_lock.
 From iris_examples.hocap Require Import abstract_bag shared_bag concurrent_runners.
 
 Section contents.
-  Context `{heapG Σ, !oneshotG Σ, !saG Σ}.
+  Context `{heapGS Σ, !oneshotG Σ, !saG Σ}.
   Variable b : bag Σ.
   Variable N : namespace.
 

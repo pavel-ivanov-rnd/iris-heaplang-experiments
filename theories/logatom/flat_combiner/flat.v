@@ -61,7 +61,7 @@ Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
 Proof. solve_inG. Qed.
 
 Section proof.
-  Context `{!heapG Σ, !lockG Σ, !flatG Σ} (N: namespace).
+  Context `{!heapGS Σ, !lockG Σ, !flatG Σ} (N: namespace).
 
   Definition init_s (ts: toks) :=
     let '(_, γ1, γ3, _, _) := ts in (own γ1 (Excl ()) ∗ own γ3 (Excl ()))%I.

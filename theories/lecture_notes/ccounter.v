@@ -15,7 +15,7 @@ Instance subG_ccounterΣ {Σ} : subG ccounterΣ Σ → ccounterG Σ.
 Proof. solve_inG. Qed.
 
 Section ccounter.
-  Context `{!heapG Σ, !cntG Σ, !ccounterG Σ} (N : namespace).
+  Context `{!heapGS Σ, !cntG Σ, !ccounterG Σ} (N : namespace).
 
   Lemma ccounterRA_valid (m n : natR) (q : frac): ✓ (●F m ⋅ ◯F{q} n) → n ≤ m.
   Proof.

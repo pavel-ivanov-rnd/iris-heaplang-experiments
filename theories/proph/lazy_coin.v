@@ -22,7 +22,7 @@ Definition read_lazy_coin : val :=
   end.
 
 Section proof.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Definition val_to_bool (v : val) : bool := bool_decide (v = #true).
 
@@ -87,7 +87,7 @@ Section proof.
 
 End proof.
 
-Definition lazy_coin_spec_instance `{!heapG Σ} :
+Definition lazy_coin_spec_instance `{!heapGS Σ} :
   eager_coin_spec.eager_coin_spec Σ :=
   {| eager_coin_spec.new_coin_spec := new_lazy_coin_spec;
      eager_coin_spec.read_coin_spec := read_lazy_coin_spec;

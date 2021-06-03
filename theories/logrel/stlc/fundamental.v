@@ -3,13 +3,13 @@ From iris_examples.logrel.stlc Require Import rules.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.stlc Require Export logrel.
 
-Definition log_typed `{irisG stlc_lang Σ}
+Definition log_typed `{irisGS stlc_lang Σ}
            (Γ : list type) (e : expr) (τ : type) : iProp Σ :=
   □∀ vs, ⟦ Γ ⟧* vs -∗ ⟦ τ ⟧ₑ e.[env_subst vs].
 Notation "Γ ⊨ e : τ" := (log_typed Γ e τ) (at level 74, e, τ at next level).
 
 Section typed_interp.
-  Context `{irisG stlc_lang Σ}.
+  Context `{irisGS stlc_lang Σ}.
 
   Local Tactic Notation "smart_wp_bind" uconstr(ctx) ident(v) constr(Hv) constr(Hp) :=
     iApply (wp_bind (fill [ctx]));

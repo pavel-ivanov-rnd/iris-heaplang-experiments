@@ -3,7 +3,7 @@ From iris.heap_lang Require Import proofmode notation.
 Set Default Proof Using "Type".
 
 (** A general logically atomic interface for a stack. *)
-Record atomic_stack {Σ} `{!heapG Σ} := AtomicStack {
+Record atomic_stack {Σ} `{!heapGS Σ} := AtomicStack {
   (* -- operations -- *)
   new_stack : val;
   push : val;

@@ -30,7 +30,7 @@ Definition process_prophecy1 {A} {hA : Inhabited A} (f : val → option A) (vs :
   end.
 
 Section TypedProph.
-Context `{!heapG Σ}.
+Context `{!heapGS Σ}.
 
 Notation iProp := (iProp Σ).
 
@@ -139,7 +139,7 @@ Section bool_proph.
     mkTypedProphSpec bool bool_from_val bool_to_val bool_inj_prop.
 End bool_proph.
 
-Definition BoolTypedProph `{!heapG Σ} := make_TypedProph BoolProph.
+Definition BoolTypedProph `{!heapGS Σ} := make_TypedProph BoolProph.
 
 (** Instantiation of the interface with integers. *)
 
@@ -159,4 +159,4 @@ Section int_proph.
     mkTypedProphSpec Z int_from_val int_to_val int_inj_prop.
 End int_proph.
 
-Definition IntTypedProph `{!heapG Σ} := make_TypedProph IntProph.
+Definition IntTypedProph `{!heapGS Σ} := make_TypedProph IntProph.

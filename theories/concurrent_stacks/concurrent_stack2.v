@@ -65,7 +65,7 @@ Instance subG_channelΣ {Σ} : subG channelΣ Σ → channelG Σ.
 Proof. solve_inG. Qed.
 
 Section side_channel.
-  Context `{!heapG Σ, !channelG Σ} (N : namespace).
+  Context `{!heapGS Σ, !channelG Σ} (N : namespace).
   Implicit Types l : loc.
 
   Definition revoke_tok γ := own γ (Excl ()).
@@ -146,7 +146,7 @@ Section side_channel.
 End side_channel.
 
 Section mailbox.
-  Context `{!heapG Σ, channelG Σ} (N : namespace).
+  Context `{!heapGS Σ, channelG Σ} (N : namespace).
   Implicit Types l : loc.
 
   Definition Noffer := N .@ "offer".
@@ -229,7 +229,7 @@ Section mailbox.
 End mailbox.
 
 Section stack_works.
-  Context `{!heapG Σ, channelG Σ} (N : namespace).
+  Context `{!heapGS Σ, channelG Σ} (N : namespace).
   Implicit Types l : loc.
 
   Definition Nmailbox := N .@ "mailbox".
@@ -384,6 +384,6 @@ Section stack_works.
   Qed.
 End stack_works.
 
-Program Definition spec {Σ} N `{heapG Σ, channelG Σ} : concurrent_bag Σ :=
+Program Definition spec {Σ} N `{heapGS Σ, channelG Σ} : concurrent_bag Σ :=
   {| is_bag := is_stack N; new_bag := new_stack; bag_push := push; bag_pop := pop |} .
 Solve Obligations of spec with eauto using pop_spec, push_spec, new_stack_spec.

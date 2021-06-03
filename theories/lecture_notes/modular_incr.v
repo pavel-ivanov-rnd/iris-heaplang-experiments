@@ -104,7 +104,7 @@ Notation "γ ⤇½ m" := (own γ (makeElem (1/2) m))
   (at level 20, format "γ ⤇½  m") : bi_scope.
 
 Section cnt_spec.
-  Context `{!heapG Σ, !cntG Σ} (N : namespace).
+  Context `{!heapGS Σ, !cntG Σ} (N : namespace).
 
   Definition cnt_inv ℓ γ := (∃ (m : Z), ℓ ↦ #m ∗ γ ⤇½ m)%I.
 
@@ -227,7 +227,7 @@ End cnt_spec.
 Global Opaque newcounter incr read wk_incr.
 
 Section incr_twice.
-  Context `{!heapG Σ, !cntG Σ} (N : namespace).
+  Context `{!heapGS Σ, !cntG Σ} (N : namespace).
   Definition incr_twice : val := λ: "ℓ", incr "ℓ" ;; incr "ℓ".
 
   Theorem incr_twice_spec (γ : gname) (E : coPset) (P : iProp Σ) (Q Q' : Z → iProp Σ) (ℓ : loc):
@@ -249,7 +249,7 @@ Section incr_twice.
 End incr_twice.
 
 Section example_1.
-  Context `{!heapG Σ, !spawnG Σ, !cntG Σ} (N : namespace).
+  Context `{!heapGS Σ, !spawnG Σ, !cntG Σ} (N : namespace).
 
   Definition incr_2 : val :=
     λ: "x",

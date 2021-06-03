@@ -102,7 +102,7 @@ Instance subG_cincΣ {Σ} : subG cincΣ Σ → cincG Σ.
 Proof. solve_inG. Qed.
 
 Section conditional_counter.
-  Context {Σ} `{!heapG Σ, !cincG Σ}.
+  Context {Σ} `{!heapGS Σ, !cincG Σ}.
   Context (N : namespace).
 
   Local Definition stateN   := N .@ "state".
@@ -544,7 +544,7 @@ Section conditional_counter.
 
 End conditional_counter.
 
-Definition atomic_cinc `{!heapG Σ, !cincG Σ} :
+Definition atomic_cinc `{!heapGS Σ, !cincG Σ} :
   spec.atomic_cinc Σ :=
   {| spec.new_counter_spec := new_counter_spec;
      spec.cinc_spec := cinc_spec;

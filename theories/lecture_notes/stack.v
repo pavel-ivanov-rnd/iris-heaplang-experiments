@@ -35,7 +35,7 @@ End stack_code.
 
 Section stack_model.
 
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
   Notation iProp := (iProp Σ).
   Implicit Types ℓ : loc.
   (* Here is the basic is_stack representation predicate.
@@ -58,7 +58,7 @@ Section stack_spec.
   (* This section contains the specifications and proofs for the stack functions.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Lemma new_stack_spec:
     {{{ True }}}
@@ -133,7 +133,7 @@ Section stack_spec.
 End stack_spec.
 
 Section stack_model_ownership.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
   Notation iProp := (iProp Σ).
   Implicit Types ℓ : loc.
   (* Here is the basic is_stack representation predicate.
@@ -155,7 +155,7 @@ Section stack_ownership_spec.
   (* This section contains the specifications and proofs for the stack functions.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
 Lemma newstack_ownership_spec:
   {{{ True }}}

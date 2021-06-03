@@ -33,7 +33,7 @@ Definition iter: val :=
       end.
 
 Section proof.
-  Context `{!heapG Σ} (N: namespace).
+  Context `{!heapGS Σ} (N: namespace).
 
   Fixpoint is_list (hd: loc) (xs: list val) : iProp Σ :=
     match xs with

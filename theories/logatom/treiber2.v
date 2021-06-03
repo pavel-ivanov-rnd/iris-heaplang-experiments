@@ -68,7 +68,7 @@ Proof. solve_inG. Qed.
 
 (* Put some things in the context. *)
 Section treiber_stack.
-Context `{!heapG Σ, !stackG Σ}.
+Context `{!heapGS Σ, !stackG Σ}.
 Context (N : namespace).
 Notation iProp := (iProp Σ).
 

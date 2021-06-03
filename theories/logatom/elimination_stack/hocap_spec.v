@@ -69,7 +69,7 @@ There are two differences to the [abstract_bag] spec:
 This spec uses the "authoritative" variant of HoCAP specs.
 See below for the "predicate"-based alternative *)
 Module hocap_auth.
-Record stack {Σ} `{!heapG Σ} := AtomicStack {
+Record stack {Σ} `{!heapGS Σ} := AtomicStack {
   (* -- operations -- *)
   new_stack : val;
   push : val;
@@ -122,7 +122,7 @@ End hocap_auth.
 instead of an authoritative element, thereby departing even further from the
 HoCAP paper.  This style matches [concurrent_stacks.spec]. *)
 Module hocap_pred.
-Record stack {Σ} `{!heapG Σ} := AtomicStack {
+Record stack {Σ} `{!heapGS Σ} := AtomicStack {
   (* -- operations -- *)
   new_stack : val;
   push : val;
@@ -166,7 +166,7 @@ tada.is_stack := hocap_auth.is_stack
 tada.stack_content := hocap_auth.stack_content_frag
 *)
 Section hocap_auth_tada.
-  Context `{!heapG Σ} (stack: hocap_auth.stack Σ).
+  Context `{!heapGS Σ} (stack: hocap_auth.stack Σ).
 
   Lemma tada_push N γs s (v : val) :
     stack.(hocap_auth.is_stack) N γs s -∗
@@ -215,7 +215,7 @@ Roughly:
 hocap_pred.is_stack P := tada.is_stack * inv (∃ l, tada.stack_content l * P l)
 *)
 Section tada_hocap_pred.
-  Context `{!heapG Σ} (stack: tada.atomic_stack Σ).
+  Context `{!heapGS Σ} (stack: tada.atomic_stack Σ).
   Implicit Type P : list val → iProp Σ.
 
   Definition hocap_pred_is_stack N v P : iProp Σ :=
@@ -300,7 +300,7 @@ Instance subG_hocapΣ {Σ} : subG hocapΣ Σ → hocapG Σ.
 Proof. solve_inG. Qed.
 
 Section hocap_pred_auth.
-  Context `{!heapG Σ} `{!hocapG Σ} (stack: hocap_pred.stack Σ).
+  Context `{!heapGS Σ} `{!hocapG Σ} (stack: hocap_pred.stack Σ).
 
   Definition hocap_name : Type := gname.
   Implicit Types γs : hocap_name.
@@ -382,7 +382,7 @@ End hocap_pred_auth.
 (** Show that our way of writing the [pop_spec] is equivalent to what is done in
 [concurrent_stack.spec].  IOW, the conjunction-vs-match doesn't matter. *)
 Section pop_equiv.
-  Context `{invG Σ} (T : Type).
+  Context `{invGS Σ} (T : Type).
 
   Lemma pop_equiv E (I : list T → iProp Σ) (Φemp : iProp Σ) (Φret : T → iProp Σ) :
     (∀ l, I l ={E}=∗

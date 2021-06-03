@@ -24,7 +24,7 @@ Definition pop : val :=
     end.
 
 Section stack_works.
-  Context `{!heapG Σ} (N : namespace).
+  Context `{!heapGS Σ} (N : namespace).
   Implicit Types l : loc.
 
   Definition oloc_to_val (ol: option loc) : val :=
@@ -177,6 +177,6 @@ Section stack_works.
   Qed.
 End stack_works.
 
-Program Definition spec {Σ} `{heapG Σ} : concurrent_stack Σ :=
+Program Definition spec {Σ} `{heapGS Σ} : concurrent_stack Σ :=
   {| is_stack := is_stack_pred; new_stack := mk_stack; stack_push := push; stack_pop := pop |} .
 Solve Obligations of spec with eauto using pop_spec, push_spec, mk_stack_spec.

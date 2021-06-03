@@ -14,7 +14,7 @@ with an additional guarantee that [l_m] will not be deallocated (and the value
 stored there satisfies the given predicate, which is trivial in this case). This
 guarantees that unique immutable descriptors can be associated to each
 operation, and that they cannot be "reused". *)
-Record atomic_rdcss {Σ} `{!heapG Σ} := AtomicRdcss {
+Record atomic_rdcss {Σ} `{!heapGS Σ} := AtomicRdcss {
   (* -- operations -- *)
   new_rdcss : val;
   rdcss: val;

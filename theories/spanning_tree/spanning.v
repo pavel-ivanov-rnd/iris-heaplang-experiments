@@ -34,7 +34,7 @@ Definition span : val :=
   end.
 
 Section Helpers.
-  Context `{heapG Σ, cinvG Σ, graphG Σ, spawnG Σ} (κ : gname).
+  Context `{heapGS Σ, cinvG Σ, graphG Σ, spawnG Σ} (κ : gname).
 
   Lemma wp_try_mark g Mrk k q (x : loc) : x ∈ dom (gset _) g →
     graph_ctx κ g Mrk ∗ own_graph q ∅ ∗ cinv_own κ k

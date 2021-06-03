@@ -15,7 +15,7 @@ Definition client : expr :=
 
 Section client.
   Local Set Default Proof Using "Type*".
-  Context `{!heapG Σ, !barrierG Σ, !spawnG Σ}.
+  Context `{!heapGS Σ, !barrierG Σ, !spawnG Σ}.
 
   Definition N := nroot .@ "barrier".
 

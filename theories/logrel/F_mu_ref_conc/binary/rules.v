@@ -27,7 +27,7 @@ Definition to_heap {L V} `{Countable L} : gmap L V → heapUR L V :=
 Class cfgSG Σ := CFGSG { cfg_inG :> inG Σ (authR cfgUR); cfg_name : gname }.
 
 Section definitionsS.
-  Context `{cfgSG Σ, invG Σ}.
+  Context `{cfgSG Σ, invGS Σ}.
 
   Definition heapS_mapsto (l : loc) (q : Qp) (v: val) : iProp Σ :=
     own cfg_name (◯ (ε, {[ l := (q, to_agree v) ]})).

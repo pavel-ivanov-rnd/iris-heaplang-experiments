@@ -13,7 +13,7 @@ Definition read_eager_coin : val :=
   λ: "c", !"c".
 
 Section proof.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Definition eager_coin (c : val) (b : bool) : iProp Σ :=
     (∃ (l : loc), ⌜c = #l⌝ ∗ l ↦ #b).
@@ -47,7 +47,7 @@ Section proof.
   Qed.
 End proof.
 
-Definition eager_coin_spec_instance `{!heapG Σ} :
+Definition eager_coin_spec_instance `{!heapGS Σ} :
   eager_coin_spec.eager_coin_spec Σ :=
   {| eager_coin_spec.new_coin_spec := new_eager_coin_spec;
      eager_coin_spec.read_coin_spec := read_eager_coin_spec;

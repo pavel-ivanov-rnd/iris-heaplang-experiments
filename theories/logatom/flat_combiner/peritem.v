@@ -10,7 +10,7 @@ From iris_examples.logatom Require Export treiber.
     We re-use the code but not the spec of the treiber stack. *)
 
 Section defs.
-  Context `{heapG Σ} (N: namespace).
+  Context `{heapGS Σ} (N: namespace).
   Context (R: val → iProp Σ) `{∀ x, TimelessP (R x)}.
 
   Fixpoint is_list_R (hd: loc) (xs: list val) : iProp Σ :=
@@ -32,7 +32,7 @@ Section defs.
 End defs.
 
 Section proofs.
-  Context `{heapG Σ} (N: namespace).
+  Context `{heapGS Σ} (N: namespace).
   Context (R: val → iProp Σ).
 
   Definition bag_inv s: iProp Σ := inv N (∃ xs, is_bag_R N R xs s)%I.

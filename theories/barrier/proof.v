@@ -19,7 +19,7 @@ Proof. solve_inG. Qed.
 
 (** Now we come to the Iris part of the proof. *)
 Section proof.
-Context `{!heapG Σ, !barrierG Σ} (N : namespace).
+Context `{!heapGS Σ, !barrierG Σ} (N : namespace).
 
 Definition barrier_inv (l : loc) (γ : gname) (P : iProp Σ) : iProp Σ :=
   (∃ (b : bool) (γsps : gset gname),

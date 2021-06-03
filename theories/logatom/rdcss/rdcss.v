@@ -171,7 +171,7 @@ Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
 Proof. solve_inG. Qed.
 
 Section rdcss.
-  Context {Σ} `{!heapG Σ, !rdcssG Σ}.
+  Context {Σ} `{!heapGS Σ, !rdcssG Σ}.
   Context (N : namespace).
 
   Implicit Types γ_n γ_a γ_t γ_s : gname.
@@ -678,7 +678,7 @@ Section rdcss.
 
 End rdcss.
 
-Definition atomic_rdcss `{!heapG Σ, !rdcssG Σ} :
+Definition atomic_rdcss `{!heapGS Σ, !rdcssG Σ} :
   spec.atomic_rdcss Σ :=
   {| spec.new_rdcss_spec := new_rdcss_spec;
      spec.rdcss_spec := rdcss_spec;

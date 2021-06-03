@@ -7,7 +7,7 @@ the program. This can be seen in the spec. The predicate [coin c bs] expresses
 that [bs] is the list of all the values of the coin in the future. Note that
 the [read_coin] operation returns the head of [bs] and that the [toss_coin]
 operation takes the [tail] of [bs]. *)
-Record clairvoyant_coin_spec `{!heapG Σ} := ClairvoyantCoinSpec {
+Record clairvoyant_coin_spec `{!heapGS Σ} := ClairvoyantCoinSpec {
   (* -- operations -- *)
   new_coin: val;
   read_coin: val;

@@ -86,7 +86,7 @@ Proof. solve_inG. Qed.
 
 Section atomic_snapshot.
 
-  Context {Σ} `{!heapG Σ, !atomic_snapshotG Σ}.
+  Context {Σ} `{!heapGS Σ, !atomic_snapshotG Σ}.
 
   Variable N: namespace.
 
@@ -402,7 +402,7 @@ Section atomic_snapshot.
 
 End atomic_snapshot.
 
-Program Definition atomic_snapshot `{!heapG Σ, atomic_snapshotG Σ} :
+Program Definition atomic_snapshot `{!heapGS Σ, atomic_snapshotG Σ} :
   spec.atomic_snapshot Σ :=
   {| spec.new_snapshot_spec := new_snapshot_spec;
      spec.write_spec := write_spec;

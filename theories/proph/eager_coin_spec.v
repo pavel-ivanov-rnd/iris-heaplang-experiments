@@ -4,7 +4,7 @@ Set Default Proof Using "Type".
 (** Specification for an eager coin. The coin is only ever tossed once, at the
 time of its creation with [new_coin]. All subsequent calls to [read_coin] give
 the same value. *)
-Record eager_coin_spec `{!heapG Σ} := EagerCoinSpec {
+Record eager_coin_spec `{!heapGS Σ} := EagerCoinSpec {
   (* -- operations -- *)
   new_coin: val;
   read_coin: val;

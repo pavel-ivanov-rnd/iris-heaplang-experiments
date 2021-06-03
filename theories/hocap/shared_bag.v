@@ -12,7 +12,7 @@ From iris_examples.hocap Require Import abstract_bag.
 Set Default Proof Using "Type".
 
 Section proof.
-  Context `{heapG Σ}.
+  Context `{heapGS Σ}.
   Variable b : bag Σ.
   Variable N : namespace.
   Definition NB := N.@"bag".

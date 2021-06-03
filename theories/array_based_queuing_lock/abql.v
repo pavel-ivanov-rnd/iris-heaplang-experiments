@@ -81,7 +81,7 @@ Module spec.
 
      invitation_split allows the client to split and combine invitations. *)
 
-  Structure abql_spec Σ `{!heapG Σ} := abql {
+  Structure abql_spec Σ `{!heapGS Σ} := abql {
     (* Operations *)
     newlock : val;
     acquire : val;
@@ -173,7 +173,7 @@ Section array_model.
 
   (* A few auxillary lemmas used to handle arrays in relation to the ABQL. *)
 
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   (* is_array relates a location to a list of booleans. We use this since "_ ↦∗
      _" relates a location to a list of values, but we need the extra
@@ -231,7 +231,7 @@ Class alockG Σ := {
 
 Section proof.
 
-  Context `{!heapG Σ, !alockG Σ}.
+  Context `{!heapGS Σ, !alockG Σ}.
   Let N := nroot .@ "abql".
 
   (* The ghost state both, left, and right is used to keep track of the state of
@@ -595,7 +595,7 @@ Section proof.
 
 End proof.
 
-Program Definition abql `{!heapG Σ, !alockG Σ} : spec.abql_spec Σ :=
+Program Definition abql `{!heapGS Σ, !alockG Σ} : spec.abql_spec Σ :=
   {| spec.newlock := newlock;
      spec.acquire := acquire;
      spec.release := release;

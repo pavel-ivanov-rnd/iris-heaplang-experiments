@@ -17,7 +17,7 @@ Definition mk_sync: val :=
           "ret".
 
 Section syncer.
-  Context `{!heapG Σ, !lockG Σ}.
+  Context `{!heapGS Σ, !lockG Σ}.
   
   Lemma mk_sync_spec: mk_syncer_spec mk_sync.
   Proof.

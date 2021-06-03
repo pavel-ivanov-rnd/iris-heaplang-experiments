@@ -35,7 +35,7 @@ Section list_model.
    analogous way as other ghost state. This line states that we assume the
    Iris instantiation has sufficient structure to manipulate the heap, e.g.,
    it allows us to use the points-to predicate. *)
-Context `{!heapG Σ}.
+Context `{!heapGS Σ}.
 Implicit Types l : loc.
 
 (* The variable Σ has to do with what ghost state is available, and the type
@@ -232,7 +232,7 @@ Section list_spec.
      The specifications and proofs are explained in the Iris Lecture Notes
    *)
 
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
 Lemma inc_spec hd xs :
   {{{ is_list_nat hd xs }}}

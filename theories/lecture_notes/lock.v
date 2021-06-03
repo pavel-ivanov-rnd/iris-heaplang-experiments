@@ -35,7 +35,7 @@ Section lock_model.
    the exclusive resource algebra over the singleton set (represented using the
    unitR type). *)
 
-  Context `{heapG Σ, lockG Σ}.
+  Context `{heapGS Σ, lockG Σ}.
 
   (* We use a ghost name with a token to model whether the lock is locked or not.
      The the token is just exclusive ownerwhip of unit value. *)
@@ -66,7 +66,7 @@ Section lock_code.
 End lock_code.
 
 Section lock_spec.
-  Context `{heapG Σ, lockG Σ}.
+  Context `{heapGS Σ, lockG Σ}.
 
   Lemma newlock_spec P :
     {{{ P }}} newlock #() {{{ l, RET l; ∃ γ, is_lock γ l P }}}.

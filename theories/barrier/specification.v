@@ -7,7 +7,7 @@ Import uPred.
 
 Section spec.
 Local Set Default Proof Using "Type*".
-Context `{!heapG Σ, !barrierG Σ}.
+Context `{!heapGS Σ, !barrierG Σ}.
 
 Lemma barrier_spec (N : namespace) :
   ∃ recv send : loc → iPropO Σ -n> iPropO Σ,

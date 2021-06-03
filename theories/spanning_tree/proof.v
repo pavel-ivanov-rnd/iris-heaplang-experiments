@@ -9,7 +9,7 @@ Import uPred.
 From iris_examples.spanning_tree Require Import graph mon spanning.
 
 Section wp_span.
-  Context `{heapG Σ, cinvG Σ, inG Σ (authR markingUR),
+  Context `{heapGS Σ, cinvG Σ, inG Σ (authR markingUR),
             inG Σ (authR graphUR), spawnG Σ}.
 
   Lemma wp_span g (markings : gmap loc loc) (x : val) (l : loc) :

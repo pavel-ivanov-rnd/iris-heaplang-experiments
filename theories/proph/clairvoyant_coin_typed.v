@@ -20,7 +20,7 @@ Definition toss_coin : val :=
   "c" <- "r";; resolve_proph: "p" to: "r";; #().
 
 Section proof.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Definition coin (cp : val) (bs : list bool) : iProp Σ :=
     (∃ (c : loc) (p : proph_id) (b : bool) (bs' : list bool),
@@ -79,7 +79,7 @@ Section proof.
 
 End proof.
 
-Definition clairvoyant_coin_spec_instance `{!heapG Σ} :
+Definition clairvoyant_coin_spec_instance `{!heapGS Σ} :
   clairvoyant_coin_spec.clairvoyant_coin_spec Σ :=
   {| clairvoyant_coin_spec.new_coin_spec := new_coin_spec;
      clairvoyant_coin_spec.read_coin_spec := read_coin_spec;
