@@ -859,7 +859,7 @@ Lemma glue_blocks_valid slots i b_unused b_pendings blocks l γ :
   NoDup (b_unused :: b_pendings ++ flatten_blocks blocks) →
   (∀ b : block, b ∈ (b_unused, b_pendings) :: blocks → block_valid slots b) →
   ∀ b, b ∈ glue_blocks (b_unused, b_pendings) i blocks → block_valid (<[i:=(l, Pend γ, false)]> slots) b.
-Proof using N heapG0 hwqG0 savedPropG0 Σ.
+Proof using Type*.
   intros Hi. revert b_unused b_pendings.
   induction blocks as [|[b_u b_ps] blocks IH];
     intros b_unused b_pendings Hb_unused_not_i HND Hblocks_valid [b_u' b_ps'] Hb.
@@ -1083,7 +1083,7 @@ Lemma array_content_dequeue sz i slots deqs :
   i < sz →
   i ∉ deqs →
   array_content sz slots ({[i]} ∪ deqs) = <[i:=NONEV]> (array_content sz slots deqs).
-Proof using N heapG0 hwqG0 savedPropG0 Σ.
+Proof using Type*.
   revert i. induction sz as [|sz IH]; intros i H1 H2; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
   - assert (i = length (array_content i slots deqs) + 0) as HEq.
@@ -1107,7 +1107,7 @@ Lemma array_content_set_written sz i (l : loc) slots deqs :
   val_of <$> slots !! i = Some l →
   ¬ i ∈ deqs →
   <[i:=InjRV #l]> (array_content sz slots deqs) = array_content sz (update_slot i set_written slots) deqs.
-Proof using N heapG0 hwqG0 savedPropG0 Σ.
+Proof using Type*.
   revert i. induction sz as [|sz IH]; intros i H1 H2 H3; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
   - assert (i = length (array_content i slots deqs) + 0) as HEq.
