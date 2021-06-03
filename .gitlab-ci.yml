@@ -27,33 +27,9 @@ variables:
 
 ## Build jobs
 
-# We are in Coq's CI test suite, so better make sure we keep working with Coq master.
-build-coq.dev:
-  <<: *template
-  variables:
-    OPAM_PINS: "coq version dev"
-
-build-coq.8.13.1:
-  <<: *template
-  variables:
-    OPAM_PINS: "coq version 8.13.1"
-
-build-coq.8.12.2:
-  <<: *template
-  variables:
-    OPAM_PINS: "coq version 8.12.2"
-    DENY_WARNINGS: "1"
-  tags:
-  - fp-timing
-
 build-iris.dev:
   <<: *template
   variables:
-    STDPP_REPO: "iris/stdpp"
-    IRIS_REPO: "iris/iris"
-    OPAM_PINS: "coq version 8.13.dev   git+https://gitlab.mpi-sws.org/$STDPP_REPO#$STDPP_REV   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
-  except:
-  only:
-  - triggers
-  - schedules
-  - api
+    OPAM_PINS: "coq version 8.12.2   git+https://gitlab.mpi-sws.org/iris/iris.git#ralf/tc-weakestpre"
+  tags:
+  - fp-timing
