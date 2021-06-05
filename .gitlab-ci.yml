@@ -58,7 +58,7 @@ trigger-iris.timing:
   - api
   except:
     variables:
-    - $AD_HOC_TIMING_ID == null
+    - $TIMING_AD_HOC_ID == null
 
 trigger-iris.dev:
   <<: *template
@@ -73,4 +73,4 @@ trigger-iris.dev:
     - schedules
     - api
     variables:
-    - $AD_HOC_TIMING_ID == null
+    - $TIMING_AD_HOC_ID == null
