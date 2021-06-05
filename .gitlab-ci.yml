@@ -50,13 +50,15 @@ trigger-iris.timing:
   <<: *template
   variables:
     OPAM_PINS: "coq version 8.12.2   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
+  tags:
+  - fp-timing
   only:
   - triggers
   - schedules
   - api
   except:
     variables:
-    - $AD_HOC_TIMING_ID == ""
+    - $AD_HOC_TIMING_ID == null
 
 trigger-iris.dev:
   <<: *template
@@ -71,4 +73,4 @@ trigger-iris.dev:
     - schedules
     - api
     variables:
-    - $AD_HOC_TIMING_ID == ""
+    - $AD_HOC_TIMING_ID == null
