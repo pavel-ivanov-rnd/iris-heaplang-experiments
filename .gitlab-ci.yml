@@ -57,7 +57,7 @@ trigger-iris.timing:
   - schedules
   - api
   except:
-  - variables:
+    variables:
     - $AD_HOC_TIMING_ID == ""
 
 trigger-iris.dev:
@@ -68,8 +68,9 @@ trigger-iris.dev:
     OPAM_PINS: "coq version 8.13.dev   git+https://gitlab.mpi-sws.org/$STDPP_REPO#$STDPP_REV   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
   except:
   only:
-  - triggers
-  - schedules
-  - api
-  - variables:
+    refs:
+    - triggers
+    - schedules
+    - api
+    variables:
     - $AD_HOC_TIMING_ID == ""
