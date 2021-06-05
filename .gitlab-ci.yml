@@ -48,7 +48,19 @@ build-coq.8.12.2:
   except:
   - ($CI_PIPELINE_SOURCE == "trigger" || $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "api") && ($AD_HOC_TIMING_ID == "")
 
-build-iris.dev:
+trigger-iris.timing:
+  <<: *template
+  variables:
+    OPAM_PINS: "coq version 8.12.2   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
+  only:
+  - triggers
+  - schedules
+  - api
+  except:
+  - variables:
+    - $AD_HOC_TIMING_ID == ""
+
+trigger-iris.dev:
   <<: *template
   variables:
     STDPP_REPO: "iris/stdpp"
@@ -59,3 +71,5 @@ build-iris.dev:
   - triggers
   - schedules
   - api
+  - variables:
+    - $AD_HOC_TIMING_ID == ""
