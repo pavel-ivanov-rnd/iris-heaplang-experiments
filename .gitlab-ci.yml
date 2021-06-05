@@ -45,8 +45,6 @@ build-coq.8.12.2:
     DENY_WARNINGS: "1"
   tags:
   - fp-timing
-  except:
-  - ($CI_PIPELINE_SOURCE == "trigger" || $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "api") && ($AD_HOC_TIMING_ID == "")
 
 trigger-iris.timing:
   <<: *template
