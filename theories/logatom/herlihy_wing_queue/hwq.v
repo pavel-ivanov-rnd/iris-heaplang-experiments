@@ -1484,9 +1484,9 @@ Lemma new_queue_spec sz :
 Proof.
   iIntros (Hsz Φ) "_ HΦ". wp_lam.
   (** Allocate [q.ar], [q.back] and [q.p]. *)
-  wp_apply wp_allocN; [ lia | done | iIntros (ℓa) "[Hℓa _]" ].
+  wp_apply wp_allocN; [ lia | done | ]. iIntros (ℓa) "[Hℓa _]".
   wp_alloc ℓb as "Hℓb". wp_pures.
-  wp_apply wp_new_proph; [ done | iIntros (rs p) "Hp" ].
+  wp_apply wp_new_proph; [ done | ]. iIntros (rs p) "Hp".
   wp_pures.
   (* Allocate the remaining ghost state. *)
   iMod new_back as (γb) "Hb●".
@@ -2539,7 +2539,7 @@ Proof.
   assert ((back `min` sz)%nat - S n = i)%Z as -> by by rewrite Nat2Z.inj_sub.
   (* We can now load. *)
   wp_apply (wp_load_offset _ _ ℓ_ar _ i _ (array_get slots deqs i) with "Hℓ_ar");
-    [ apply array_content_lookup; lia | iIntros "Hℓa" ].
+    [ apply array_content_lookup; lia | ]. iIntros "Hℓa".
   (* If there was an initial contradiction, it is still here. *)
   iAssert ⌜match cont with
            | NoCont _       => True
@@ -2608,7 +2608,7 @@ Proof.
     assert (array_content sz slots deqs !! i = Some (SOMEV #li)).
     { rewrite array_content_lookup; last by lia. by rewrite Hi. }
     wp_apply (wp_cmpxchg_suc_offset with "Hℓ_ar");
-      [ done | done | by right | iIntros "Hℓ_ar" (rs' ->) "Hp" ].
+      [ done | done | by right | ]. iIntros "Hℓ_ar" (rs' ->) "Hp".
     (* Note that [i] is used (otherwise the CmpXchg would have failed). *)
     iDestruct (use_val_wit with "Hs● Hval_wit_i") as %Hval_wit_i.
     iDestruct (back_le with "Hi● Hi2_lower_bound") as %Hi2.
@@ -2730,7 +2730,7 @@ Proof.
     assert (array_content sz slots deqs !! i = Some NONEV).
     { rewrite array_content_lookup; last by lia. by rewrite Hi. }
     wp_apply (wp_cmpxchg_fail_offset _ _ _ _ _ _ (array_get slots deqs i) with "Hℓ_ar");
-      [ by rewrite Hi | by rewrite Hi | by right | iIntros "Hℓa" (rs' ->) "Hp"].
+      [ by rewrite Hi | by rewrite Hi | by right | ]. iIntros "Hℓa" (rs' ->) "Hp".
     (* We can close the invariant. *)
     iModIntro. iSplitR "AU Hback_snap Hi2_lower_bound".
     { iNext. iExists _, _, _, _, cont', _, _. iFrame. iSplit; last done.
