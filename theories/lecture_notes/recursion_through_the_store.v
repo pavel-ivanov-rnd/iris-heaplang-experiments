@@ -184,7 +184,7 @@ Section factorial_client.
     iApply (myrec_spec (fun v => ⌜∃m' : Z, (0 ≤ m')%Z ∧ to_val v = Some #m'⌝%I)
                        (fun u => fun v => ⌜∃m' : Z, to_val v = Some #m' ∧ u = #(fac_int m')⌝%I)).
     - iSplit; last eauto. iIntros (f v). iModIntro. iIntros (Φ') "spec_f ret".
-      wp_lam. wp_let. iDestruct "spec_f" as "[spec_f %]".
+      wp_lam. wp_let. iDestruct "spec_f" as "[spec_f %H]".
       destruct H as [m' [Hleqm' Heq%of_to_val]]; simplify_eq.
       wp_binop.
       case_bool_decide; simplify_eq/=; wp_if.

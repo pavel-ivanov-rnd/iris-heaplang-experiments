@@ -431,6 +431,16 @@ Proof.
   by rewrite insert_empty. 
 Qed.
 
+Tactic Notation "myrename" uconstr(pat) "into" ident(Hnew) :=
+  lazymatch goal with
+  (** Before running [tac] on the hypothesis [H] we must first unify the
+      pattern [pat] with the term it matched against. This forces every evar
+      coming from [pat] (and in particular from the holes [_] it contains and
+      from the implicit arguments it uses) to be instantiated. If we do not do
+      so then shelved goals are produced for every such evar. *)
+  | H : pat |- _ => rename H into Hew
+  end.
+
 Lemma use_val_wit γs slots i l :
   own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_val_wit γs i l -∗
@@ -440,7 +450,10 @@ Proof.
   iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1; rename H into H1.
+  inversion_clear H1.
+  (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
+     It infers the type of the [≡] too early and then fails to match the term. *)
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
@@ -470,7 +483,10 @@ Proof.
   iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1; rename H into H1.
+  inversion_clear H1.
+  (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
+     It infers the type of the [≡] too early and then fails to match the term. *)
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
@@ -536,7 +552,10 @@ Proof.
   iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1; rename H into H1.
+  inversion_clear H1.
+  (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
+     It infers the type of the [≡] too early and then fails to match the term. *)
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
@@ -559,7 +578,10 @@ Proof.
   iPureIntro. apply auth_both_valid_discrete in H as [H%singleton_included_l _].
   destruct H as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
   destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1; rename H into H1.
+  inversion_clear H1.
+  (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
+     It infers the type of the [≡] too early and then fails to match the term. *)
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5]. destruct d as [[dl ds] dw].
   destruct H1 as [[[[_ _] _] _] H1]; simpl in H1. f_equal.
@@ -738,18 +760,18 @@ Lemma proph_data_deq sz deq rs : ∀ i, i ∈ deq → i ∉ proph_data sz deq rs
 Proof.
   revert deq. induction rs as [|[b k] rs IH]; intros deq i Hi.
   - apply not_elem_of_nil.
-  - destruct b; simpl; try by apply not_elem_of_nil.
-    destruct b2; simpl; try by apply not_elem_of_nil.
-    destruct l; simpl; try by apply not_elem_of_nil.
+  - destruct b as [| |b1 b2| |]; simpl; try by apply not_elem_of_nil.
+    destruct b2 as [lit| | | |]; simpl; try by apply not_elem_of_nil.
+    destruct lit as [|b| | | |]; simpl; try by apply not_elem_of_nil.
     destruct b.
-    + destruct k; simpl; try by apply not_elem_of_nil.
-      destruct l; simpl; try by apply not_elem_of_nil.
+    + destruct k as [lit | | | |]; simpl; try by apply not_elem_of_nil.
+      destruct lit as [n| | | | |]; simpl; try by apply not_elem_of_nil.
       destruct (decide (0 ≤ n < sz)%Z); last by apply not_elem_of_nil.
       destruct (decide (Z.to_nat n ∈ deq)); first by apply not_elem_of_nil.
       apply not_elem_of_cons. split; first by set_solver.
       apply IH. set_solver.
-    + destruct k; simpl; try by apply not_elem_of_nil.
-      destruct l; simpl; try by apply not_elem_of_nil.
+    + destruct k as [lit | | | |]; simpl; try by apply not_elem_of_nil.
+      destruct lit as [n| | | | |]; simpl; try by apply not_elem_of_nil.
       destruct (decide (0 ≤ n < sz)%Z); last by apply not_elem_of_nil.
       apply IH. done.
 Qed.
@@ -758,20 +780,20 @@ Lemma proph_data_sz sz deq rs : ∀ i, i ∈ proph_data sz deq rs → i < sz.
 Proof.
   revert deq. induction rs as [|[b k] rs IH]; intros deq i Hi.
   - set_solver.
-  - destruct b; simpl; try by set_solver.
-    destruct b2; simpl; try by set_solver.
-    destruct l; simpl; try by set_solver.
+  - destruct b as [| |b1 b2| |]; simpl; try by set_solver.
+    destruct b2 as [lit| | | |]; simpl; try by set_solver.
+    destruct lit as [|b| | | |]; simpl; try by set_solver.
     destruct b.
-    + destruct k; simpl; try by set_solver.
-      destruct l; simpl; try by set_solver.
+    + destruct k as [lit | | | |]; simpl; try by set_solver.
+      destruct lit as [n| | | | |]; simpl; try by set_solver.
       simpl in Hi.
       destruct (decide (0 ≤ n < sz)%Z) as [Hn|Hn]; last by set_solver.
       destruct (decide (Z.to_nat n ∈ deq)) as [H|H]; first by set_solver.
       apply elem_of_cons in Hi. destruct Hi as [->|Hi].
       * apply Nat2Z.inj_lt. destruct Hn as [Hn1 Hn2]. by rewrite Z2Nat.id.
       * by apply (IH _ _ Hi).
-    + destruct k; simpl; try by set_solver.
-      destruct l; simpl; try by set_solver.
+    + destruct k as [lit | | | |]; simpl; try by set_solver.
+      destruct lit as [n| | | | |]; simpl; try by set_solver.
       simpl in Hi.
       destruct (decide (0 ≤ n < sz)%Z); last by set_solver.
       apply (IH _ _ Hi).
@@ -782,12 +804,12 @@ Lemma proph_data_NoDup sz deq rs :
 Proof.
   revert deq. induction rs as [|[b k] rs IH]; intros deq.
   - apply NoDup_elements.
-  - destruct b; simpl; try by apply NoDup_elements.
-    destruct b2; simpl; try by apply NoDup_elements.
-    destruct l; simpl; try by apply NoDup_elements.
+  - destruct b as [| |b1 b2| |]; simpl; try by apply NoDup_elements.
+    destruct b2 as [lit| | | |]; simpl; try by apply NoDup_elements.
+    destruct lit as [|b| | | |]; simpl; try by apply NoDup_elements.
     destruct b.
-    + destruct k; simpl; try by apply NoDup_elements.
-      destruct l; simpl; try by apply NoDup_elements.
+    + destruct k as [lit| | | |]; simpl; try by apply NoDup_elements.
+      destruct lit as [n| | | | |]; simpl; try by apply NoDup_elements.
       destruct (decide (0 ≤ n < sz)%Z)
         as [Hn|Hn]; last by apply NoDup_elements.
       destruct (decide (Z.to_nat n ∈ deq))
@@ -802,8 +824,8 @@ Proof.
         intros H_elements%elem_of_elements.
         eapply (proph_data_deq sz ({[Z.to_nat n]} ∪ deq) rs i); by set_solver.
       * by apply NoDup_elements.
-    + destruct k; simpl; try by apply NoDup_elements.
-      destruct l; simpl; try by apply NoDup_elements.
+    + destruct k as [lit| | | |]; simpl; try by apply NoDup_elements.
+      destruct lit as [n| | | | |]; simpl; try by apply NoDup_elements.
       destruct (decide (0 ≤ n < sz)%Z); [ by apply IH | by apply NoDup_elements ].
 Qed.
 
@@ -1558,7 +1580,7 @@ Proof.
   assert (slots !! back = None) as Hi_free.
   { destruct (Hslots i) as [H1 H2]. rewrite min_l in H1; last by lia.
     assert (¬ is_Some (slots !! back)). { intro H. apply H2 in H. lia. }
-    apply eq_None_not_Some, H. }
+    apply eq_None_not_Some. eauto. }
   (* Useful fact: our index was not yet dequeued. *)
   assert (i ∉ deqs) as Hi_not_in_deq.
   { intros H. apply Hdeqs in H as (H & _). rewrite Hi_free in H. inversion H. }
@@ -1589,7 +1611,7 @@ Proof.
       iFrame "cont_wit".
       destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
       iPureIntro. repeat split_and; try done; try by lia.
-      - intros k. destruct sz; first by lia.
+      - intros k. destruct sz as [|sz]; first by lia.
         split; intros Hk.
         + destruct (decide (k = i)) as [->|k_not_i].
           * rewrite lookup_insert. by eexists.
@@ -1743,7 +1765,7 @@ Proof.
         + iFrame "Hbig". repeat (iSplit; first done). done. }
       destruct Hcont as (HC1 & HC2 & HC3).
       iPureIntro. repeat split_and; try done; try by lia.
-      - intros k. destruct sz; first by lia.
+      - intros k. destruct sz as [|sz]; first by lia.
         split; intros Hk.
         + destruct (decide (k = i)) as [->|k_not_i].
           * rewrite lookup_insert. by eexists.
@@ -2155,7 +2177,7 @@ Proof.
       { iApply big_sepM_insert; first done. iFrame. iSplit; first done.
         iExists (Φ #()). iFrame. done. }
       iPureIntro. subst new_slots. repeat split_and; try done.
-      - intros k. destruct sz; first by lia.
+      - intros k. destruct sz as [|sz]; first by lia.
         split; intros Hk.
         + destruct (decide (k = i)) as [->|k_not_i].
           * rewrite lookup_insert. by eexists.
@@ -2727,7 +2749,7 @@ Proof.
     inversion Hcom_i; subst dw. rewrite /array_get Hslots_i /= in Hi.
     destruct (decide (i ∈ deqs)); by inversion Hi.
   * (* The CmpXchg failed, we continue looping. *)
-    assert (array_content sz slots deqs !! i = Some NONEV).
+    assert (array_content sz slots deqs !! i = Some NONEV) as Hcont_i.
     { rewrite array_content_lookup; last by lia. by rewrite Hi. }
     wp_apply (wp_cmpxchg_fail_offset _ _ _ _ _ _ (array_get slots deqs i) with "Hℓ_ar");
       [ by rewrite Hi | by rewrite Hi | by right | ]. iIntros "Hℓa" (rs' ->) "Hp".
@@ -2747,9 +2769,9 @@ Proof.
       destruct Hslots_i1 as [[[li1 si1] wi1] Hslots_i1].
       rewrite /array_get Hslots_i1 decide_False in HC5; last done.
       simpl in HC5. destruct wi1; last done. clear HC5.
-      rewrite array_content_lookup in H; last by lia.
-      rewrite /array_get in H. subst i i1. rewrite Hslots_i1 in H.
-      rewrite decide_False in H; last done. inversion H.
+      rewrite array_content_lookup in Hcont_i; last by lia.
+      rewrite /array_get in Hcont_i. subst i i1. rewrite Hslots_i1 in Hcont_i.
+      rewrite decide_False in Hcont_i; last done. inversion Hcont_i.
     - by iFrame.
 Qed.
 

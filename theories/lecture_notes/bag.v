@@ -85,7 +85,7 @@ Section spec.
     wp_apply (acquire_spec with "IL"); first done.
     iIntros (v) "[P HLocked]". iDestruct "P" as (b) "[Hp Hb]".
     wp_load.
-    destruct b; try (iDestruct "Hb" as "%"; contradiction).
+    destruct b as [| | |b|b]; try (iDestruct "Hb" as "%"; contradiction).
     - wp_smart_apply (release_spec with "[$IL $HLocked Hp Hb]"); first done.
       { iExists _. iFrame. }
       iIntros. wp_pures. iApply "Hcont". iLeft. done.

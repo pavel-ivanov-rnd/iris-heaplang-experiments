@@ -372,10 +372,10 @@ Proof.
   intros Ha; apply strongly_atomic_atomic,  ectx_language_atomic.
   - destruct 1; simpl in *; try tauto; eauto.
   - intros K e' -> Hval%eq_None_not_Some.
-    induction K using rev_ind; first done.
+    induction K as [|Ki K] using rev_ind; first done.
     simpl in Ha; rewrite fill_app in Ha; simpl in Ha.
     destruct Hval. apply (fill_val K e'); simpl in *.
-    destruct x; naive_solver.
+    destruct Ki; naive_solver.
 Qed.
 
 Ltac solve_atomic :=

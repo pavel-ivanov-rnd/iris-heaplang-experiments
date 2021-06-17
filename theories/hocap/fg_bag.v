@@ -78,7 +78,7 @@ Section proof.
       destruct ys as [| y ys]; eauto. simpl.
       iDestruct 1 as (tl) "(Hro & Hls)".
       iDestruct 1 as (tl') "(Hro' & Hls')".
-      iDestruct (mapsto_agree l with "Hro Hro'") as %?; simplify_eq/=.
+      iDestruct (mapsto_agree with "Hro Hro'") as %?; simplify_eq/=.
       iDestruct ("IH" with "Hls Hls'") as %->. done.
   Qed.
 

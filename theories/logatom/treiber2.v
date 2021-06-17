@@ -317,7 +317,7 @@ Proof.
     * (* The CAS succeeded, so this is the linearization point. *)
       wp_cmpxchg_suc.
       (* The list [ys] must be non-empty, otherwise the proof is trivial. *)
-      destruct ys; first done.
+      destruct ys as [|y ys]; first done.
       (* We access the precondition, prior to performing an update. *)
       iMod "AU" as (zs) "[Hγ◯ [_ HClose]]". unfold stack_cont.
       (* Use agreement on ressource [γ] to learn [v :: ys = zs]. *)

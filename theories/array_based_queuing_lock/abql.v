@@ -560,7 +560,7 @@ Section proof.
     clear xsEq lenEq xs i.
     iModIntro. wp_pures.
     rewrite -(Nat2Z.inj_add o 1).
-    iInv N as (o' i xs) "(>% & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
+    iInv N as (o' i xs) "(>%Hlen & >nextPts & arrPts & >Invs & >Auth & Part)" "Close".
     (* We destruct the disjunction in the lock invariant. We know that we are in
        the half-locked state so the first and third case results in
        contradictions. *)
@@ -572,7 +572,7 @@ Section proof.
           %[[<-%Excl_included%leibniz_equiv _]%prod_included _]%auth_both_valid_discrete.
       rewrite rem_mod_eq //.
       iApply (wp_store_offset with "arrPts").
-      { apply lookup_lt_is_Some_2. rewrite fmap_length H0. apply Nat.mod_upper_bound. lia. }
+      { apply lookup_lt_is_Some_2. rewrite fmap_length Hlen. apply Nat.mod_upper_bound. lia. }
       iModIntro. iIntros "isArr".
       (* Combine the left and right we have into a both. *)
       iDestruct (left_right_to_both with "Left Right") as "Both".

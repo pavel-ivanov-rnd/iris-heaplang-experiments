@@ -72,13 +72,13 @@ Lemma about_isList P hd xs :
   is_listP P hd xs ⊣⊢ is_list hd xs ∗ [∗ list] x ∈ xs, P x.
 Proof.
   generalize dependent hd.
-  induction xs as [| x xs']; simpl; intros hd; iSplit.
+  induction xs as [| x xs' IHxs]; simpl; intros hd; iSplit.
   - eauto.
   - by iIntros "(? & _)".
-  - iDestruct 1 as (l hd') "(? & ? & H & ?)". rewrite IHxs'. iDestruct "H" as "(H_isListxs' & ?)".
+  - iDestruct 1 as (l hd') "(? & ? & H & ?)". rewrite IHxs. iDestruct "H" as "(H_isListxs' & ?)".
     iFrame. iExists l, hd'. iFrame.
   - iDestruct 1 as "(H_isList & ? & H)". iDestruct "H_isList" as (l hd') "(? & ? & ?)".
-    iExists l, hd'. rewrite IHxs'. iFrame.
+    iExists l, hd'. rewrite IHxs. iFrame.
 Qed.
 
 (* The predicate
@@ -103,9 +103,9 @@ Lemma map_injective {A B : Type} :
   forall xs ys (f : A -> B), inj f -> map f xs = map f ys
            -> xs = ys.
 Proof.
-  induction xs; intros ys f H_f H_map.
+  intros xs. induction xs as [|x xs IHxs]; intros ys f H_f H_map.
   - symmetry in H_map. by apply map_eq_nil in H_map.
-  - destruct ys.
+  - destruct ys as [|y ys].
     + by apply map_eq_nil in H_map.
     + specialize (IHxs ys f). inversion H_map as [H_a].
       rewrite -> IHxs; try done.
@@ -262,8 +262,8 @@ Proof.
    - iDestruct "Hxs" as (l0 hd0) "(% & Hx & Hxs)". iSimplifyEq.
      wp_rec. wp_let. wp_match. wp_load. wp_let. wp_proj. wp_bind (app _ _)%E.
      iApply ("IH" with "Hxs Hys").
-     iNext. iIntros. wp_let. wp_proj. wp_store. iSimplifyEq. iApply "H".
-     iExists l0, v. iFrame. done.
+     iNext. iIntros (v) "?". wp_let. wp_proj. wp_store. iSimplifyEq. iApply "H".
+     iExists l0, _. iFrame. done.
 Qed.
 
 
@@ -275,7 +275,7 @@ Proof.
   iIntros (ϕ) "[H1 H2] HL".
   iInduction vs as [| v vs'] "IH" forall (acc l us).
    - iSimplifyEq. wp_rec. wp_let. wp_match. iApply "HL". done.
-   - simpl. iDestruct "H1" as (l' t) "(% & H3 & H1)". wp_rec. wp_let.
+   - simpl. iDestruct "H1" as (l' t) "(%H & H3 & H1)". wp_rec. wp_let.
      rewrite -> H at 1. wp_match. do 2 (wp_load; wp_proj; wp_let).
      wp_store. iSpecialize ("IH" $! l t ([v] ++ us)).
      iApply ("IH" with "[H1] [H3 H2]").
@@ -376,8 +376,8 @@ Proof.
       iApply "H3". iExists (n2::zs). repeat (iSplit; try done).
       by iExists _.
     + iSplit.
-      * induction xs; iSimplifyEq; first done.
-        iSplit; [iExists a; done | apply IHxs].
+      * induction xs as [|x xs IHxs]; iSimplifyEq; first done.
+        iSplit; [iExists _; done | apply IHxs].
       * iExists []. eauto.
   - iNext. iIntros (r) "(H1 & H2)".
     iApply "H_later". iDestruct "H2" as (ys) "(% & % & H_list)".
@@ -403,7 +403,7 @@ Proof.
                         (fun xs' acc => is_list acc (List.filter P xs'))%I
                   with "[$H_isList] [H_ϕ]").
   - iSplitL.
-    + iIntros "** !#" (ϕ'). iIntros "[_ H_isList] H_ϕ'".
+    + iIntros (x a' ?) "!# %ϕ'". iIntros "[_ H_isList] H_ϕ'".
       repeat (wp_pure _). wp_bind (p x). iApply "H_p"; first done.
       iNext. iIntros (r) "H". iSimplifyEq. destruct (P x); wp_if.
       * wp_rec. wp_pures. wp_alloc l. wp_pures. iApply "H_ϕ'".

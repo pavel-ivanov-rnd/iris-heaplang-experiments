@@ -63,8 +63,8 @@ Section Graphs.
     induction p => z Hz pv.
     - by inversion pv; subst.
     - inversion pv as [|? ? Hpv1 Hpv2 Hpv3|? ? Hpv1 Hpv2 Hpv3]; subst.
-      + eapply IHp; [eapply Hdt|apply Hpv2]; eauto.
-      + eapply IHp; [eapply Hdt|apply Hpv2]; eauto.
+      + eauto.
+      + eauto.
   Qed.
 
   Lemma front_mono g t t' s : front g t t' → t' ⊆ s → front g t s.

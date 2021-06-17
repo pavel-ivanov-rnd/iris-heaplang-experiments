@@ -253,7 +253,7 @@ Section atomic_snapshot.
         iFrame.
         iPureIntro. split.
         * apply: lookup_insert.
-        * intros ? Hv. destruct (decide (t' = (v'' + 1)%Z)) as [-> | Hn]; first done.
+        * intros t' Hv. destruct (decide (t' = (v'' + 1)%Z)) as [-> | Hn]; first done.
           assert (dom (gset Z) T' = {[(v'' + 1)%Z]} ∪ dom (gset Z) T) as Hd. {
             apply leibniz_equiv. rewrite dom_insert. done.
           }
@@ -358,9 +358,9 @@ Section atomic_snapshot.
         iNext. unfold snapshot_inv. eauto 8 with iFrame.
       }
       wp_load. wp_pures.
-      case_bool_decide; wp_apply (wp_resolve_proph with "Hpr");
+      case_bool_decide as Heq; wp_apply (wp_resolve_proph with "Hpr");
         iIntros (vs') "[Eq _]"; iDestruct "Eq" as %->; wp_seq; wp_if.
-      + inversion H; subst; clear H. wp_pures.
+      + inversion Heq; subst; clear Heq. wp_pures.
         assert (v_x2 = v_y) as ->. {
           assert (v_x2 ≤ v_y)%Z as vneq. {
             apply Hdom_y.
@@ -395,8 +395,8 @@ Section atomic_snapshot.
       wp_load. wp_pures.
       wp_apply (wp_resolve_proph with "Hpr").
       iIntros (vs') "[Heq _]"; iDestruct "Heq" as %->.
-      case_bool_decide.
-      + inversion H; subst; clear H. inversion Hproph.
+      case_bool_decide as Heq.
+      + inversion Heq; subst; clear Heq. inversion Hproph.
       + wp_seq. wp_if. iApply "IH"; rewrite /is_snapshot; eauto.
   Qed.
 

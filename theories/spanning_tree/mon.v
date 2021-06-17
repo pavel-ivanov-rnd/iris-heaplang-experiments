@@ -482,7 +482,7 @@ Lemma path_conv (G G' : Gmon) x y p :
   valid_path (Gmon_graph (G ⋅ G')) x y p → valid_path (Gmon_graph G) x y p.
 Proof.
   intros Hv Hm. rewrite -Gmon_graph_dom //=; eauto. revert x y.
-  induction p as [|[] p]; inversion 2; subst; econstructor; eauto;
+  induction p as [|[] p IHp]; inversion 2; subst; econstructor; eauto;
     try eapply IHp; try eapply Hm; eauto.
 Qed.
 Lemma path_conv_back (G G' : Gmon) x y p :
@@ -490,8 +490,7 @@ Lemma path_conv_back (G G' : Gmon) x y p :
   valid_path (Gmon_graph G) x y p → valid_path (Gmon_graph (G ⋅ G')) x y p.
 Proof.
   intros Hv. rewrite -Gmon_graph_dom //=; eauto. revert x y.
-  induction p as [|[] p]; inversion 2; subst; econstructor; eauto;
-    try eapply IHp; eauto.
+  induction p as [|[] p]; inversion 2; subst; econstructor; eauto.
 Qed.
 Lemma path_conv' (G G' : Gmon) x y p :
   ✓ (G ⋅ G') → maximal (Gmon_graph G') → x ∈ dom (gset _) G' →
