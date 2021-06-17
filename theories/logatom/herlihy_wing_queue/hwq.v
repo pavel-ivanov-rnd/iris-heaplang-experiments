@@ -431,16 +431,6 @@ Proof.
   by rewrite insert_empty. 
 Qed.
 
-Tactic Notation "myrename" uconstr(pat) "into" ident(Hnew) :=
-  lazymatch goal with
-  (** Before running [tac] on the hypothesis [H] we must first unify the
-      pattern [pat] with the term it matched against. This forces every evar
-      coming from [pat] (and in particular from the holes [_] it contains and
-      from the implicit arguments it uses) to be instantiated. If we do not do
-      so then shelved goals are produced for every such evar. *)
-  | H : pat |- _ => rename H into Hew
-  end.
-
 Lemma use_val_wit γs slots i l :
   own γs (● (of_slot_data <$> slots) : slotUR) -∗
   slot_val_wit γs i l -∗
