@@ -33,23 +33,23 @@ build-coq.dev:
   variables:
     OPAM_PINS: "coq version dev"
 
-build-coq.8.13.1:
+build-coq.8.13.2:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.13.1"
+    OPAM_PINS: "coq version 8.13.2"
+    DENY_WARNINGS: "1"
+  tags:
+  - fp-timing
 
 build-coq.8.12.2:
   <<: *template
   variables:
     OPAM_PINS: "coq version 8.12.2"
-    DENY_WARNINGS: "1"
-  tags:
-  - fp-timing
 
 trigger-iris.timing:
   <<: *template
   variables:
-    OPAM_PINS: "coq version 8.12.2   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
+    OPAM_PINS: "coq version 8.13.2   git+https://gitlab.mpi-sws.org/$IRIS_REPO#$IRIS_REV"
   tags:
   - fp-timing
   only:
