@@ -236,7 +236,7 @@ Section cfg.
     rewrite to_tpool_insert'; last eauto.
     iFrame. iPureIntro.
     apply rtc_nsteps in Hrtc; destruct Hrtc as [m Hrtc].
-    specialize (Hex HP). apply (nsteps_rtc (m + n)).
+    specialize (Hex HP). apply (rtc_nsteps_2 (m + n)).
     eapply nsteps_trans; eauto.
     revert e e' Htpj Hex.
     induction n => e e' Htpj Hex.
