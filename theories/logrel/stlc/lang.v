@@ -148,12 +148,12 @@ Canonical Structure stlc_lang := LanguageOfEctx stlc_ectx_lang.
 
 Export stlc.
 
-Hint Extern 20 (PureExec _ _ _) => progress simpl : typeclass_instances.
+Global Hint Extern 20 (PureExec _ _ _) => progress simpl : typeclass_instances.
 
-Hint Extern 5 (IntoVal _ _) => eapply of_to_val; fast_done : typeclass_instances.
-Hint Extern 10 (IntoVal _ _) =>
+Global Hint Extern 5 (IntoVal _ _) => eapply of_to_val; fast_done : typeclass_instances.
+Global Hint Extern 10 (IntoVal _ _) =>
   rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
 
-Hint Extern 5 (AsVal _) => eexists; eapply of_to_val; fast_done : typeclass_instances.
-Hint Extern 10 (AsVal _) =>
+Global Hint Extern 5 (AsVal _) => eexists; eapply of_to_val; fast_done : typeclass_instances.
+Global Hint Extern 10 (AsVal _) =>
   eexists; rewrite /IntoVal; eapply of_to_val; rewrite /= !to_of_val /=; solve [ eauto ] : typeclass_instances.
