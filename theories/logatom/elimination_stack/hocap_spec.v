@@ -176,7 +176,7 @@ Section hocap_auth_tada.
   Proof.
     iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (hocap_auth.push_spec with "Hstack").
-    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
+    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
     iDestruct (hocap_auth.stack_content_agree with "Hfrag Hauth") as %->.
     iMod (hocap_auth.stack_content_update with "Hfrag Hauth") as "[Hfrag $]".
@@ -192,7 +192,7 @@ Section hocap_auth_tada.
   Proof.
     iIntros "Hstack". iIntros (Φ) "HΦ".
     iApply (hocap_auth.pop_spec with "Hstack").
-    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# >HΦ" (l) "Hauth".
+    iApply (make_laterable_intro with "[] HΦ"). iIntros "!# HΦ" (l) "Hauth".
     iMod "HΦ" as (l') "[Hfrag [_ Hclose]]".
     iDestruct (hocap_auth.stack_content_agree with "Hfrag Hauth") as %->.
     destruct l;
@@ -248,7 +248,8 @@ Section tada_hocap_pred.
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont".
     iMod (fupd_mask_subseteq (⊤ ∖ ↑N)) as "Hclose"; first solve_ndisj.
-    iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
+    iMod (make_laterable_elim with "Hupd") as "Hupd".
+    iMod ("Hupd" with "HP") as "[HP HΦ]".
     iMod "Hclose" as "_". iIntros "!>".
     eauto with iFrame.
   Qed.
@@ -266,10 +267,12 @@ Section tada_hocap_pred.
     iAaccIntro with "Hcont"; first by eauto 10 with iFrame.
     iIntros "Hcont". destruct l.
     - iMod (fupd_mask_subseteq (⊤ ∖ ↑N)) as "Hclose"; first solve_ndisj.
-      iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
+      iMod (make_laterable_elim with "Hupd") as "Hupd".
+      iMod ("Hupd" with "HP") as "[HP HΦ]".
       iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
     - iMod (fupd_mask_subseteq (⊤ ∖ ↑N))  as "Hclose"; first solve_ndisj.
-      iMod (make_laterable_elim with "Hupd HP") as "[HP HΦ]".
+      iMod (make_laterable_elim with "Hupd") as "Hupd".
+      iMod ("Hupd" with "HP") as "[HP HΦ]".
       iMod "Hclose" as "_". iIntros "!>"; eauto with iFrame.
   Qed.
 
@@ -335,7 +338,7 @@ Section hocap_pred_auth.
     iApply (laterable.make_laterable_intro with "[] Hupd"); iIntros "!# Hupd".
     iIntros (l) ">Hs".
     (* FIXME can we have proof mode support for make_laterable_elim? *)
-    iDestruct "Hupd" as ">Hupd". iDestruct (make_laterable_elim with "Hupd") as "Hupd".
+    iDestruct (make_laterable_elim with "Hupd") as ">Hupd".
     iMod ("Hupd" with "Hs") as "[Hs $]". done.
   Qed.
 
@@ -349,7 +352,7 @@ Section hocap_pred_auth.
     iIntros "#Hstack Hupd". iApply (hocap_pred.pop_spec with "Hstack").
     iApply (laterable.make_laterable_intro with "[] Hupd"); iIntros "!# Hupd".
     iIntros (l) ">Hs".
-    iDestruct "Hupd" as ">Hupd". iDestruct (make_laterable_elim with "Hupd") as "Hupd".
+    iDestruct (make_laterable_elim with "Hupd") as ">Hupd".
     iMod ("Hupd" with "Hs") as "HsΦ".
     iModIntro. destruct l; iDestruct "HsΦ" as "[Hs HΦ]"; eauto with iFrame.
   Qed.
