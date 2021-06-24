@@ -34,9 +34,9 @@ Fixpoint env_subst (vs : list val) : var → expr :=
 Lemma env_subst_lookup vs x v :
   vs !! x = Some v → env_subst vs x = of_val v.
 Proof.
-  revert vs; induction x => vs.
+  revert vs; induction x as [|x IH] => vs.
   - by destruct vs; inversion 1.
   - destruct vs as [|w vs]; first by inversion 1.
     rewrite -lookup_tail /=.
-    apply IHx.
+    apply IH.
 Qed.

@@ -207,12 +207,12 @@ Section cfg.
   Lemma nsteps_inv_r {A} n (R : A → A → Prop) x y :
     relations.nsteps R (S n) x y → ∃ z, relations.nsteps R n x z ∧ R z y.
   Proof.
-    revert x y; induction n; intros x y.
+    revert x y; induction n as [|n IH]; intros x y.
     - inversion 1; subst.
       match goal with H : relations.nsteps _ 0 _ _ |- _ => inversion H end; subst.
       eexists; repeat econstructor; eauto.
     - inversion 1; subst.
-      edestruct IHn as [z [? ?]]; eauto.
+      edestruct IH as [z [? ?]]; eauto.
       exists z; split; eauto using relations.nsteps_l.
   Qed.
 
@@ -239,16 +239,16 @@ Section cfg.
     specialize (Hex HP). apply (rtc_nsteps_2 (m + n)).
     eapply nsteps_trans; eauto.
     revert e e' Htpj Hex.
-    induction n => e e' Htpj Hex.
+    induction n as [|n IH] => e e' Htpj Hex.
     - inversion Hex; subst.
       rewrite list_insert_id; eauto. econstructor.
     - apply nsteps_inv_r in Hex.
       destruct Hex as [z [Hex1 Hex2]].
-      specialize (IHn _ _ Htpj Hex1).
+      specialize (IH _ _ Htpj Hex1).
       eapply nsteps_r; eauto.
       replace (<[j:=fill K e']> tp) with
           (<[j:=fill K e']> (<[j:=fill K z]> tp)); last first.
-      { clear. revert tp; induction j; intros tp.
+      { clear. revert tp; induction j as [|j IHj]; intros tp.
         - destruct tp; trivial.
         - destruct tp; simpl; auto. by rewrite IHj. }
       destruct Hex2 as [Hexs Hexd].

@@ -89,20 +89,21 @@ Fixpoint env_subst (vs : list val) : var → expr :=
 Lemma env_subst_lookup vs x v :
   vs !! x = Some v → env_subst vs x = of_val v.
 Proof.
-  revert vs; induction x => vs.
+  revert vs; induction x as [|x IH] => vs.
   - by destruct vs; inversion 1.
   - destruct vs as [|w vs]; first by inversion 1.
     rewrite -lookup_tail /=.
-    apply IHx.
+    apply IH.
 Qed.
 
 Lemma typed_n_closed Γ τ e : Γ ⊢ₜ e : τ → (∀ f, e.[upn (length Γ) f] = e).
 Proof.
   intros H. induction H => f; asimpl; simpl in *; auto with f_equal.
-  - apply lookup_lt_Some in H. rewrite iter_up. destruct lt_dec; auto with lia.
-  - f_equal. apply IHtyped.
-  - by f_equal; rewrite map_length in IHtyped.
-  - rewrite map_length in IHtyped2; by f_equal.
+  - rename select (_ !! _ = Some _) into H.
+    apply lookup_lt_Some in H. rewrite iter_up. destruct lt_dec; auto with lia.
+  - f_equal. eauto.
+  - f_equal. rewrite ->map_length in *. done.
+  - rewrite ->map_length in *; by f_equal.
 Qed.
 
 (** Weakening *)
@@ -111,31 +112,40 @@ Lemma context_gen_weakening ξ Γ' Γ e τ :
   Γ' ++ ξ ++ Γ ⊢ₜ e.[upn (length Γ') (ren (+ (length ξ)))] : τ.
 Proof.
   intros H1.
-  remember (Γ' ++ Γ) as Ξ. revert Γ' Γ ξ HeqΞ.
-  induction H1 => Γ1 Γ2 ξ HeqΞ; subst; asimpl in *; eauto using typed.
-  - rewrite iter_up; destruct lt_dec as [Hl | Hl].
-    + constructor. rewrite lookup_app_l; trivial. by rewrite lookup_app_l in H.
+  remember (Γ' ++ Γ) as Ξ eqn:HeqΞ. revert Γ' Γ ξ HeqΞ.
+  induction H1 => Γ1 Γ2 ξ HeqΞ; subst; asimpl; eauto using typed.
+  - rename select (_ !! _ = Some _) into Hlookup.
+    rewrite iter_up; destruct lt_dec as [Hl | Hl].
+    + constructor. rewrite lookup_app_l; trivial. by rewrite lookup_app_l in Hlookup.
     + asimpl. constructor. rewrite lookup_app_r; auto with lia.
       rewrite lookup_app_r; auto with lia.
-      rewrite lookup_app_r in H; auto with lia.
+      rewrite lookup_app_r in Hlookup; auto with lia.
+      rename select var into x.
       match goal with
         |- _ !! ?A = _ => by replace A with (x - length Γ1) by lia
       end.
-  - econstructor; eauto. by apply (IHtyped2 (_::_)). by apply (IHtyped3 (_::_)).
-  - constructor. by apply (IHtyped (_ :: _ :: _)).
-  - constructor. by apply (IHtyped (_ :: _)).
-  - econstructor; eauto. by apply (IHtyped2 (_::_)).
+  - econstructor; eauto.
+    all: match goal with H : context[_ → _ ⊢ₜ _ : _] |- _ => by apply (H (_::_)) end.
   - constructor.
-    specialize (IHtyped
+    match goal with H : context[_ → _ ⊢ₜ _ : _] |- _ => by apply (H (_::_::_)) end.
+  - constructor.
+    match goal with H : context[_ → _ ⊢ₜ _ : _] |- _ => by apply (H (_::_)) end.
+  - econstructor; eauto.
+    match goal with H : context[_ → _ ⊢ₜ _ : _] |- _ => by apply (H (_::_)) end.
+  - constructor.
+    match goal with H : context[_ → _ ⊢ₜ _ : _] |- _ => rename H into IH end.
+    specialize (IH
       (subst (ren (+1)) <$> Γ1) (subst (ren (+1)) <$> Γ2) (subst (ren (+1)) <$> ξ)).
-    asimpl in *. rewrite ?map_length in IHtyped.
-    repeat rewrite fmap_app. apply IHtyped.
+    rewrite ?map_length in IH.
+    repeat rewrite fmap_app. apply IH.
     by repeat rewrite fmap_app.
   - econstructor; eauto.
-    specialize (IHtyped2
+    match goal with H : context[_ → _ ⊢ₜ _ : _.[ren (+1)]] |- _ => rename H into IH end.
+    match goal with H : context[_ → _ ⊢ₜ _ : TExist ?t] |- _ => rename t into τ end.
+    specialize (IH
       (τ :: (subst (ren (+1)) <$> Γ1)) (subst (ren (+1)) <$> Γ2) (subst (ren (+1)) <$> ξ)).
-    asimpl in *. rewrite ?map_length in IHtyped2.
-    repeat rewrite fmap_app. apply IHtyped2.
+    asimpl in IH. rewrite ?map_length in IH.
+    repeat rewrite fmap_app. apply IH.
     by repeat rewrite fmap_app.
 Qed.
 
