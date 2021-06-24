@@ -80,61 +80,6 @@ Inductive typed (Γ : list type) : expr → type → Prop :=
   | TFAA e1 e2 : Γ ⊢ₜ e1 : Tref TNat → Γ ⊢ₜ e2 : TNat → Γ ⊢ₜ FAA e1 e2 : TNat
 where "Γ ⊢ₜ e : τ" := (typed Γ e τ).
 
-Lemma typed_subst_invariant Γ e τ s1 s2 :
-  Γ ⊢ₜ e : τ → (∀ x, x < length Γ → s1 x = s2 x) → e.[s1] = e.[s2].
-Proof.
-  intros Htyped; revert s1 s2.
-  assert (∀ x Γ, x < length (subst (ren (+1)) <$> Γ) → x < length Γ).
-  { intros ??. by rewrite fmap_length. }
-  assert (∀ {A} `{Ids A} `{Rename A} (s1 s2 : nat → A) x,
-    (x ≠ 0 → s1 (pred x) = s2 (pred x)) → up s1 x = up s2 x).
-  { intros A H1 H2. rewrite /up=> s1 s2 [|x] //=; auto with f_equal lia. }
-  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with lia.
-Qed.
-Lemma n_closed_invariant n (e : expr) s1 s2 :
-  (∀ f, e.[upn n f] = e) → (∀ x, x < n → s1 x = s2 x) → e.[s1] = e.[s2].
-Proof.
-  intros Hnc. specialize (Hnc (ren (+1))).
-  revert n Hnc s1 s2.
-  induction e => m Hmc s1 s2 H1; asimpl in *; try f_equal;
-    try (match goal with H : _ |- _ => eapply H end; eauto;
-         try inversion Hmc; try match goal with H : _ |- _ => by rewrite H end;
-         fail).
-  - apply H1. rewrite iter_up in Hmc. destruct lt_dec; try lia.
-    asimpl in *. injection Hmc as Hmc. unfold var in *. lia.
-  - unfold upn in *.
-    change (e.[up (up (upn m (ren (+1))))]) with
-    (e.[iter (S (S m)) up (ren (+1))]) in *.
-    apply (IHe (S (S m))).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|[|x]] H2; [by cbv|by cbv |].
-      asimpl; rewrite H1; auto with lia.
-  - apply (IHe (S m)).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with lia.
-  - apply (IHe0 (S m)).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with lia.
-  - change (e1.[up (upn m (ren (+1)))]) with
-    (e1.[iter (S m) up (ren (+1))]) in *.
-    apply (IHe0 (S m)).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with lia.
-  - change (e2.[up (upn m (ren (+1)))]) with
-    (e2.[upn (S m) (ren (+1))]) in *.
-    apply (IHe1 (S m)).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with lia.
-  - apply (IHe0 (S m)).
-    + inversion Hmc; match goal with H : _ |- _ => (by rewrite H) end.
-    + intros [|x] H2; [by cbv |].
-      asimpl; rewrite H1; auto with lia.
-Qed.
-
 Fixpoint env_subst (vs : list val) : var → expr :=
   match vs with
   | [] => ids

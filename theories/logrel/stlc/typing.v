@@ -25,15 +25,6 @@ Inductive typed (Γ : list type) : expr → type → Prop :=
      Γ ⊢ₜ e1 : TArrow τ1 τ2 → Γ ⊢ₜ e2 : τ1 → Γ ⊢ₜ App e1 e2 : τ2
 where "Γ ⊢ₜ e : τ" := (typed Γ e τ).
 
-Lemma typed_subst_invariant Γ e τ s1 s2 :
-  Γ ⊢ₜ e : τ → (∀ x, x < length Γ → s1 x = s2 x) → e.[s1] = e.[s2].
-Proof.
-  intros Htyped; revert s1 s2.
-  assert (∀ s1 s2 x, (x ≠ 0 → s1 (pred x) = s2 (pred x)) → up s1 x = up s2 x).
-  { rewrite /up=> s1 s2 [|x] //=; auto with f_equal lia. }
-  induction Htyped => s1 s2 Hs; f_equal/=; eauto using lookup_lt_Some with lia.
-Qed.
-
 Fixpoint env_subst (vs : list val) : var → expr :=
   match vs with
   | [] => ids
