@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import proofmode notation.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** Specification for a clairvoyant coin. A clairvoyant coin predicts all the
 values that it will *non-deterministically* choose throughout the execution of

@@ -4,6 +4,7 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Export nondet_bool.
 From iris_examples.proph.lib Require Import typed_proph.
 From iris_examples.proph Require Import clairvoyant_coin_spec.
+From iris.prelude Require Import options.
 
 (* Clairvoyant coin with *typed* prophecies. *)
 
