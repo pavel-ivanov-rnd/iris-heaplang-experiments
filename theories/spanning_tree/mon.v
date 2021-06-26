@@ -352,7 +352,7 @@ Section graph.
     destruct H1 as [[_ H11%leibniz_equiv]|H12]; simpl in *.
     + by rewrite -H11 delete_singleton right_id_L.
     + apply prod_included in H12; destruct H12 as [_ H12]; simpl in *.
-      rewrite -insert_singleton_op ?insert_delete; last by rewrite lookup_delete.
+      rewrite -insert_singleton_op ?insert_delete_insert; last by rewrite lookup_delete.
       apply: map_eq => i. apply leibniz_equiv, equiv_dist => n.
       destruct (decide (x = i)); subst;
         rewrite ?lookup_insert ?lookup_insert_ne //.
@@ -374,7 +374,7 @@ Section graph.
     iIntros (Hx) "(Hg & Ha)".
     assert (Hid : x ∈ dom (gset _) (of_graph g G)) by (by rewrite of_graph_dom).
     revert Hid; rewrite elem_of_dom /is_Some. intros [y Hy].
-    rewrite /heap_owns -{1}(insert_id _ _ _ Hy) -insert_delete.
+    rewrite /heap_owns -{1}(insert_id _ _ _ Hy) -insert_delete_insert.
     rewrite big_sepM_insert; [|apply lookup_delete_None; auto].
     iDestruct "Ha" as "[H $]". iFrame "Hg". iExists _; eauto.
   Qed.
@@ -387,7 +387,7 @@ Section graph.
     ⊢ heap_owns (of_graph g G) markings.
   Proof.
     iIntros "[Ha Hl]". iDestruct "Hl" as (u) "[Hu Hl]". iDestruct "Hu" as %Hu.
-    rewrite /heap_owns -{2}(insert_id _ _ _ Hu) -insert_delete.
+    rewrite /heap_owns -{2}(insert_id _ _ _ Hu) -insert_delete_insert.
     rewrite big_sepM_insert; [|apply lookup_delete_None; auto]. by iFrame "Ha".
   Qed.
 

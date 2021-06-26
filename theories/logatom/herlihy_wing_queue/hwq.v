@@ -609,7 +609,7 @@ Proof.
             ≡ of_slot_data (l, s, true)) as Hequiv by by transitivity e.
       destruct Hequiv as [[[[_ _] _] _] Hequiv]; simpl in Hequiv.
       by eapply shot_not_equiv_not_shot'. }
-  rewrite /update_slot Hi insert_delete fmap_insert.
+  rewrite /update_slot Hi insert_delete_insert fmap_insert.
   apply auth_update. eapply (singleton_local_update _ i).
   { by rewrite lookup_fmap Hi. }
   rewrite /set_written. apply prod_local_update; first done. simpl.
@@ -658,7 +658,7 @@ Proof.
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|] eqn:Hi; last by inversion H1_1.
   simpl in Hlookup. inversion Hlookup; subst s.
-  rewrite /update_slot Hi insert_delete fmap_insert.
+  rewrite /update_slot Hi insert_delete_insert fmap_insert.
   apply auth_update. repeat rewrite pair_op.
   eapply (singleton_local_update _ i). { by rewrite lookup_fmap Hi. }
   rewrite /to_helped. repeat rewrite None_op.
@@ -686,7 +686,7 @@ Proof.
   iDestruct (own_valid with "H") as %Hvalid. rewrite -own_op.
   iApply (own_update with "H"). apply auth_update. rewrite /update_slot.
   destruct (slots !! i) as [d|] eqn:Hd; last by inversion H.
-  rewrite insert_delete fmap_insert. eapply singleton_local_update.
+  rewrite insert_delete_insert fmap_insert. eapply singleton_local_update.
   { by rewrite lookup_fmap Hd /=. }
   destruct d as [[dl ds] dw]. inversion H; subst ds; simpl.
   repeat apply prod_local_update; try done. simpl.
@@ -1088,7 +1088,7 @@ Proof.
   rewrite /= IH; last by lia. f_equal.
   rewrite /array_get /update_slot.
   destruct (slots !! i) as [d|]; last done.
-  rewrite insert_delete. rewrite lookup_insert_ne; [ done | by lia ].
+  rewrite insert_delete_insert. rewrite lookup_insert_ne; [ done | by lia ].
 Qed.
 
 Lemma array_content_dequeue sz i slots deqs :
@@ -1134,7 +1134,7 @@ Proof using Type*.
   - rewrite insert_app_l; last (rewrite length_array_content; by lia).
     rewrite IH; [ .. | by lia | done | done ]. f_equal.
     rewrite /array_get /update_slot. destruct (slots !! i) as [d|]; last done.
-    by rewrite insert_delete lookup_insert_ne.
+    by rewrite insert_delete_insert lookup_insert_ne.
 Qed.
 
 (* FIXME similar to previous lemma. Share stuff? *)
@@ -1158,7 +1158,7 @@ Proof.
   - rewrite insert_app_l; last (rewrite length_array_content; by lia).
     rewrite IH; [ .. | by lia | done | done ]. f_equal.
     rewrite /array_get /update_slot. destruct (slots !! i) as [d|]; last done.
-    by rewrite insert_delete lookup_insert_ne.
+    by rewrite insert_delete_insert lookup_insert_ne.
 Qed.
 
 Lemma update_slot_lookup i f slots :
@@ -1184,7 +1184,7 @@ Lemma update_slot_update_slot i f g slots :
 Proof.
   rewrite /update_slot.
   destruct (slots !! i) as [d|] eqn:HEq.
-  - rewrite lookup_insert. repeat rewrite insert_delete.
+  - rewrite lookup_insert. repeat rewrite insert_delete_insert.
     rewrite insert_insert. done.
   - rewrite HEq. done.
 Qed.
@@ -1434,7 +1434,7 @@ Proof.
     apply NoDup_cons in HNoDup. destruct HNoDup as [Hn_not_in_ps HNoDup].
     destruct Hn as [l [γ [w Hn]]].
     assert (slots = <[n:=(l, Pend γ, w)]> (delete n slots)) as Hs.
-    { by rewrite insert_delete insert_id. }
+    { by rewrite insert_delete_insert insert_id. }
     rewrite [in ([∗ map] _ ↦ _ ∈ slots, _)%I]Hs.
     iDestruct (big_sepM_insert with "Hbig")
       as "[Hbig_n Hbig]"; first by apply lookup_delete.
@@ -1452,7 +1452,7 @@ Proof.
       as "Hbig"; first by apply lookup_delete.
     { iClear "IH". iFrame "Hbig". rewrite /per_slot_own /=. iFrame.
       iExists Q. iDestruct "Hn" as "[$ HPost]". iNext. done. }
-    rewrite insert_delete /update_slot Hn insert_delete.
+    rewrite insert_delete_insert /update_slot Hn insert_delete_insert.
     assert (∀ i : nat, i ∈ ps → was_committed <$> <[n:=(l, Help γ, w)]> slots !! i = Some false) as HHH.
     { intros i Hi. rewrite lookup_insert_ne; [ by apply H1 | by set_solver ]. }
     iMod ("IH" $! (<[n:=(l, Help γ, w)]> slots) (ls ++ [l]) HNoDup HHH
@@ -1680,7 +1680,7 @@ Proof.
     { rewrite /update_slot. destruct (slots !! i) as [d|] eqn:HEq; last done.
       iApply big_sepM_insert; first by rewrite lookup_delete.
       assert (slots = <[i:=d]> (delete i slots)) as HEq_slots.
-      { rewrite insert_delete. by rewrite insert_id. }
+      { rewrite insert_delete_insert. by rewrite insert_id. }
       rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I] HEq_slots.
       iDestruct (big_sepM_insert with "Hbig")
         as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
@@ -1709,7 +1709,7 @@ Proof.
       + rewrite update_slot_lookup_ne; last done. apply Hpref, Hk.
     - intros k Hk. destruct (decide (k = i)) as [->|Hk_not_i].
       + rewrite update_slot_lookup Hslots_i /update_slot /=.
-        rewrite Hslots_i /= insert_delete /array_get lookup_insert.
+        rewrite Hslots_i /= insert_delete_insert /array_get lookup_insert.
         rewrite decide_True; last done. repeat split; try done.
         destruct si; try done. rewrite Hslots_i in Hval_commit_i. done.
       + rewrite /array_get update_slot_lookup_ne; last done.
@@ -1825,7 +1825,7 @@ Proof.
     { rewrite /update_slot. destruct (slots !! i) as [d|] eqn:HEq; last done.
       iApply big_sepM_insert; first by rewrite lookup_delete.
       assert (slots = <[i:=d]> (delete i slots)) as HEq_slots.
-      { rewrite insert_delete. by rewrite insert_id. }
+      { rewrite insert_delete_insert. by rewrite insert_id. }
       rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I] HEq_slots.
       iDestruct (big_sepM_insert with "Hbig")
         as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
@@ -1853,7 +1853,7 @@ Proof.
       + rewrite update_slot_lookup_ne; last done. apply Hpref, Hk.
     - intros k Hk. destruct (decide (k = i)) as [->|Hk_not_i].
       + rewrite update_slot_lookup Hslots_i /update_slot /=.
-        rewrite Hslots_i /= insert_delete /array_get lookup_insert.
+        rewrite Hslots_i /= insert_delete_insert /array_get lookup_insert.
         rewrite decide_True; last done. repeat split; try done.
         destruct si; try done. rewrite Hslots_i in Hval_commit_i. done.
       + rewrite /array_get update_slot_lookup_ne; last done.
@@ -1871,15 +1871,15 @@ Proof.
         intros b Hb. apply HC1 in Hb as (Hb1 & Hb2). split.
         * destruct (decide (b.1 = i)) as [Hb1_is_i|Hb1_not_i].
           ** rewrite -Hb1_is_i in Hslots_i. by rewrite Hslots_i in Hb1.
-          ** rewrite /update_slot Hslots_i insert_delete.
+          ** rewrite /update_slot Hslots_i insert_delete_insert.
              by rewrite lookup_insert_ne.
         * intros k Hk. destruct (decide (k = i)) as [Hk_is_i|Hk_not_i].
-          ** rewrite /update_slot Hslots_i insert_delete. subst k.
+          ** rewrite /update_slot Hslots_i insert_delete_insert. subst k.
              rewrite lookup_insert /=. rewrite Hslots_i in Hval_commit_i.
              destruct (was_committed (li, si, true)) eqn:H; last done.
              exfalso. apply Hb2 in Hk. rewrite Hslots_i in Hk. inversion Hk.
              destruct si; try done.
-          ** rewrite /update_slot Hslots_i insert_delete.
+          ** rewrite /update_slot Hslots_i insert_delete_insert.
              rewrite lookup_insert_ne; last done. apply Hb2, Hk. }
   (* There is no [Contra1]/[Contra2], and the prophecy is non-trivial. *)
   destruct Hcont as (Hblocks & Hrest & Hpvs).
@@ -2073,7 +2073,7 @@ Proof.
       { rewrite /update_slot. destruct (slots !! i) as [d|] eqn:HEq; last done.
         iApply big_sepM_insert; first by rewrite lookup_delete.
         assert (slots = <[i:=d]> (delete i slots)) as HEq_slots.
-        { rewrite insert_delete. by rewrite insert_id. }
+        { rewrite insert_delete_insert. by rewrite insert_id. }
         rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I] HEq_slots.
         iDestruct (big_sepM_insert with "Hbig")
           as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
@@ -2131,14 +2131,14 @@ Proof.
           * destruct (decide (b.1 = i)) as [Hb1_is_i|Hb1_not_i].
             ** rewrite -Hb1_is_i in Hslots_i. rewrite Hb1 in Hslots_i.
                by inversion Hslots_i.
-            ** by rewrite /update_slot Hslots_i insert_delete lookup_insert_ne.
+            ** by rewrite /update_slot Hslots_i insert_delete_insert lookup_insert_ne.
           * intros k Hk. destruct (decide (k = i)) as [Hk_is_i|Hk_not_i].
-            ** rewrite /update_slot Hslots_i insert_delete. subst k.
+            ** rewrite /update_slot Hslots_i insert_delete_insert. subst k.
                rewrite lookup_insert /=. rewrite Hslots_i in Hval_commit_i.
                destruct (was_committed (li, si, true)) eqn:H; last done.
                exfalso. apply Hb2 in Hk. rewrite Hslots_i in Hk. inversion Hk.
                destruct si; try done.
-            ** rewrite /update_slot Hslots_i insert_delete.
+            ** rewrite /update_slot Hslots_i insert_delete_insert.
                rewrite lookup_insert_ne; last done. apply Hb2, Hk. }
   + (* We are not the first non-done element, we will give away our AU. *)
     iMod (saved_prop_alloc (Φ #())) as (γs_i) "#Hγs_i".
@@ -2221,7 +2221,7 @@ Proof.
     - (* We are still in the pending state: contradiction. *)
       (* We need to run our atomic update ourselves, we recover it. *)
       rewrite -[in X in ([∗ map] _ ↦ _ ∈ X, _)%I](insert_id _ _ _ Hi).
-      rewrite -insert_delete.
+      rewrite -insert_delete_insert.
       iDestruct (big_sepM_insert with "Hbig")
         as "[Hbig_i Hbig]"; first by apply lookup_delete.
       iDestruct "Hbig_i" as "[_ [_ [Hcommit_tok_i HAU]]]".
@@ -2253,7 +2253,7 @@ Proof.
             [ by iFrame | by lia | by rewrite Hi | by apply Hstate ]. }
           iSplitL "He●".
           { erewrite map_ext_in; first done. intros k Hk%elem_of_list_In.
-            rewrite /get_value /update_slot Hi insert_delete.
+            rewrite /get_value /update_slot Hi insert_delete_insert.
             destruct (decide (k = i)) as [->|Hk_not_i].
             - by rewrite lookup_insert Hi.
             - by rewrite lookup_insert_ne. }
@@ -2345,7 +2345,7 @@ Proof.
           { destruct bs as [|[b_u b_ps] bs]; by iFrame. }
           iSplitL "He●".
           { erewrite map_ext_in; first done. intros k Hk%elem_of_list_In.
-            rewrite /get_value /update_slot Hi insert_delete.
+            rewrite /get_value /update_slot Hi insert_delete_insert.
             destruct (decide (k = i)) as [->|Hk_not_i].
             - by rewrite lookup_insert Hi.
             - by rewrite lookup_insert_ne. }
@@ -2409,7 +2409,7 @@ Proof.
         wp_pures. iRewrite "HQ_is_Φ". done.
     - (* We have moved to the helped state. *)
       assert (slots = <[i := (l, Help γs_i', w)]> (delete i slots))
-        as Hslots_i by by rewrite insert_delete insert_id.
+        as Hslots_i by by rewrite insert_delete_insert insert_id.
       rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I]Hslots_i.
       (* We recover our postcondition. *)
       iDestruct (big_sepM_insert with "Hbig")
@@ -2433,7 +2433,7 @@ Proof.
             [ by iFrame | by lia | by rewrite Hi | by apply Hstate ]. }
       iSplitL "He●".
       { erewrite map_ext_in; first done. intros k Hk%elem_of_list_In.
-        rewrite /get_value /update_slot Hi insert_delete.
+        rewrite /get_value /update_slot Hi insert_delete_insert.
         destruct (decide (k = i)) as [->|Hk_not_i].
         - by rewrite lookup_insert Hi.
         - by rewrite lookup_insert_ne. }
