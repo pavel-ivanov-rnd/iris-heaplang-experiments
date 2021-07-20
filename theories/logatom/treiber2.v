@@ -238,7 +238,7 @@ Qed.
 Lemma push_stack_spec (ℓ : loc) (γ : gname) (v : val) :
   is_stack ℓ γ -∗
   <<< ∀ (xs : list val), stack_cont γ xs >>>
-    push_stack v #ℓ @ ⊤ ∖ ↑N
+    push_stack v #ℓ @ ↑N
   <<< stack_cont γ (v :: xs) , RET #() >>>.
 Proof.
   (* Introduce things into the Coq and Iris contexts, and use induction. *)
@@ -290,7 +290,7 @@ Qed.
 Lemma pop_stack_spec (ℓ : loc) (γ : gname) :
   is_stack ℓ γ -∗
   <<< ∀ (xs : list val), stack_cont γ xs >>>
-    pop_stack #ℓ @ ⊤ ∖ ↑N
+    pop_stack #ℓ @ ↑N
   <<< stack_cont γ (match xs with [] => [] | _::xs => xs end)
     , RET (match xs with [] => NONEV | v::_ => SOMEV v end) >>>.
 Proof.

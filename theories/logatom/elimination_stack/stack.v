@@ -185,7 +185,7 @@ Section stack.
   Lemma push_spec γs s (v : val) :
     is_stack γs s -∗
     <<< ∀ l : list val, stack_content γs l >>>
-      push s v @ ⊤∖↑N
+      push s v @ ↑N
     <<< stack_content γs (v::l), RET #() >>>.
   Proof.
     iIntros "#Hinv". iIntros (Φ) "AU".
@@ -268,7 +268,7 @@ Section stack.
   Lemma pop_spec γs (s : val) :
     is_stack γs s -∗
     <<< ∀ l, stack_content γs l >>>
-      pop s @ ⊤∖↑N
+      pop s @ ↑N
     <<< stack_content γs (tail l),
         RET match l with [] => NONEV | v :: _ => SOMEV v end >>>.
   Proof.

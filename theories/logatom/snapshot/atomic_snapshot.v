@@ -209,8 +209,7 @@ Section atomic_snapshot.
   Lemma write_spec γ (x2: val) p :
       is_snapshot γ p  -∗
       <<< ∀ x : val, snapshot_content γ x >>>
-        write p x2
-        @ ⊤∖↑N
+        write p x2 @ ↑N
       <<< snapshot_content γ x2, RET #() >>>.
   Proof.
     iIntros "Hx". iIntros (Φ) "AU". iLöb as "IH".
@@ -269,8 +268,7 @@ Section atomic_snapshot.
   Lemma read_spec γ p :
     is_snapshot γ p -∗
     <<< ∀ v : val, snapshot_content γ v >>>
-      read p
-      @ ⊤∖↑N
+      read p @ ↑N
     <<< snapshot_content γ v, RET v >>>.
   Proof.
     iIntros "Hx". iIntros (Φ) "AU".
@@ -298,8 +296,7 @@ Section atomic_snapshot.
   Lemma read_with_spec γ p (l : loc) :
     is_snapshot γ p -∗
     <<< ∀ v1 v2 : val, snapshot_content γ v1 ∗ l ↦ v2 >>>
-       read_with_proph p #l
-       @ ⊤∖↑N
+       read_with_proph p #l @ ↑N
     <<< snapshot_content γ v1 ∗ l ↦ v2, RET (v1, v2) >>>.
   Proof.
     iIntros "Hx". iIntros (Φ) "AU". iLöb as "IH". wp_lam. wp_pures.

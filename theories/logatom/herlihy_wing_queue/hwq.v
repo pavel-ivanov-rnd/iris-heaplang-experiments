@@ -1530,7 +1530,7 @@ Qed.
 Lemma enqueue_spec sz γe (q : val) (l : loc) :
   is_hwq sz γe q -∗
   <<< ∀ (ls : list loc), hwq_cont γe ls >>>
-    enqueue q #l @ ⊤ ∖ ↑N
+    enqueue q #l @ ↑N
   <<< hwq_cont γe (ls ++ [l]), RET #() >>>.
 Proof.
   iIntros "Hq" (Φ) "AU".
@@ -2500,7 +2500,7 @@ Qed.
 Lemma dequeue_spec sz γe (q : val) :
   is_hwq sz γe q -∗
   <<< ∀ (ls : list loc), hwq_cont γe ls >>>
-    dequeue q @ ⊤ ∖ ↑N
+    dequeue q @ ↑N
   <<< ∃ (l : loc) ls', ⌜ls = l :: ls'⌝ ∗ hwq_cont γe ls', RET #l >>>.
 Proof.
   iIntros "Hq" (Φ) "AU". iLöb as "IH".
