@@ -83,7 +83,7 @@ Section proof.
 
   Lemma push_atomic_spec (s: loc) (x: val) :
     ⊢ <<< ∀ (xs : list val), is_stack s xs >>>
-        push #s x @ ⊤
+        push #s x @ ∅
       <<< is_stack s (x::xs), RET #() >>>.
   Proof.
     unfold is_stack.
@@ -110,7 +110,7 @@ Section proof.
 
   Lemma pop_atomic_spec (s: loc) :
     ⊢ <<< ∀ (xs : list val), is_stack s xs >>>
-        pop #s @ ⊤
+        pop #s @ ∅
       <<< match xs with [] => is_stack s []
                   | x::xs' => is_stack s xs' end,
       RET match xs with [] => NONEV | x :: _ => SOMEV x end >>>.

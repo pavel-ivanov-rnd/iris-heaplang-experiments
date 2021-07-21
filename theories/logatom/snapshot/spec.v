@@ -28,20 +28,17 @@ Record atomic_snapshot {Σ} `{!heapGS Σ} := AtomicSnapshot {
     read_spec N γ p :
       is_snapshot N γ p -∗
       <<< ∀ v : val, snapshot_content γ v  >>>
-        read p
-        @ ⊤∖↑N
+        read p @ ↑N
       <<< snapshot_content γ v, RET v >>>;
     write_spec N γ (v: val) p :
       is_snapshot N γ p -∗
       <<< ∀ w : val, snapshot_content γ w  >>>
-        write p v
-        @ ⊤∖↑N
+        write p v @ ↑N
       <<< snapshot_content γ v, RET #() >>>;
     read_with_spec N γ p (l : loc) :
       is_snapshot N γ p -∗
       <<< ∀ v w : val, snapshot_content γ v ∗ l ↦ w >>>
-        read_with p #l
-        @ ⊤∖↑N
+        read_with p #l @ ↑N
       <<< snapshot_content γ v ∗ l ↦ w, RET (v, w) >>>;
 }.
 Arguments atomic_snapshot _ {_}.
