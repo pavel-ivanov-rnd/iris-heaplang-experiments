@@ -502,11 +502,6 @@ Section rdcss.
         iMod (inv_mapsto_own_acc_strong with "InvGC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync B location l_n and A location l_m *)
         iMod "AU" as (m' n') "[CC [_ Hclose]]".
-        { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r.
-          - apply disjoint_difference_l1. set_solver.
-          - assert (↑descrN ⊆ ↑N) by solve_ndisj.
-            assert (↑rdcssN ⊆ ↑N) by solve_ndisj. set_solver. }
         iDestruct "CC" as "[Hgc_lm Hn◯]".
         (* sync B location and update it if required *)
         iDestruct (sync_values with "Hn● Hn◯") as %->.
@@ -585,10 +580,6 @@ Section rdcss.
         wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
         iMod "AU" as (b' n') "[[Hf CC] [Hclose _]]".
-        { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r. 2:done.
-          apply disjoint_difference_l1.
-          assert (↑rdcssN ⊆ ↑N) by solve_ndisj. set_solver. }
         iDestruct (inv_mapsto_own_inv with "Hf") as "#Hgc".
         iMod ("Hclose" with "[Hf CC]") as "AU"; first by iFrame.
         (* Initialize new [descr] protocol .*)
@@ -614,10 +605,6 @@ Section rdcss.
            we can commit here *)
         wp_cmpxchg_fail.
         iMod "AU" as (m'' n'') "[[Hm◯ Hn◯] [_ Hclose]]"; simpl.
-        { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r. 2:done.
-          apply disjoint_difference_l1.
-          assert (↑rdcssN ⊆ ↑N) by solve_ndisj. set_solver. }
         (* synchronize B location *)
         iDestruct (sync_values with "Hn● Hn◯") as %->.
         iMod ("Hclose" with "[Hm◯ Hn◯]") as "HΦ".

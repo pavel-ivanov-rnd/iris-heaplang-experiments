@@ -385,11 +385,6 @@ Section conditional_counter.
         iMod (inv_mapsto_own_acc_strong with "GC") as "Hgc"; first solve_ndisj.
         (* open and *COMMIT* AU, sync flag and counter *)
         iMod "AU" as (b n2) "[[Hn◯ Hf] [_ Hclose]]".
-        { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r.
-          - apply disjoint_difference_l1. set_solver.
-          - assert (↑counterN ⊆ ↑N) by solve_ndisj.
-            assert (↑stateN ⊆ ↑N) by solve_ndisj. set_solver. }
         iDestruct ("Hgc" with "Hf") as "(_ & Hf & Hfclose)".
         wp_load.
         iMod ("Hfclose" with "[//] Hf") as "[Hf Hfclose]".
@@ -463,10 +458,6 @@ Section conditional_counter.
         wp_cmpxchg_suc.
         (* Take a "peek" at [AU] and abort immediately to get [gc_is_gc f]. *)
         iMod "AU" as (b' n') "[[CC Hf] [Hclose _]]".
-        { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r. 2:done.
-          apply disjoint_difference_l1.
-          assert (↑counterN ⊆ ↑N) by solve_ndisj. set_solver. }
         iDestruct (inv_mapsto_own_inv with "Hf") as "#Hgc".
         iMod ("Hclose" with "[CC Hf]") as "AU"; first by iFrame.
         (* Initialize new [state] protocol .*)
@@ -536,10 +527,6 @@ Section conditional_counter.
     wp_load.
     destruct s as [n|f n p].
     - iMod "AU" as (au_n) "[Hn◯ [_ Hclose]]"; simpl.
-      { (* FIXME solve_ndisj should do this. *)
-          apply subseteq_difference_r. 2:done.
-          apply disjoint_difference_l1.
-          assert (↑counterN ⊆ ↑N) by solve_ndisj. set_solver. }
       iDestruct "Hrest" as "[Hc' Hn●]".
       iDestruct (sync_counter_values with "Hn● Hn◯") as %->.
       iMod ("Hclose" with "Hn◯") as "HΦ".
