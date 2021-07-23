@@ -9,9 +9,6 @@ From iris_examples.logrel.F_mu_ref_conc Require Export typing.
 From iris.prelude Require Import options.
 Import uPred.
 
-(* FIXME: this file refers to auto-generated names. *)
-Local Unset Mangle Names.
-
 (* HACK: move somewhere else *)
 Ltac auto_equiv :=
   (* Deal with "pointwise_relation" *)
@@ -177,25 +174,20 @@ Section logrel.
     ≡ ⟦ τ ⟧ (Δ1 ++ Δ2).
   Proof.
     revert Δ1 Π Δ2. induction τ=> Δ1 Π Δ2 vv; simpl; auto.
-    - properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
-    - properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
+    - properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
+    - properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
     - unfold interp_expr.
-      properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
+      properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
     - rewrite fixpoint_proper; first done. intros τi ww; simpl.
-      properness; auto. apply (IHτ (_ :: _)).
+      properness; auto.
+      match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
       rewrite !lookup_app_r; [|lia..]. do 3 f_equiv. lia.
     - unfold interp_expr.
-      properness; auto. by apply (IHτ (_ :: _)).
-    - properness; auto. by apply (IHτ (_ :: _)).
-    - properness; auto. by apply IHτ.
+      properness; auto. match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
+    - properness; auto. match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
+    - properness; auto. match goal with IH : ∀ _, _ |- _ => by apply IH end.
   Qed.
 
   Lemma interp_subst_up Δ1 Δ2 τ τ' :
@@ -203,28 +195,23 @@ Section logrel.
     ≡ ⟦ τ.[upn (length Δ1) (τ' .: ids)] ⟧ (Δ1 ++ Δ2).
   Proof.
     revert Δ1 Δ2; induction τ=> Δ1 Δ2 vv; simpl; auto.
-    - properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
-    - properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
+    - properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
+    - properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
     - unfold interp_expr.
-      properness; auto.
-      + by apply IHτ1.
-      + by apply IHτ2.
+      properness; auto; match goal with IH : ∀ _, _ |- _ => by apply IH end.
     - rewrite fixpoint_proper; first done; intros τi ww; simpl.
-      properness; auto. apply (IHτ (_ :: _)).
-    - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
+      properness; auto. match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
+    - match goal with |- context [_ !! ?x] => rename x into idx end.
+      rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
       { by rewrite !lookup_app_l. }
       rewrite !lookup_app_r; [|lia ..].
-      case EQ: (x - length Δ1) => [|n]; simpl.
+      case EQ: (idx - length Δ1) => [|n]; simpl.
       { symmetry. asimpl. apply (interp_weaken [] Δ1 Δ2 τ'). }
       rewrite !lookup_app_r; [|lia ..]. do 3 f_equiv. lia.
     - unfold interp_expr.
-      properness; auto. apply (IHτ (_ :: _)).
-    - properness; auto. apply (IHτ (_ :: _)).
-    - properness; auto. by apply IHτ.
+      properness; auto. match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
+    - properness; auto. match goal with IH : ∀ _, _ |- _ => by apply (IH (_ :: _)) end.
+    - properness; auto. match goal with IH : ∀ _, _ |- _ => by apply IH end.
   Qed.
 
   Lemma interp_subst Δ2 τ τ' v : ⟦ τ ⟧ (⟦ τ' ⟧ Δ2 :: Δ2) v ≡ ⟦ τ.[τ'/] ⟧ Δ2 v.
