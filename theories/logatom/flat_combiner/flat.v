@@ -6,6 +6,9 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris_examples.logatom.flat_combiner Require Import misc peritem sync.
+From iris.prelude Require Import options.
+
+Set Default Proof Using "Type*".
 
 Definition doOp : val :=
   λ: "p",
@@ -226,7 +229,8 @@ Section proof.
     iModIntro. wp_let. wp_bind (treiber.iter _ _).
     iApply wp_wand_r. iSplitL "HR Ho2".
     { iApply (loop_iter_doOp_spec R _ _ _ _ (λ _, own γr (Excl ()) ∗ R)%I with "[-]")=>//.
-      iFrame "#". iFrame. eauto. }
+      - iFrame "#∗".
+      - eauto. }
     iIntros (f') "[Ho HR]". wp_seq.
     iApply (release_spec with "[Hlocked Ho HR]"); first iFrame "#∗".
     iNext. iIntros. done.
@@ -267,7 +271,7 @@ Section proof.
   Qed.
 
   Lemma mk_flat_spec (γm: gname): mk_syncer_spec mk_flat.
-  Proof.
+  Proof using Type* N.
     iIntros (R Φ) "HR HΦ".
     iMod (own_alloc (Excl ())) as (γr) "Ho2"; first done.
     wp_lam. wp_bind (newlock _).

@@ -5,7 +5,7 @@ From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.
 From iris.heap_lang Require Import proofmode notation par.
 From iris_examples.logatom.snapshot Require Import spec.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** Specifying snapshots with histories
     Inspired by atomic pair snapshot data structure from Sergey et al. (ESOP 2015) *)

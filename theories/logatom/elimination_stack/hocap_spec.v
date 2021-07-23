@@ -46,7 +46,7 @@ From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Import atomic.
 From iris.heap_lang Require Import proofmode notation atomic_heap.
 From iris_examples.logatom.elimination_stack Require spec.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 Module tada := elimination_stack.spec.
 

@@ -2,7 +2,7 @@ From stdpp Require Import namespaces.
 From iris.base_logic.lib Require Export gen_inv_heap.
 From iris.program_logic Require Export atomic.
 From iris.heap_lang Require Export proofmode notation.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** A general logically atomic interface for conditional increment. *)
 Record atomic_cinc {Σ} `{!heapGS Σ} := AtomicCinc {

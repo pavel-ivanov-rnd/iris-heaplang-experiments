@@ -5,6 +5,7 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import frac.
 From iris_examples.logatom.flat_combiner Require Import sync.
+From iris.prelude Require Import options.
 Import uPred.
 
 Definition mk_sync: val :=
@@ -20,7 +21,7 @@ Section syncer.
   Context `{!heapGS Σ, !lockG Σ}.
   
   Lemma mk_sync_spec: mk_syncer_spec mk_sync.
-  Proof.
+  Proof using Type*.
     iIntros (R Φ) "HR HΦ".
     wp_lam. wp_bind (newlock _).
     iApply (newlock_spec R with "[HR]"); first done. iNext.

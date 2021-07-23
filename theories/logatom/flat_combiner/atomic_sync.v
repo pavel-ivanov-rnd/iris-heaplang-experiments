@@ -3,6 +3,7 @@ From iris.heap_lang Require Export lang proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import agree frac.
 From iris_examples.logatom.flat_combiner Require Import sync misc.
+From iris.prelude Require Import options.
 
 (** The simple syncer spec in [sync.v] implies a logically atomic spec. *)
 
@@ -46,7 +47,7 @@ Section atomic_sync.
 
   Lemma atomic_spec (mk_syncer: val):
       mk_syncer_spec mk_syncer → atomic_syncer_spec mk_syncer.
-  Proof.
+  Proof using Type*.
     iIntros (Hsync g0 ϕ ret) "Hϕ Hret".
     iMod (own_alloc (((1 / 2)%Qp, to_agree g0) ⋅ ((1 / 2)%Qp, to_agree g0))) as (γ) "[Hg1 Hg2]".
     { by rewrite -pair_op agree_idemp. }

@@ -3,6 +3,7 @@ From iris.program_logic Require Export weakestpre atomic.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import frac auth gmap csum.
+From iris.prelude Require Import options.
 
 Definition new_stack: val := λ: <>, ref (ref NONE).
 

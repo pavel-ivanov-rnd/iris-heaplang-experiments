@@ -4,6 +4,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.algebra Require Import excl auth frac gmap agree.
 From iris.bi Require Import fractional.
+From iris.prelude Require Import options.
 
 Import uPred.
 
@@ -50,7 +51,7 @@ Section pair.
 
   Lemma m_frag_agree γm (q1 q2: Qp) (a1 a2: A):
     own γm (q1, to_agree a1) -∗ own γm (q2, to_agree a2) -∗ ⌜a1 = a2⌝.
-  Proof.
+  Proof using Type*.
     iIntros "Ho Ho'".
     destruct (decide (a1 = a2)) as [->|Hneq]=>//.
     iCombine "Ho" "Ho'" as "Ho".
@@ -63,7 +64,7 @@ Section pair.
   Lemma m_frag_agree' γm (q1 q2: Qp) (a1 a2: A):
     own γm (q1, to_agree a1) -∗ own γm (q2, to_agree a2)
     -∗ own γm ((q1 + q2)%Qp, to_agree a1) ∗ ⌜a1 = a2⌝.
-  Proof.
+  Proof using Type*.
     iIntros "Ho Ho'".
     iDestruct (m_frag_agree with "Ho Ho'") as %Heq.
     subst. iCombine "Ho" "Ho'" as "Ho".

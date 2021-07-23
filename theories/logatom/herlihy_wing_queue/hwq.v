@@ -6,7 +6,7 @@ From iris.program_logic Require Export atomic.
 From iris.heap_lang.lib Require Import arith diverge.
 From iris.heap_lang Require Import proofmode notation par.
 From iris_examples.logatom.herlihy_wing_queue Require Import spec.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** * Some array-related notations ******************************************)
 
@@ -936,7 +936,7 @@ Proof using Type*.
            assert (k ≠ i) as HNEq.
            { intros ->. apply Hvalid2 in Hk. rewrite Hi in Hk. by inversion Hk. }
            rewrite lookup_insert_ne; last done. by apply Hvalid2.
-      * eapply IH; last done. done.
+      * eapply IH; last done; first done.
         { apply NoDup_cons in HND as (_ & HND).
           by apply NoDup_app in HND as (_ & _ & HND). }
         intros b' Hb'.
@@ -1745,7 +1745,7 @@ Proof.
     iModIntro. iSplitR "HΦ Hwriting_tok_i".
     { iNext. iExists (S back), pvs, pref, (rest ++ [l]), (NoCont []).
       iExists (<[i := (l, Done, false)]> slots), deqs.
-      rewrite array_content_NONEV. iFrame.
+      rewrite array_content_NONEV //. iFrame.
       iFrame. iSplitL "He●".
       { rewrite /elts app_assoc map_get_value_not_in_pref; try done.
         intros Hi%Hpref. rewrite Hi_free in Hi. destruct Hi; done. }
@@ -1776,10 +1776,7 @@ Proof.
           apply Hdeqs in Hk as (H1 & H2 & H3). repeat (split; first done).
           rewrite /array_get in H3.
           destruct (slots !! k) as [[[dl ds] dw]|]; last done. done.
-      - intros b Hb. by inversion Hb.
-      - done.
-      - done.
-      - done. }
+      - intros b Hb. by inversion Hb. }
     (* Let's clean up the context a bit. *)
     clear Hslots Hstate Hpref Hdeqs Hcont Hi_not_in_deq Hi_free Hpvs_ND Hpvs_sz.
     clear pvs pref rest slots deqs elts. subst i. rename back into i.
@@ -1943,12 +1940,12 @@ Proof.
           rewrite Hpvs /= in HND. rewrite cons_middle in HND.
           rewrite app_assoc app_assoc in HND.
           by apply NoDup_app in HND as (HND & _ & _). }
-        rewrite annoying_lemma_1; try done.
+        rewrite annoying_lemma_1 //; last first.
+        { intros k Hk. by apply Hpref in Hk as (H1 & H2 & _). }
         assert (map (get_value new_slots deqs) b_pendings
               = get_values (<[i:=(l, Done, false)]> slots) b_pendings) as ->.
         - rewrite /new_slots. by eapply annoying_lemma_2.
-        - done.
-        - intros k Hk. by apply Hpref in Hk as (H1 & H2 & _).  }
+        - done. }
       iPureIntro. repeat split_and; try done.
       - intros k. rewrite /new_slots map_lookup_imap. split; intros Hk.
         + destruct (decide (k = i)) as [->|Hk_not_i].
@@ -2322,7 +2319,9 @@ Proof.
           assert (block_valid slots (i2, ps)) as [Hvalid _].
           { destruct Hcont as (Hblocks & _ & _). apply Hblocks, elem_of_list_here. }
           assert (¬ (i2 < back `min` sz)) as H%not_lt; last by lia.
-          eapply iffRLn. apply Hslots. intros H. rewrite Hvalid in H. by inversion H. }
+          eapply iffRLn.
+          - apply Hslots.
+          - intros H. rewrite Hvalid in H. by inversion H. }
         iAssert (match bs with
                  | [] => i2_lower_bound γi (back `min` sz)
                  | _  => no_contra γc ∗ i2_lower_bound γi (back `min` sz)

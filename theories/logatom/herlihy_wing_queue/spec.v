@@ -1,6 +1,6 @@
 From iris.program_logic Require Import atomic.
 From iris.heap_lang Require Import proofmode notation.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** A general logically atomic interface for Herlihy-Wing queues. *)
 Record atomic_hwq {Σ} `{!heapGS Σ} := AtomicHWQ {

@@ -4,8 +4,7 @@ From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.rdcss Require Import spec.
-Import uPred bi List Decidable.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** We consider here an implementation of the RDCSS (Restricted Double-Compare
     Single-Swap) data structure of Harris et al., as described in "A Practical

@@ -4,8 +4,7 @@ From iris.program_logic Require Export atomic.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.conditional_increment Require Import spec.
-Import uPred bi List Decidable.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** Using prophecy variables with helping: implementing conditional counter from
     "Logical Relations for Fine-Grained Concurrency" by Turon et al. (POPL 2013) *)
