@@ -4,6 +4,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import agree frac frac_auth.
+From iris.prelude Require Import options.
 
 From iris.bi.lib Require Import fractional.
 
@@ -55,7 +56,7 @@ Section cnt_model.
   Global Instance makeElem_as_fractional γ m q:
     AsFractional (own γ (makeElem q m)) (λ q, γ ⤇[q] m)%I q.
   Proof.
-    split. done. apply _.
+    split; first done. apply _.
   Qed.
 
   Global Instance makeElem_Exclusive m: Exclusive (makeElem 1 m).
@@ -260,7 +261,7 @@ Section example_1.
   (* Prove that incr is safe w.r.t. data race. TODO: prove a stronger post-condition *)
   Lemma incr_2_safe:
     ∀ (x: Z), ⊢ WP incr_2 #x {{ _, True }}.
-  Proof.
+  Proof using Type* N.
     iIntros (x).
     rewrite /incr_2 /=.
     wp_lam.

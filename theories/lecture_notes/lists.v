@@ -18,9 +18,9 @@ From iris.heap_lang Require Export notation lang.
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 
-(* The following line makes Coq check that we do not use any admitted facts /
-   additional assumptions not in the statement of the theorems being proved. *)
-Set Default Proof Using "Type".
+(* The following line imports some Coq configuration we commonly use in Iris
+   projects, mostly with the goal of catching common mistakes. *)
+From iris.prelude Require Import options.
 
 (*  ---------------------------------------------------------------------- *)
 
@@ -472,18 +472,21 @@ Proof.
                              ⌜r = #(Z.succ n')⌝
                                 ∗ ⌜x = #n'⌝)%I)
            with "[$H_isList] [H_ϕ]").
-  - iSplit. iIntros (x) "!#". iIntros (ϕ') "H1 H2". wp_lam. iDestruct "H1" as (n) "H_x".
-    iSimplifyEq. wp_binop. iApply "H2". by iExists n.
-    rewrite big_sepL_fmap. rewrite big_sepL_forall. eauto.
+  - iSplit.
+    + iIntros (x) "!#". iIntros (ϕ') "H1 H2". wp_lam. iDestruct "H1" as (n) "H_x".
+      iSimplifyEq. wp_binop. iApply "H2". by iExists n.
+    + rewrite big_sepL_fmap. rewrite big_sepL_forall. eauto.
   - iNext. iIntros (r) "H". iApply "H_ϕ". iDestruct "H" as (ys) "(H_isList & H_post & H_length)".
     iAssert (⌜ys = (List.map (λ n : Z, #n) (List.map Z.succ xs))⌝)%I with "[-H_isList]" as %->.
     { iInduction ys as [| y ys'] "IH" forall (xs); iDestruct "H_length" as %H.
-       - simpl. destruct xs. by simpl. inversion H.
+       - simpl. destruct xs; first by simpl. inversion H.
        - rewrite fmap_length in H. symmetry in H. simpl in H.
          destruct (about_length _ _ H) as (x & xs' & ->). simpl.
          iDestruct "H_post" as "(H_head & H_tail)".
          iDestruct "H_head" as (n') "(% & %)". iSimplifyEq.
-         iDestruct ("IH" with "H_tail []") as %->. by rewrite fmap_length. done.
+         iDestruct ("IH" with "H_tail []") as %->.
+         {  by rewrite fmap_length. }
+         done.
     }
     iFrame.
 Qed.

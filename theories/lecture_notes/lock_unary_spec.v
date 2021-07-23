@@ -9,6 +9,7 @@
 
 (* Contains definitions of the weakest precondition assertion, and its basic rules. *)
 From iris.program_logic Require Export weakestpre.
+From iris.prelude Require Import options.
 
 (* Instantiation of Iris with the particular language. The notation file
    contains many shorthand notations for the programming language constructs, and
@@ -214,7 +215,7 @@ Section lock_spec.
 
   Lemma test_spec :
     {{{ True }}} test #() {{{ v, RET v; True }}}.
-  Proof.
+  Proof using Type*.
     iIntros (φ) "Hi HCont"; rewrite /test.
     wp_bind (newlock #())%E.
     iApply (wp_newlock_t); auto.

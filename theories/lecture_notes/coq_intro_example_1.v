@@ -25,6 +25,10 @@ From iris.heap_lang Require Import notation lang.
    the proof rule associated with it. *)
 From iris.heap_lang.lib Require Import par.
 
+(* The following line imports some Coq configuration we commonly use in Iris
+   projects, mostly with the goal of catching common mistakes. *)
+From iris.prelude Require Import options.
+
 (* We define our terms. The Iris Coq library defines many notations for
    programming language constructs, e.g., lambdas, allocation, accessing and so
    on. The complete list of notations can be found in
@@ -76,7 +80,7 @@ Section proof.
   The specification is  parametrized by any location ℓ and natural number n *)
   Lemma parallel_incr_spec (ℓ : loc) (n : Z):
     {{{ ℓ ↦ #n }}} (incr ℓ) ||| (incr ℓ) ;; !#ℓ {{{m, RET #m; ⌜(n ≤ m)%Z⌝ }}}.
-  Proof.
+  Proof using Type* N.
     (* We first unfold the triple notation. Recall its definition from Section 9
        of the lecture notes. *)
     iIntros (Φ) "Hpt HΦ".

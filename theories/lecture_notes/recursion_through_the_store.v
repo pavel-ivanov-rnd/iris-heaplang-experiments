@@ -22,11 +22,9 @@ From iris.heap_lang Require Export notation lang.
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 
-
-(* The following line makes Coq check that we do not use any admitted facts /
-   additional assumptions not in the statement of the theorems being proved. *)
-Set Default Proof Using "Type".
-
+(* The following line imports some Coq configuration we commonly use in Iris
+   projects, mostly with the goal of catching common mistakes. *)
+From iris.prelude Require Import options.
 
 Section recursion_through_the_store.
 

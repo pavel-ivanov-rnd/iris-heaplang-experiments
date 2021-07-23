@@ -5,8 +5,8 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export notation lang.
 From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
+From iris.prelude Require Import options.
 
-Set Default Proof Using "Type".
 
 (*  ---------------------------------------------------------------------- *)
 

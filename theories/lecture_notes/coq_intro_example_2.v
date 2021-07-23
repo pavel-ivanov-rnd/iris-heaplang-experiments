@@ -10,6 +10,7 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode.
 From iris.heap_lang Require Import notation lang.
 From iris.algebra Require Import numbers.
+From iris.prelude Require Import options.
 
 From iris.heap_lang.lib Require Import par.
 
@@ -140,7 +141,7 @@ Section monotone_counter.
   Definition mcounterRA_mixin : RAMixin mcounterRAT.
   Proof.
     split; try apply _; try done.
-    unfold valid, op, mcounterRAop, mcounterRAValid. intros ? ? cx -> ?; exists cx. done.
+    - unfold valid, op, mcounterRAop, mcounterRAValid. intros ? ? cx -> ?; exists cx. done.
     (* The operation is associative. *)
     - unfold op, mcounterRAop. intros [[]] [[]] [[]]; rewrite !Nat.max_assoc; reflexivity.
     (* The operation is commutative. *)
@@ -393,7 +394,7 @@ Section auth_update.
     *)
     intros Hv [? He].
     etransitivity.
-    apply (auth_update_add x y z Hv).
+    { apply (auth_update_add x y z Hv). }
     rewrite {2}He assoc auth_frag_op assoc.
     apply cmra_update_op_l.
   Qed.
