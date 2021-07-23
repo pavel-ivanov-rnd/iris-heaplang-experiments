@@ -5,7 +5,7 @@ homepage: "http://iris-project.org/"
 bug-reports: "https://gitlab.mpi-sws.org/iris/examples/issues"
 dev-repo: "git+https://gitlab.mpi-sws.org/iris/examples.git"
 
-synopsis: "A collection of case studies for Iris"
+synopsis: "A collection of case studies for Iris -- not meant to be used as a dependency of anything"
 
 depends: [
   "coq-iris-heap-lang" { (= "dev.2021-07-21.0.471f670a") | (= "dev") }

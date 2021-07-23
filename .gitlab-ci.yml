@@ -39,6 +39,8 @@ build-coq.8.13.2:
     OPAM_PINS: "coq version 8.13.2"
     DENY_WARNINGS: "1"
     MANGLE_NAMES: "1"
+    # Coq bench needs an opam package
+    OPAM_PKG: "1"
   tags:
   - fp-timing
 
