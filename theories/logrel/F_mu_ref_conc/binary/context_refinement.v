@@ -181,7 +181,8 @@ Lemma typed_ctx_n_closed K Γ τ Γ' τ' e :
   ∀ f, (fill_ctx K e).[upn (length Γ') f] = (fill_ctx K e).
 Proof.
   intros H1 H2; induction H2; simpl; auto.
-  induction H => f; asimpl; simpl in *;
+  rename select (typed_ctx_item _ _ _ _ _) into Hty.
+  induction Hty => f; asimpl; simpl in *;
     repeat match goal with H : _ |- _ => rewrite fmap_length in H end;
     try f_equal;
     eauto using typed_n_closed;

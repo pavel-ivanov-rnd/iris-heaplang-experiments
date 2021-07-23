@@ -52,7 +52,7 @@ Section symbol_nat_sem_typ.
 
   Lemma symbol_nat_sem_typ : ⊢ [] ⊨ symbol_nat : symbol_typ.
   Proof.
-    iIntros (? ?) "!# HΔ".
+    iIntros (Δ vs) "!# HΔ".
     rewrite /symbol_nat /symbol_typ /interp_expr /=.
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; last done.
     asimpl.

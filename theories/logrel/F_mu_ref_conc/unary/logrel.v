@@ -6,6 +6,9 @@ From iris.algebra Require Import list.
 From iris.base_logic Require Import invariants.
 Import uPred.
 
+(* FIXME: this file refers to auto-generated names. *)
+Local Unset Mangle Names.
+
 Definition logN : namespace := nroot .@ "logN".
 
 (** interp : is a unary logical relation. *)

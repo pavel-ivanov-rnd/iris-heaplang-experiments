@@ -8,6 +8,9 @@ From iris_examples.logrel.F_mu_ref_conc.binary Require Export rules.
 From iris_examples.logrel.F_mu_ref_conc Require Export typing.
 Import uPred.
 
+(* FIXME: this file refers to auto-generated names. *)
+Local Unset Mangle Names.
+
 (* HACK: move somewhere else *)
 Ltac auto_equiv :=
   (* Deal with "pointwise_relation" *)

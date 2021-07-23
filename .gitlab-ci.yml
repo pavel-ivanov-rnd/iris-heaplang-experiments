@@ -38,6 +38,7 @@ build-coq.8.13.2:
   variables:
     OPAM_PINS: "coq version 8.13.2"
     DENY_WARNINGS: "1"
+    MANGLE_NAMES: "1"
   tags:
   - fp-timing
 
