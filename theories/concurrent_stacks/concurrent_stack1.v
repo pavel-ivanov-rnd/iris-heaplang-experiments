@@ -2,7 +2,7 @@ From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import notation proofmode.
 From iris_examples.concurrent_stacks Require Import specs.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** Stack 1: No helping, bag spec. *)
 
@@ -49,7 +49,7 @@ Section stacks.
   Qed.
 
   Definition is_list_def (P : val -> iProp Σ) := fixpoint (is_list_pre P).
-  Definition is_list_aux P : seal (@is_list_def P). by eexists. Qed.
+  Definition is_list_aux P : seal (@is_list_def P). Proof. by eexists. Qed.
   Definition is_list P := unseal (is_list_aux P).
   Definition is_list_eq P : @is_list P = @is_list_def P := seal_eq (is_list_aux P).
 

@@ -2,7 +2,7 @@ From iris.base_logic Require Import invariants.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang proofmode notation.
 From iris_examples.concurrent_stacks Require Import specs.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** Stack 3: No helping, CAP spec. *)
 
