@@ -81,7 +81,7 @@ Class atomic_snapshotG Σ := AtomicSnapshotG {
 Definition atomic_snapshotΣ : gFunctors :=
   #[GFunctor (authR $ optionUR $ exclR $ valO); GFunctor (authR timestampUR)].
 
-Instance subG_atomic_snapshotΣ {Σ} : subG atomic_snapshotΣ Σ → atomic_snapshotG Σ.
+Global Instance subG_atomic_snapshotΣ {Σ} : subG atomic_snapshotΣ Σ → atomic_snapshotG Σ.
 Proof. solve_inG. Qed.
 
 Section atomic_snapshot.

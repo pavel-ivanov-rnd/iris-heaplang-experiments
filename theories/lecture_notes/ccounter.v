@@ -12,7 +12,7 @@ From iris_examples.lecture_notes Require Import modular_incr.
 Class ccounterG Σ := CCounterG { ccounter_inG :> inG Σ (frac_authR natR) }.
 Definition ccounterΣ : gFunctors := #[GFunctor (frac_authR natR)].
 
-Instance subG_ccounterΣ {Σ} : subG ccounterΣ Σ → ccounterG Σ.
+Global Instance subG_ccounterΣ {Σ} : subG ccounterΣ Σ → ccounterG Σ.
 Proof. solve_inG. Qed.
 
 Section ccounter.

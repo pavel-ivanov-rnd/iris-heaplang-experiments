@@ -129,7 +129,7 @@ Class hwqG Σ :=
 Definition hwqΣ : gFunctors :=
   #[GFunctor eltsUR; GFunctor contUR; GFunctor slotUR; GFunctor backUR].
 
-Instance subG_hwqΣ {Σ} : subG hwqΣ Σ → hwqG Σ.
+Global Instance subG_hwqΣ {Σ} : subG hwqΣ Σ → hwqG Σ.
 Proof. solve_inG. Qed.
 
 (** * The specifiaction... **************************************************)

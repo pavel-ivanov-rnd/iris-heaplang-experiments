@@ -112,7 +112,7 @@ Record stack {Σ} `{!heapGS Σ} := AtomicStack {
 }.
 Arguments stack _ {_}.
 
-Existing Instances
+Global Existing Instances
   is_stack_persistent stack_content_frag_timeless stack_content_auth_timeless
   name_eqdec name_countable.
 
@@ -148,7 +148,7 @@ Record stack {Σ} `{!heapGS Σ} := AtomicStack {
 }.
 Arguments stack _ {_}.
 
-Existing Instances is_stack_persistent.
+Global Existing Instances is_stack_persistent.
 
 End hocap_pred.
 
@@ -299,7 +299,7 @@ Class hocapG Σ := HocapG {
 Definition hocapΣ : gFunctors :=
   #[GFunctor (exclR unitO); GFunctor (authR (optionUR $ exclR (listO valO)))].
 
-Instance subG_hocapΣ {Σ} : subG hocapΣ Σ → hocapG Σ.
+Global Instance subG_hocapΣ {Σ} : subG hocapΣ Σ → hocapG Σ.
 Proof. solve_inG. Qed.
 
 Section hocap_pred_auth.

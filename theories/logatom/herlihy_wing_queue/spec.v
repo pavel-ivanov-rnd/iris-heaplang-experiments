@@ -39,4 +39,4 @@ Record atomic_hwq {Σ} `{!heapGS Σ} := AtomicHWQ {
 }.
 Arguments atomic_hwq _ {_}.
 
-Existing Instances is_hwq_persistent hwq_content_timeless.
+Global Existing Instances is_hwq_persistent hwq_content_timeless.

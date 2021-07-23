@@ -48,4 +48,4 @@ Record atomic_rdcss {Σ} `{!heapGS Σ} := AtomicRdcss {
 }.
 Arguments atomic_rdcss _ {_}.
 
-Existing Instances is_rdcss_persistent rdcss_state_timeless.
+Global Existing Instances is_rdcss_persistent rdcss_state_timeless.

@@ -97,7 +97,7 @@ Class cincG Σ := ConditionalIncrementG {
 Definition cincΣ : gFunctors :=
   #[GFunctor numUR; GFunctor tokenUR; GFunctor one_shotUR].
 
-Instance subG_cincΣ {Σ} : subG cincΣ Σ → cincG Σ.
+Global Instance subG_cincΣ {Σ} : subG cincΣ Σ → cincG Σ.
 Proof. solve_inG. Qed.
 
 Section conditional_counter.

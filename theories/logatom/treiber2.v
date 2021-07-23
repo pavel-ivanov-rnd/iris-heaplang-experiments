@@ -64,7 +64,7 @@ Class stackG Σ := StackG {
 Definition stackΣ : gFunctors :=
   #[GFunctor (authR (optionUR (exclR (listO valO))))].
 
-Instance subG_stackΣ {Σ} : subG stackΣ Σ → stackG Σ.
+Global Instance subG_stackΣ {Σ} : subG stackΣ Σ → stackG Σ.
 Proof. solve_inG. Qed.
 
 (* Put some things in the context. *)

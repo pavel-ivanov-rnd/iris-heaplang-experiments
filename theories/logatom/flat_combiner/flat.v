@@ -60,7 +60,7 @@ Definition flatΣ : gFunctors :=
   #[ GFunctor (constRF reqR);
      savedPredΣ val ].
 
-Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
+Global Instance subG_flatΣ {Σ} : subG flatΣ Σ → flatG Σ.
 Proof. solve_inG. Qed.
 
 Section proof.

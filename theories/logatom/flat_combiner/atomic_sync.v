@@ -11,7 +11,7 @@ Definition syncR := prodR fracR (agreeR valO). (* track the local knowledge of g
 Class syncG Σ := sync_tokG :> inG Σ syncR.
 Definition syncΣ : gFunctors := #[GFunctor (constRF syncR)].
 
-Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
+Global Instance subG_syncΣ {Σ} : subG syncΣ Σ → syncG Σ.
 Proof. solve_inG. Qed.
 
 Section atomic_sync.

@@ -166,7 +166,7 @@ Class rdcssG Σ := RDCSSG {
 Definition rdcssΣ : gFunctors :=
   #[GFunctor valUR; GFunctor tokenUR; GFunctor one_shotUR].
 
-Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
+Global Instance subG_rdcssΣ {Σ} : subG rdcssΣ Σ → rdcssG Σ.
 Proof. solve_inG. Qed.
 
 Section rdcss.

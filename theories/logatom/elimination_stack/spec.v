@@ -37,6 +37,6 @@ Record atomic_stack {Σ} `{!heapGS Σ} := AtomicStack {
 }.
 Arguments atomic_stack _ {_}.
 
-Existing Instances
+Global Existing Instances
   is_stack_persistent stack_content_timeless
   name_countable name_eqdec.

@@ -7,11 +7,11 @@ From iris.prelude Require Import options.
 Module F_mu_ref_conc.
   Definition loc := positive.
 
-  Instance loc_dec_eq (l l' : loc) : Decision (l = l') := _.
+  Global Instance loc_dec_eq (l l' : loc) : Decision (l = l') := _.
 
   Inductive binop := Add | Sub | Mult | Eq | Le | Lt.
 
-  Instance binop_dec_eq (op op' : binop) : Decision (op = op').
+  Global Instance binop_dec_eq (op op' : binop) : Decision (op = op').
   Proof. solve_decision. Defined.
 
   Inductive expr :=
@@ -56,16 +56,16 @@ Module F_mu_ref_conc.
   | CAS (e0 : expr) (e1 : expr) (e2 : expr)
   (* Fetch and add for fine-grained concurrency *)
   | FAA (e1 : expr) (e2 : expr).
-  Instance Ids_expr : Ids expr. derive. Defined.
-  Instance Rename_expr : Rename expr. derive. Defined.
-  Instance Subst_expr : Subst expr. derive. Defined.
-  Instance SubstLemmas_expr : SubstLemmas expr. derive. Qed.
+  Global Instance Ids_expr : Ids expr. derive. Defined.
+  Global Instance Rename_expr : Rename expr. derive. Defined.
+  Global Instance Subst_expr : Subst expr. derive. Defined.
+  Global Instance SubstLemmas_expr : SubstLemmas expr. derive. Qed.
 
   (* Notation for bool and nat *)
   Notation "#♭ b" := (Bool b) (at level 20).
   Notation "#n n" := (Nat n) (at level 20).
 
-  Instance expr_dec_eq (e e' : expr) : Decision (e = e').
+  Global Instance expr_dec_eq (e e' : expr) : Decision (e = e').
   Proof. solve_decision. Defined.
 
   Inductive val :=
@@ -96,10 +96,10 @@ Module F_mu_ref_conc.
     | Lt => λ a b, if (lt_dec a b) then #♭v true else #♭v false
     end.
 
-  Instance val_dec_eq (v v' : val) : Decision (v = v').
+  Global Instance val_dec_eq (v v' : val) : Decision (v = v').
   Proof. solve_decision. Defined.
 
-  Instance val_inh : Inhabited val := populate UnitV.
+  Global Instance val_inh : Inhabited val := populate UnitV.
 
   Fixpoint of_val (v : val) : expr :=
     match v with
@@ -285,14 +285,14 @@ Module F_mu_ref_conc.
     revert v; induction e; intros; simplify_option_eq; auto with f_equal.
   Qed.
 
-  Instance of_val_inj : Inj (=) (=) of_val.
+  Global Instance of_val_inj : Inj (=) (=) of_val.
   Proof. by intros ?? Hv; apply (inj Some); rewrite -!to_of_val Hv. Qed.
 
   Lemma fill_item_val Ki e :
     is_Some (to_val (fill_item Ki e)) → is_Some (to_val e).
   Proof. intros [v ?]. destruct Ki; simplify_option_eq; eauto. Qed.
 
-  Instance fill_item_inj Ki : Inj (=) (=) (fill_item Ki).
+  Global Instance fill_item_inj Ki : Inj (=) (=) (fill_item Ki).
   Proof. destruct Ki; intros ???; simplify_eq; auto with f_equal. Qed.
 
   Lemma val_stuck e1 σ1 κs e2 σ2 ef :

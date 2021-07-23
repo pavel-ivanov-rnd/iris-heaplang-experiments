@@ -14,7 +14,7 @@ Class barrierG Σ := BarrierG {
 Definition barrierΣ : gFunctors :=
   #[ GFunctor (authRF (gset_disjUR gname)); savedPropΣ ].
 
-Instance subG_barrierΣ {Σ} : subG barrierΣ Σ → barrierG Σ.
+Global Instance subG_barrierΣ {Σ} : subG barrierΣ Σ → barrierG Σ.
 Proof. solve_inG. Qed.
 
 (** Now we come to the Iris part of the proof. *)

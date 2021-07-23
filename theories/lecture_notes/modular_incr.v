@@ -15,7 +15,7 @@ Definition cntCmra : cmra := prodR fracR (agreeR ZO).
 Class cntG Σ := CntG { CntG_inG :> inG Σ cntCmra }.
 Definition cntΣ : gFunctors := #[GFunctor cntCmra ].
 
-Instance subG_cntΣ {Σ} : subG cntΣ Σ → cntG Σ.
+Global Instance subG_cntΣ {Σ} : subG cntΣ Σ → cntG Σ.
 Proof. solve_inG. Qed.
 
 Definition newcounter : val :=

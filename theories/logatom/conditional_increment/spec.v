@@ -42,6 +42,6 @@ Record atomic_cinc {Σ} `{!heapGS Σ} := AtomicCinc {
 }.
 Arguments atomic_cinc _ {_}.
 
-Existing Instances
+Global Existing Instances
   is_counter_persistent counter_content_timeless
   name_countable name_eqdec.

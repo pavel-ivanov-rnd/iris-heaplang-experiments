@@ -43,6 +43,6 @@ Record atomic_snapshot {Σ} `{!heapGS Σ} := AtomicSnapshot {
 }.
 Arguments atomic_snapshot _ {_}.
 
-Existing Instances
+Global Existing Instances
   is_snapshot_persistent snapshot_content_timeless
   name_countable name_eqdec.

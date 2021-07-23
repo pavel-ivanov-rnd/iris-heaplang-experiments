@@ -18,10 +18,10 @@ Module stlc.
     | InjR (e : expr)
     | Case (e0 : expr) (e1 : {bind expr}) (e2 : {bind expr}).
 
-  Instance Ids_expr : Ids expr. derive. Defined.
-  Instance Rename_expr : Rename expr. derive. Defined.
-  Instance Subst_expr : Subst expr. derive. Defined.
-  Instance SubstLemmas_expr : SubstLemmas expr. derive. Qed.
+  Global Instance Ids_expr : Ids expr. derive. Defined.
+  Global Instance Rename_expr : Rename expr. derive. Defined.
+  Global Instance Subst_expr : Subst expr. derive. Defined.
+  Global Instance SubstLemmas_expr : SubstLemmas expr. derive. Qed.
 
   Inductive val :=
     | LamV (e : {bind 1 of expr})
@@ -103,14 +103,14 @@ Module stlc.
     revert v; induction e; intros; simplify_option_eq; auto with f_equal.
   Qed.
 
-  Instance of_val_inj : Inj (=) (=) of_val.
+  Global Instance of_val_inj : Inj (=) (=) of_val.
   Proof. by intros ?? Hv; apply (inj Some); rewrite -!to_of_val Hv. Qed.
 
   Lemma fill_item_val Ki e :
     is_Some (to_val (fill_item Ki e)) → is_Some (to_val e).
   Proof. intros [v ?]. destruct Ki; simplify_option_eq; eauto. Qed.
 
-  Instance fill_item_inj Ki : Inj (=) (=) (fill_item Ki).
+  Global Instance fill_item_inj Ki : Inj (=) (=) (fill_item Ki).
   Proof. destruct Ki; intros ???; simplify_eq; auto with f_equal. Qed.
 
   Lemma val_stuck e1 σ1 κ e2 σ2 ef :

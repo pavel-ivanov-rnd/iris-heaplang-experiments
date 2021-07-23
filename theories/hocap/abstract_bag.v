@@ -54,5 +54,5 @@ Arguments pushBag_spec {_ _} _ _ _ _ _ _ _.
 Arguments is_bag {_ _} _ _ _ _.
 Arguments bag_contents {_ _} _ _.
 Arguments bag_contents_update {_ _} _ {_ _ _}.
-Existing Instances is_bag_persistent bag_contents_timeless.
+Global Existing Instances is_bag_persistent bag_contents_timeless.
 

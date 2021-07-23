@@ -61,7 +61,7 @@ Definition pop : val :=
 Definition channelR := exclR unitR.
 Class channelG Σ := { channel_inG :> inG Σ channelR }.
 Definition channelΣ : gFunctors := #[GFunctor channelR].
-Instance subG_channelΣ {Σ} : subG channelΣ Σ → channelG Σ.
+Global Instance subG_channelΣ {Σ} : subG channelΣ Σ → channelG Σ.
 Proof. solve_inG. Qed.
 
 Section side_channel.
