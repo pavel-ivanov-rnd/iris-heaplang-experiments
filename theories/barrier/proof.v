@@ -4,7 +4,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode.
 From iris.algebra Require Import auth gset.
 From iris_examples.barrier Require Export barrier.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** The CMRAs/functors we need. *)
 Class barrierG Σ := BarrierG {

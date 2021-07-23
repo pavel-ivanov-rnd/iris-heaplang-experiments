@@ -1,5 +1,6 @@
 From iris.proofmode Require Import tactics.
 From iris_examples.cl_logic Require Import bi.
+From iris.prelude Require Import options.
 
 Section cl_logic_tests.
   Implicit Types P Q R : clProp.

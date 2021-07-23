@@ -3,7 +3,7 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import par.
 From iris.heap_lang Require Import adequacy proofmode.
 From iris_examples.barrier Require Import proof.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 Definition worker (n : Z) : val :=
   λ: "b" "y", wait "b" ;; !"y" #n.
@@ -34,7 +34,7 @@ Section client.
     iIntros "Hrecv". wp_lam. wp_let.
     wp_apply (wait_spec with "Hrecv"). iDestruct 1 as (f) "[Hy #Hf]".
     wp_seq. wp_load.
-    iApply (wp_wand with "[]"). iApply "Hf". by iIntros (v) "_".
+    iApply (wp_wand with "Hf"). by iIntros (v) "_".
   Qed.
 
   Lemma client_safe : ⊢ WP client {{ _, True }}.

@@ -1,5 +1,6 @@
 From iris.bi Require Export bi.
 From iris_examples.cl_logic Require Export clprop.
+From iris.prelude Require Import options.
 Import clProp_primitive.
 
 (** BI instances for [clProp], and re-stating the remaining primitive laws in
@@ -58,7 +59,9 @@ Proof.
   - (* emp ∗ P ⊢ P *)
     intros P. apply and_elim_r.
   - (* P ∗ Q ⊢ Q ∗ P *)
-    intros P Q. apply and_intro. apply and_elim_r. apply and_elim_l.
+    intros P Q. apply and_intro.
+    + apply and_elim_r.
+    + apply and_elim_l.
   - (* (P ∗ Q) ∗ R ⊢ P ∗ (Q ∗ R) *)
     intros P Q R. repeat apply and_intro.
     + etrans; first apply and_elim_l. by apply and_elim_l.

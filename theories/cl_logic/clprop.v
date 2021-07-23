@@ -1,5 +1,6 @@
 From iris.algebra Require Export ofe.
 From iris.bi Require Import notation.
+From iris.prelude Require Import options.
 
 (** This is an embedding of classical logic into the Coq logic, following
 essentially the Gödel-Gentzen translation. The propositions [clProp] of this
