@@ -66,7 +66,7 @@ Section Stack_refinement.
     iExists (PairV (PairV (CG_locked_pushV _ _) (CG_locked_popV _ _)) (LamV _)).
     simpl. iAsimpl.
     rewrite CG_locked_push_of_val CG_locked_pop_of_val.
-    Transparent CG_snap_iter.
+    Local Transparent CG_snap_iter. (* HACK *)
     iFrame "Hj".
     iExists (_, _), (_, _); iSplit; eauto.
     iSplit.

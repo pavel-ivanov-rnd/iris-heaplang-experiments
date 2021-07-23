@@ -112,4 +112,4 @@ Section Graphs.
 
 End Graphs.
 
-Arguments graph _ {_ _}.
+Global Arguments graph _ {_ _}.

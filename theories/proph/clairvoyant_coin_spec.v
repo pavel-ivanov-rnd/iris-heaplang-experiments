@@ -30,4 +30,4 @@ Record clairvoyant_coin_spec `{!heapGS Σ} := ClairvoyantCoinSpec {
         toss_coin c
     {{{ b bs', RET #(); ⌜bs = b :: bs'⌝ ∗ coin c bs' }}};
 }.
-Arguments clairvoyant_coin_spec _ {_}.
+Global Arguments clairvoyant_coin_spec _ {_}.

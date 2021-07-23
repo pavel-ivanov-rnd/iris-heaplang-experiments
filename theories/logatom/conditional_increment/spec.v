@@ -40,7 +40,7 @@ Record atomic_cinc {Σ} `{!heapGS Σ} := AtomicCinc {
         get v @ ↑N ∪ ↑inv_heapN
     <<< counter_content γs n, RET #n >>>;
 }.
-Arguments atomic_cinc _ {_}.
+Global Arguments atomic_cinc _ {_}.
 
 Global Existing Instances
   is_counter_persistent counter_content_timeless

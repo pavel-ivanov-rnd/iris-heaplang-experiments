@@ -422,4 +422,4 @@ Section contents.
   Qed.
 End contents.
 
-Opaque runner task newRunner runner_Fork task_Join.
+Global Opaque runner task newRunner runner_Fork task_Join.

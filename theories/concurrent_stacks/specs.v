@@ -19,7 +19,7 @@ Record concurrent_bag {Σ} `{!heapGS Σ} := ConcurrentBag {
   bag_pop_spec (P : val → iProp Σ) s :
     {{{ is_bag P s }}} bag_pop s {{{ ov, RET ov; ⌜ov = NONEV⌝ ∨ ∃ v, ⌜ov = SOMEV v⌝ ∗ P v }}}
 }.
-Arguments concurrent_bag _ {_}.
+Global Arguments concurrent_bag _ {_}.
 
 (** General (HoCAP-style) spec for a concurrent stack *)
 
@@ -42,4 +42,4 @@ Record concurrent_stack {Σ} `{!heapGS Σ} := ConcurrentStack {
       stack_pop s
     {{{ v, RET v; Ψ v }}};
 }.
-Arguments concurrent_stack _ {_}.
+Global Arguments concurrent_stack _ {_}.

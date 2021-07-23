@@ -46,6 +46,6 @@ Record atomic_rdcss {Σ} `{!heapGS Σ} := AtomicRdcss {
         get #l_n @ ↑N
     <<< rdcss_state N l_n n, RET n >>>;
 }.
-Arguments atomic_rdcss _ {_}.
+Global Arguments atomic_rdcss _ {_}.
 
 Global Existing Instances is_rdcss_persistent rdcss_state_timeless.

@@ -110,7 +110,7 @@ Record stack {Σ} `{!heapGS Σ} := AtomicStack {
                 | v :: l' => stack_content_auth γs l' ∗ Φ (SOMEV v) end) -∗
     WP pop s {{ Φ }};
 }.
-Arguments stack _ {_}.
+Global Arguments stack _ {_}.
 
 Global Existing Instances
   is_stack_persistent stack_content_frag_timeless stack_content_auth_timeless
@@ -146,7 +146,7 @@ Record stack {Σ} `{!heapGS Σ} := AtomicStack {
                 | v :: l' => ▷ P l' ∗ Φ (SOMEV v) end) -∗
     WP pop s {{ Φ }};
 }.
-Arguments stack _ {_}.
+Global Arguments stack _ {_}.
 
 Global Existing Instances is_stack_persistent.
 

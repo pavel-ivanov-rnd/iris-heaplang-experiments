@@ -45,14 +45,14 @@ Record bag Σ `{!heapGS Σ} := Bag {
     {{{ v, RET v; Q v }}};
 }.
 
-Arguments newBag {_ _} _.
-Arguments popBag {_ _} _.
-Arguments pushBag {_ _} _.
-Arguments newBag_spec {_ _} _ _ _.
-Arguments popBag_spec {_ _} _ _ _ _ _ _.
-Arguments pushBag_spec {_ _} _ _ _ _ _ _ _.
-Arguments is_bag {_ _} _ _ _ _.
-Arguments bag_contents {_ _} _ _.
-Arguments bag_contents_update {_ _} _ {_ _ _}.
+Global Arguments newBag {_ _} _.
+Global Arguments popBag {_ _} _.
+Global Arguments pushBag {_ _} _.
+Global Arguments newBag_spec {_ _} _ _ _.
+Global Arguments popBag_spec {_ _} _ _ _ _ _ _.
+Global Arguments pushBag_spec {_ _} _ _ _ _ _ _ _.
+Global Arguments is_bag {_ _} _ _ _ _.
+Global Arguments bag_contents {_ _} _ _.
+Global Arguments bag_contents_update {_ _} _ {_ _ _}.
 Global Existing Instances is_bag_persistent bag_contents_timeless.
 

@@ -12,7 +12,7 @@ Record clProp := ClProp {
   clProp_holds :> Prop;
   clProp_stable : ¬¬clProp_holds → clProp_holds
 }.
-Arguments clProp_holds : simpl never.
+Global Arguments clProp_holds : simpl never.
 Local Arguments clProp_holds !_ /.
 Add Printing Constructor clProp.
 
@@ -88,7 +88,7 @@ Definition unseal_eqs :=
 Ltac unseal := rewrite !unseal_eqs /=.
 
 Section primitive.
-Arguments clProp_holds !_ /.
+Local Arguments clProp_holds !_ /.
 
 Notation "P ⊢ Q" := (clProp_entails P Q)
   (at level 99, Q at level 200, right associativity).

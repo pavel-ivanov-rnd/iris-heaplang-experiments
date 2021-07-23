@@ -22,4 +22,4 @@ Record eager_coin_spec `{!heapGS Σ} := EagerCoinSpec {
         read_coin c
     {{{ RET #b ; coin c b }}};
 }.
-Arguments eager_coin_spec _ {_}.
+Global Arguments eager_coin_spec _ {_}.

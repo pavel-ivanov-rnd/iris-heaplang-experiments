@@ -10,7 +10,7 @@ Section persistent_pred.
     pers_pred_car :> A → PROP;
     pers_pred_persistent x : Persistent (pers_pred_car x)
   }.
-  Arguments PersPred _%I {_}.
+  Local Arguments PersPred _%I {_}.
   Global Existing Instances pers_pred_persistent.
 
   Instance persistent_pred_equiv : Equiv persistent_pred :=

@@ -37,6 +37,6 @@ Record atomic_hwq {Σ} `{!heapGS Σ} := AtomicHWQ {
       dequeue q @ ↑N
     <<< ∃ (l : loc) ls', ⌜ls = l :: ls'⌝ ∗ hwq_content γ ls', RET #l >>>;
 }.
-Arguments atomic_hwq _ {_}.
+Global Arguments atomic_hwq _ {_}.
 
 Global Existing Instances is_hwq_persistent hwq_content_timeless.

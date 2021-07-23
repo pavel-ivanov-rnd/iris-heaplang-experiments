@@ -165,7 +165,7 @@ Section CG_Counter.
     by iFrame.
   Qed.
 
-  Opaque counter_read.
+  Local Opaque counter_read.
 
   Lemma CG_counter_body_type x l Γ :
     typed Γ x (Tref TNat) →
@@ -331,7 +331,7 @@ Section CG_Counter.
       iModIntro. clear j K. iIntros (v) "#Heq". iIntros (j K) "Hj".
       rewrite ?counter_read_of_val.
       iDestruct "Heq" as "[% %]"; destruct v; simplify_eq/=.
-      Transparent counter_read.
+      Local Transparent counter_read. (* HACK *)
       unfold counter_read.
       iApply wp_pure_step_later; trivial. simpl.
       iNext.

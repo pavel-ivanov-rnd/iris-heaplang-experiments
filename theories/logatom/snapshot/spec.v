@@ -41,7 +41,7 @@ Record atomic_snapshot {Σ} `{!heapGS Σ} := AtomicSnapshot {
         read_with p #l @ ↑N
       <<< snapshot_content γ v ∗ l ↦ w, RET (v, w) >>>;
 }.
-Arguments atomic_snapshot _ {_}.
+Global Arguments atomic_snapshot _ {_}.
 
 Global Existing Instances
   is_snapshot_persistent snapshot_content_timeless

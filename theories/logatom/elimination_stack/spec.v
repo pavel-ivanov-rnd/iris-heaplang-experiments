@@ -35,7 +35,7 @@ Record atomic_stack {Σ} `{!heapGS Σ} := AtomicStack {
     <<< stack_content γs (tail l),
         RET match l with [] => NONEV | v :: _ => SOMEV v end >>>;
 }.
-Arguments atomic_stack _ {_}.
+Global Arguments atomic_stack _ {_}.
 
 Global Existing Instances
   is_stack_persistent stack_content_timeless

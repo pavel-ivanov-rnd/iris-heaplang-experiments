@@ -300,8 +300,6 @@ Section FG_stack.
                           FG_pop_type, FG_read_iter_type).
   Qed.
 
-  Opaque FG_read_iter.
-
   Lemma FG_stack_body_subst (st : expr) f :
     (FG_stack_body st).[f] = FG_stack_body st.[f].
   Proof. by unfold FG_stack_body; asimpl. Qed.

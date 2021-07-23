@@ -27,7 +27,7 @@ Section contents.
       | S n' => fib n + fib n'
       end
     end.
-  Arguments fib !_ / : simpl nomatch.
+  Local Arguments fib !_ / : simpl nomatch.
 
   Definition seqFib : val := rec: "fib" "a" :=
     if: "a" = #0
