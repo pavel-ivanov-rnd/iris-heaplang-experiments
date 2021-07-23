@@ -2,7 +2,7 @@ From iris.proofmode Require Import tactics.
 From iris.bi.lib Require Import fractional.
 From iris.algebra Require Import cmra agree frac csum.
 From iris_examples.hocap Require Export abstract_bag shared_bag.
-Set Default Proof Using "Type".
+From iris.prelude Require Import options.
 
 (** We are going to need the oneshot RA to verify the
     Task.Join() method *)

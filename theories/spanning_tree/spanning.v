@@ -4,7 +4,7 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import par.
 From iris.base_logic Require Import cancelable_invariants.
-Import uPred.
+From iris.prelude Require Import options.
 
 From iris_examples.spanning_tree Require Import graph mon.
 
@@ -147,8 +147,9 @@ Section Helpers.
     iMod ("Hclose" with "[Hi1 Hi2 Hi3]") as "_".
     { iNext. unfold graph_inv at 2. iExists _; iFrame; auto. }
     iFrame. inversion Hil1'; subst u'; simpl.
-    iModIntro. iSplit; [|iPureIntro]. iExists _; iSplit; iPureIntro; eauto.
-    { rewrite Heq in Hi4. eapply laod_strict_sub_children; eauto. }
+    iModIntro. iSplit.
+    - iExists _; iSplit; iPureIntro; eauto.
+    - iPureIntro. rewrite Heq in Hi4. eapply laod_strict_sub_children; eauto.
   Qed.
 
   Lemma wp_store_graph {g markings k q} {x : loc} {v}
@@ -182,7 +183,8 @@ Section Helpers.
     rewrite mark_update_lookup in Hil1'; trivial. inversion Hil1'; subst u'.
     clear Hil1'. simpl. rewrite Heq.
     iMod (update_graph _ _ _ w' with "[Hi1 Hx]") as
-        "[Hi1 Hx]"; try by iFrame. by rewrite lookup_delete.
+        "[Hi1 Hx]"; try by iFrame.
+    { by rewrite lookup_delete. }
     rewrite -delete_marked. erewrite (delete_marked _ _ _ w').
     assert (HvG : ✓ ({[x := Excl w']} ⋅ delete x G)).
     { eapply update_valid; eauto. }
@@ -305,7 +307,7 @@ Section Helpers.
                ∗ own_graph q ∅))
             ∗ cinv_own κ k
       }}.
-  Proof.
+  Proof using Type*.
     intros [_ Hgmx] Hxpt. iIntros "(#Hgr & Hx & key)".
     iRevert (x Hxpt k q) "key Hx". iLöb as "IH".
     iIntros (x Hxpt k q) "key Hx".
@@ -333,15 +335,15 @@ Section Helpers.
     iDestruct "key" as "[K1 K2]".
     iDestruct (empty_graph_divide with "Hx1") as "[Hx11 Hx12]".
     destruct u as [u1 u2]. iApply (par_spec with "[Hx11 K1] [Hx12 K2]").
-    (* symbolically executing the left part of the par. *)
-    wp_lam; repeat wp_proj.
-    iApply ("IH" $! (child_to_val u1) with "[%] K1 Hx11").
-    { destruct u1 as [l1|]; [right |by left].
+    { (* symbolically executing the left part of the par. *)
+      wp_lam; repeat wp_proj.
+      iApply ("IH" $! (child_to_val u1) with "[%] K1 Hx11").
+      destruct u1 as [l1|]; [right |by left].
       exists l1; split; trivial. eapply (Hgmx l); rewrite // /get_left Hgl; auto. }
-    (* symbolically executing the left part of the par. *)
-    wp_lam; repeat wp_proj.
-    iApply ("IH" with "[%] K2 Hx12"); auto.
-    { destruct u2 as [l2|]; [right |by left].
+    { (* symbolically executing the left part of the par. *)
+      wp_lam; repeat wp_proj.
+      iApply ("IH" with "[%] K2 Hx12"); auto.
+      destruct u2 as [l2|]; [right |by left].
       exists l2; split; trivial. eapply (Hgmx l); rewrite // /get_right Hgl; auto. }
     (* continuing after both children are processed *)
     iNext.

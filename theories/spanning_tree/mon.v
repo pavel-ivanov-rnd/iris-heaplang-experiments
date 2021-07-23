@@ -1,12 +1,10 @@
+From stdpp Require Import gmap mapset.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth frac gset gmap excl.
 From iris.base_logic Require Export invariants.
-From iris.proofmode Require Import tactics.
-Import uPred.
-
 From iris.base_logic Require Import cancelable_invariants.
-
-From stdpp Require Import gmap mapset.
+From iris.proofmode Require Import tactics.
+From iris.prelude Require Import options.
 
 From iris_examples.spanning_tree Require Import graph.
 
@@ -187,7 +185,7 @@ Section graph_ctx_alloc.
        ∗ l ↦ (#m, children_to_val v) ∗ m ↦ #false)
      ={E}=∗ ∃ (Ig : graphG Σ) (κ : gname), cinv_own κ 1 ∗ graph_ctx κ g markings
              ∗ own_graph 1%Qp ∅.
-  Proof.
+  Proof using Type*.
     iIntros "H1".
     iMod (own_alloc (● (∅ : markingUR))) as (mn) "H2"; first by apply auth_auth_valid.
     iMod (own_alloc (● (Some (1%Qp, ∅ : Gmon) : graphUR)
@@ -404,8 +402,8 @@ Section graph.
   Lemma marked_is_marked_in_auth_sepS (mr : gset loc) m :
     own graph_marking_name (● mr) ∗ ([∗ set] l ∈ m, is_marked l) ⊢ ⌜m ⊆ mr⌝.
   Proof.
-    iIntros "[Hmr Hm]". rewrite big_sepS_forall pure_forall.
-    iIntros (x). rewrite pure_impl. iIntros (Hx).
+    iIntros "[Hmr Hm]". rewrite big_sepS_forall bi.pure_forall.
+    iIntros (x). rewrite bi.pure_impl. iIntros (Hx).
     iApply marked_is_marked_in_auth.
     iFrame. by iApply "Hm".
   Qed.

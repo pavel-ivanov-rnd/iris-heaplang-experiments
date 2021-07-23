@@ -16,6 +16,7 @@ From iris.proofmode Require Export tactics.
 From iris.heap_lang Require Import proofmode.
 From iris.base_logic.lib Require Export invariants.
 From iris.algebra Require Import numbers excl auth gset frac.
+From iris.prelude Require Import options.
 
 Section abql_code.
 
@@ -363,7 +364,7 @@ Section proof.
   Proof.
     iIntros (Φ) "[Pre %] Post".
     wp_lam.
-    wp_apply array_repeat. done.
+    wp_apply array_repeat; first done.
     iIntros (arr) "isArr".
     wp_pures.
     wp_apply (array_store with "[$isArr]"); first by rewrite replicate_length.
@@ -381,7 +382,7 @@ Section proof.
     { iNext. rewrite /lock_inv. iExists 0, 0, (<[0:=true]> (replicate cap false)).
       iFrame. iSplitR.
       - by rewrite insert_length replicate_length.
-      - iLeft. iFrame. rewrite Nat.mod_0_l. done. lia. }
+      - iLeft. iFrame. rewrite Nat.mod_0_l //. lia. }
     wp_pures.
     iApply "Post".
     rewrite /is_lock. iFrame.
@@ -406,9 +407,9 @@ Section proof.
     remember (t `mod` cap)%Z as a. remember (o `mod` cap)%Z as b.
     remember (o `div` cap)%Z as c. remember (t `div` cap)%Z as d.
     rewrite -> ModEq in * |- *.
-    assert (c ≤ d)%Z. { eapply Zmult_lt_0_le_reg_r. apply LeqCap. subst. lia. }
-    assert (d < 1 + c)%Z. { eapply Zmult_lt_reg_r. apply LeqCap. lia. }
-    assert (d = c) as ->. lia.
+    assert (c ≤ d)%Z. { eapply Zmult_lt_0_le_reg_r; first by apply LeqCap. subst. lia. }
+    assert (d < 1 + c)%Z. { eapply Zmult_lt_reg_r; first by apply LeqCap. lia. }
+    assert (d = c) as ->; first lia.
     reflexivity.
   Qed.
 
@@ -523,10 +524,10 @@ Section proof.
       intros _ _ [_ H%gset_disj_included]%prod_included.
       set_solver.
     - apply prod_local_update; simpl.
-      * apply option_local_update, exclusive_local_update. done.
-      * rewrite Nat.sub_0_r Nat.add_1_r -gset_op -gset_disj_union.
-        apply gset_disj_dealloc_empty_local_update.
-        apply set_seq_S_start_disjoint.
+      + apply option_local_update, exclusive_local_update. done.
+      + rewrite Nat.sub_0_r Nat.add_1_r -gset_op -gset_disj_union.
+        * apply gset_disj_dealloc_empty_local_update.
+        * apply set_seq_S_start_disjoint.
   Qed.
 
   Lemma release_spec γ ι κ lk cap o R :

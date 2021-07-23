@@ -11,6 +11,7 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import cmra agree frac csum excl.
 From iris.heap_lang.lib Require Import lock spin_lock.
 From iris_examples.hocap Require Import abstract_bag shared_bag concurrent_runners.
+From iris.prelude Require Import options.
 
 Section contents.
   Context `{heapGS Σ, !oneshotG Σ, !saG Σ}.
@@ -105,7 +106,7 @@ Section contents.
 
   Lemma fibRunner_spec (n a : nat) :
     {{{ True }}} fibRunner #n #a {{{ (m : nat), RET #m; ⌜fib a = m⌝ }}}.
-  Proof.
+  Proof using Type* N.
     iIntros (Φ) "_ HΦ".
     unfold fibRunner. wp_lam. wp_let. wp_bind (newRunner _ _ _).
     iApply (newRunner_spec b N P Q).

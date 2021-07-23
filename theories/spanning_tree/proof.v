@@ -4,7 +4,7 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import par.
 From iris.base_logic Require Import cancelable_invariants.
-Import uPred.
+From iris.prelude Require Import options.
 
 From iris_examples.spanning_tree Require Import graph mon spanning.
 
@@ -25,7 +25,7 @@ Section wp_span.
              ∗ ⌜dom (gset loc) g = dom (gset loc) g'⌝
              ∗ ⌜strict_subgraph g g'⌝ ∗ ⌜tree g' l⌝
       }}.
-  Proof.
+  Proof using Type*.
     iIntros (Hgl Hgmx Hgcn) "Hgr".
     iMod (graph_ctx_alloc _ g markings with "[Hgr]") as (Ig κ) "(key & #Hgr & Hg)";
       eauto.
