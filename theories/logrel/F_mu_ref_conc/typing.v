@@ -1,4 +1,5 @@
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
+From iris.prelude Require Import options.
 
 Inductive type :=
   | TUnit : type

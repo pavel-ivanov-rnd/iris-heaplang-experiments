@@ -5,6 +5,7 @@ From iris_examples.logrel.F_mu_ref_conc.binary.examples Require Import lock.
 From iris_examples.logrel.F_mu_ref_conc.binary.examples.stack Require Import
   CG_stack FG_stack stack_rules.
 From iris.proofmode Require Import tactics.
+From iris.prelude Require Import options.
 
 Definition stackN : namespace := nroot .@ "stack".
 
@@ -117,7 +118,7 @@ Section Stack_refinement.
           iModIntro.
           iApply wp_pure_step_later; auto. iNext; iApply wp_value; trivial.
           iExists UnitV; eauto.
-        * iApply (wp_cas_fail with "Hstk"); auto. congruence.
+        * iApply (wp_cas_fail with "Hstk"); auto; first congruence.
           iNext. iIntros "Hstk". iMod ("Hclose" with "[-Hj]").
           { iNext. iExists _, _. by iFrame "Hstk' Hstk Hl". }
           iApply wp_pure_step_later; auto. iModIntro. iNext. by iApply "Hlat".

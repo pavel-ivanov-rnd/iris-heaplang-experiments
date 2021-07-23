@@ -5,7 +5,7 @@ From iris.algebra Require Import auth frac agree gmap.
 From iris.proofmode Require Import tactics.
 From iris.base_logic Require Export gen_heap.
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
-Import uPred.
+From iris.prelude Require Import options.
 
 (** The CMRA for the heap of the implementation. This is linked to the
     physical heap. *)

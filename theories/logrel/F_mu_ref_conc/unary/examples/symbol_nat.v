@@ -3,6 +3,7 @@ From iris.program_logic Require Import lifting.
 From iris.algebra Require Import auth list numbers.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc.unary Require Import soundness.
+From iris.prelude Require Import options.
 
 Definition symbol_typ :=
   TArrow
@@ -51,7 +52,7 @@ Section symbol_nat_sem_typ.
   Qed.
 
   Lemma symbol_nat_sem_typ : ⊢ [] ⊨ symbol_nat : symbol_typ.
-  Proof.
+  Proof using Type*.
     iIntros (Δ vs) "!# HΔ".
     rewrite /symbol_nat /symbol_typ /interp_expr /=.
     iDestruct (interp_env_length with "HΔ") as %?; destruct vs; last done.

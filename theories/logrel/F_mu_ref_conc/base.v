@@ -1,7 +1,7 @@
 From iris.program_logic Require Import weakestpre.
 From iris.base_logic Require Import invariants.
 From Autosubst Require Export Autosubst.
-Import uPred.
+From iris.prelude Require Import options.
 
 Canonical Structure varO := leibnizO var.
 
@@ -12,7 +12,7 @@ Section Autosubst_Lemmas.
 
   Lemma iter_up (m x : nat) (f : var → term) :
     upn m f x = if lt_dec x m then ids x else rename (+m) (f (x - m)).
-  Proof.
+  Proof using Type*.
     revert x; induction m as [|m IH]=> -[|x];
       repeat (destruct (lt_dec _ _) || asimpl || rewrite IH); auto with lia.
   Qed.
@@ -20,15 +20,15 @@ End Autosubst_Lemmas.
 
 Ltac properness :=
   repeat match goal with
-  | |- (∃ _: _, _)%I ≡ (∃ _: _, _)%I => apply exist_proper =>?
-  | |- (∀ _: _, _)%I ≡ (∀ _: _, _)%I => apply forall_proper =>?
-  | |- (_ ∧ _)%I ≡ (_ ∧ _)%I => apply and_proper
-  | |- (_ ∨ _)%I ≡ (_ ∨ _)%I => apply or_proper
-  | |- (_ → _)%I ≡ (_ → _)%I => apply impl_proper
+  | |- (∃ _: _, _)%I ≡ (∃ _: _, _)%I => apply bi.exist_proper =>?
+  | |- (∀ _: _, _)%I ≡ (∀ _: _, _)%I => apply bi.forall_proper =>?
+  | |- (_ ∧ _)%I ≡ (_ ∧ _)%I => apply bi.and_proper
+  | |- (_ ∨ _)%I ≡ (_ ∨ _)%I => apply bi.or_proper
+  | |- (_ → _)%I ≡ (_ → _)%I => apply bi.impl_proper
   | |- (WP _ {{ _ }})%I ≡ (WP _ {{ _ }})%I => apply wp_proper =>?
-  | |- (▷ _)%I ≡ (▷ _)%I => apply later_proper
-  | |- (□ _)%I ≡ (□ _)%I => apply intuitionistically_proper
-  | |- (_ ∗ _)%I ≡ (_ ∗ _)%I => apply sep_proper
+  | |- (▷ _)%I ≡ (▷ _)%I => apply bi.later_proper
+  | |- (□ _)%I ≡ (□ _)%I => apply bi.intuitionistically_proper
+  | |- (_ ∗ _)%I ≡ (_ ∗ _)%I => apply bi.sep_proper
   | |- (inv _ _)%I ≡ (inv _ _)%I => apply (contractive_proper _)
   end.
 

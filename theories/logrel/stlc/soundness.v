@@ -1,6 +1,7 @@
 From iris_examples.logrel.stlc Require Export fundamental.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
+From iris.prelude Require Import options.
 
 Lemma wp_soundness `{irisGS stlc_lang Σ} e τ : [] ⊢ₜ e : τ → ⊢ WP e {{ ⟦ τ ⟧ }}.
 Proof.
@@ -18,5 +19,5 @@ Proof.
   eapply (wp_adequacy Σ _). iIntros (Hinv ?).
   iModIntro. iExists (λ _ _, True%I), (λ _, True%I). iSplit=>//.
   set (HΣ := IrisG _ _ Hinv (λ _ _ _ _, True)%I (λ _, True)%I).
-  iApply (wp_wand with "[]"). by iApply wp_soundness. eauto.
+  iApply (wp_wand with "[]"); first by iApply wp_soundness. eauto.
 Qed.

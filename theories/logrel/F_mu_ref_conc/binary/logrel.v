@@ -6,6 +6,7 @@ From iris.algebra Require Import list.
 From iris_examples.logrel Require Export persistent_pred.
 From iris_examples.logrel.F_mu_ref_conc.binary Require Export rules.
 From iris_examples.logrel.F_mu_ref_conc Require Export typing.
+From iris.prelude Require Import options.
 Import uPred.
 
 (* FIXME: this file refers to auto-generated names. *)
@@ -176,10 +177,16 @@ Section logrel.
     ≡ ⟦ τ ⟧ (Δ1 ++ Δ2).
   Proof.
     revert Δ1 Π Δ2. induction τ=> Δ1 Π Δ2 vv; simpl; auto.
-    - properness; auto. by apply IHτ1. by apply IHτ2.
-    - properness; auto. by apply IHτ1. by apply IHτ2.
+    - properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
+    - properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
     - unfold interp_expr.
-      properness; auto. by apply IHτ1. by apply IHτ2.
+      properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
     - rewrite fixpoint_proper; first done. intros τi ww; simpl.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
@@ -196,10 +203,16 @@ Section logrel.
     ≡ ⟦ τ.[upn (length Δ1) (τ' .: ids)] ⟧ (Δ1 ++ Δ2).
   Proof.
     revert Δ1 Δ2; induction τ=> Δ1 Δ2 vv; simpl; auto.
-    - properness; auto. by apply IHτ1. by apply IHτ2.
-    - properness; auto. by apply IHτ1. by apply IHτ2.
+    - properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
+    - properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
     - unfold interp_expr.
-      properness; auto. by apply IHτ1. by apply IHτ2.
+      properness; auto.
+      + by apply IHτ1.
+      + by apply IHτ2.
     - rewrite fixpoint_proper; first done; intros τi ww; simpl.
       properness; auto. apply (IHτ (_ :: _)).
     - rewrite iter_up; destruct lt_dec as [Hl | Hl]; simpl.
@@ -226,7 +239,7 @@ Section logrel.
     iIntros (?) "[Hlen HΓ]"; iDestruct "Hlen" as %Hlen.
     destruct (lookup_lt_is_Some_2 vvs x) as [v Hv].
     { by rewrite -Hlen; apply lookup_lt_Some with τ. }
-    iExists v; iSplit. done. iApply (big_sepL_elem_of with "HΓ").
+    iExists v; iSplit; first done. iApply (big_sepL_elem_of with "HΓ").
     apply elem_of_list_lookup_2 with x.
     rewrite lookup_zip_with; by simplify_option_eq.
   Qed.

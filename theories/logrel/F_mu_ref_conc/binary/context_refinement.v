@@ -1,6 +1,7 @@
 From iris_examples.logrel.F_mu_ref_conc Require Export lang.
 From iris_examples.logrel.F_mu_ref_conc.binary Require Export fundamental.
 From iris.proofmode Require Import tactics.
+From iris.prelude Require Import options.
 
 Export F_mu_ref_conc.
 

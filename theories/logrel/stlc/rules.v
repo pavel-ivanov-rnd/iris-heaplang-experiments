@@ -3,6 +3,7 @@ From iris.proofmode Require Export tactics.
 From iris.program_logic Require Import ectx_lifting.
 From iris_examples.logrel.stlc Require Export lang.
 From stdpp Require Import fin_maps.
+From iris.prelude Require Import options.
 
 Section stlc_rules.
   Context `{irisGS stlc_lang Σ}.

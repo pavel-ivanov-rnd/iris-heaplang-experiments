@@ -3,6 +3,7 @@ From iris.algebra Require Import auth frac agree.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc.unary Require Import soundness.
+From iris.prelude Require Import options.
 
 Definition soundness_binaryΣ : gFunctors := #[ GFunctor (authR cfgUR) ].
 
@@ -31,24 +32,24 @@ Proof.
   iExists (λ σ _, gen_heap_interp σ), (λ _, True%I); iFrame.
   iApply wp_fupd. iApply wp_wand_r.
   iSplitL.
-  iPoseProof ((Hlog _ _)) as "Hrel".
-  iSpecialize ("Hrel" $! [] [] with "[]").
-  { iSplit.
-    - by iExists ([e'], ∅).
-    - by iApply (@interp_env_nil Σ HeapΣ []). }
-  simpl.
-  replace e with e.[env_subst[]] at 2 by by asimpl.
-  iApply ("Hrel" $! 0 []).
-  { rewrite /tpool_mapsto. asimpl. by iFrame. }
-  iModIntro. iIntros (v1); iDestruct 1 as (v2) "[Hj #Hinterp]".
-  iInv specN as (tp σ) ">[Hown Hsteps]" "Hclose"; iDestruct "Hsteps" as %Hsteps'.
-  rewrite /tpool_mapsto /=.
-  iDestruct (own_valid_2 with "Hown Hj") as %Hvalid.
-  move: Hvalid=> /auth_both_valid_discrete
-    [/prod_included [/tpool_singleton_included Hv2 _] _].
-  destruct tp as [|? tp']; simplify_eq/=.
-  iMod ("Hclose" with "[-]") as "_"; [iExists (_ :: tp'), σ; auto|].
-  iIntros "!> !%"; eauto.
+  - iPoseProof ((Hlog _ _)) as "Hrel".
+    iSpecialize ("Hrel" $! [] [] with "[]").
+    { iSplit.
+      - by iExists ([e'], ∅).
+      - by iApply (@interp_env_nil Σ HeapΣ []). }
+    simpl.
+    replace e with e.[env_subst[]] at 2 by by asimpl.
+    iApply ("Hrel" $! 0 []).
+    { rewrite /tpool_mapsto. asimpl. by iFrame. }
+  - iModIntro. iIntros (v1); iDestruct 1 as (v2) "[Hj #Hinterp]".
+    iInv specN as (tp σ) ">[Hown Hsteps]" "Hclose"; iDestruct "Hsteps" as %Hsteps'.
+    rewrite /tpool_mapsto /=.
+    iDestruct (own_valid_2 with "Hown Hj") as %Hvalid.
+    move: Hvalid=> /auth_both_valid_discrete
+      [/prod_included [/tpool_singleton_included Hv2 _] _].
+    destruct tp as [|? tp']; simplify_eq/=.
+    iMod ("Hclose" with "[-]") as "_"; [iExists (_ :: tp'), σ; auto|].
+    iIntros "!> !%"; eauto.
 Qed.
 
 Lemma binary_soundness Σ `{heapPreIG Σ, inG Σ (authR cfgUR)}

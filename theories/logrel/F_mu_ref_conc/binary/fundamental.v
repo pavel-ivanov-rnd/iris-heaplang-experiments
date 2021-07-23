@@ -2,6 +2,7 @@ From iris.algebra Require Import list.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export lifting.
 From iris_examples.logrel.F_mu_ref_conc.binary Require Export logrel rules.
+From iris.prelude Require Import options.
 
 Section bin_log_def.
   Context `{heapIG Σ, cfgSG Σ}.
@@ -488,7 +489,7 @@ Section fundamental.
       { by intros ?; apply Hneq; rewrite Heq. }
       iMod (step_cas_fail
             with "[$Hs Hu Hl']") as "[Hw Hl']"; simpl; eauto; first solve_ndisj.
-      iFrame.
+      { iFrame. }
       iMod ("Hcl" with "[Hl Hl']").
       { iNext; iExists (_, _); by iFrame. }
       iExists (#♭v false); eauto.

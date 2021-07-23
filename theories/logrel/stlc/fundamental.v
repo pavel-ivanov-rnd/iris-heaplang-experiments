@@ -2,6 +2,7 @@ From iris.proofmode Require Import tactics.
 From iris_examples.logrel.stlc Require Import rules.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.stlc Require Export logrel.
+From iris.prelude Require Import options.
 
 (* FIXME: this file refers to auto-generated names. *)
 Local Unset Mangle Names.

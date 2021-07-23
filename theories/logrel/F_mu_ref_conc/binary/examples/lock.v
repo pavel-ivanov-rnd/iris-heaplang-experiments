@@ -1,6 +1,7 @@
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu_ref_conc.binary Require Export rules.
 From iris_examples.logrel.F_mu_ref_conc Require Export typing.
+From iris.prelude Require Import options.
 
 (** [newlock = alloc false] *)
 Definition newlock : expr := Alloc (#♭ false).
@@ -103,7 +104,7 @@ Section proof.
       ⊢ |={E}=> j ⤇ fill K Unit ∗ l ↦ₛ (#♭v true).
   Proof.
     iIntros (HNE) "[#Hspec [Hl Hj]]". unfold acquire.
-    iMod (step_rec _ j K with "[Hj]") as "Hj"; eauto. done.
+    iMod (step_rec _ j K with "[Hj]") as "Hj"; eauto; first done.
     iMod (step_cas_suc _ j ((IfCtx _ _) :: K)
                        _ _ _ _ _ _ _ _ _ with "[Hj Hl]") as "[Hj Hl]"; trivial.
     { simpl. iFrame "Hspec Hj Hl"; eauto. }

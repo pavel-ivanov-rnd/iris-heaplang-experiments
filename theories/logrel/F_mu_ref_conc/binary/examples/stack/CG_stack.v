@@ -1,6 +1,6 @@
 From iris.proofmode Require Import tactics.
 From iris_examples.logrel.F_mu_ref_conc Require Import examples.lock.
-Import uPred.
+From iris.prelude Require Import options.
 
 Definition CG_StackType τ :=
   TRec (TSum TUnit (TProd τ.[ren (+1)] (TVar 0))).
@@ -71,7 +71,7 @@ Section CG_Stack.
     typed Γ (CG_push st) (TArrow τ TUnit).
   Proof.
     intros H1. repeat econstructor.
-    eapply (context_weakening [_]); eauto.
+    { eapply (context_weakening [_]); eauto. }
     repeat constructor; asimpl; trivial.
     eapply (context_weakening [_]); eauto.
   Qed.
@@ -331,12 +331,12 @@ Section CG_Stack.
   Proof.
     intros ?. econstructor.
     eapply (Case_typed _ _ _ _ TUnit); eauto using typed.
-    replace (TSum TUnit (TProd τ (CG_StackType τ))) with
-    ((TSum TUnit (TProd τ.[ren (+1)] (TVar 0))).[(CG_StackType τ)/])
-      by (by asimpl).
-    repeat econstructor.
-    repeat econstructor; simpl; eauto using typed.
-    eapply (context_weakening [_; _; _]); eauto.
+    - replace (TSum TUnit (TProd τ (CG_StackType τ))) with
+      ((TSum TUnit (TProd τ.[ren (+1)] (TVar 0))).[(CG_StackType τ)/])
+        by (by asimpl).
+      repeat econstructor.
+    - repeat econstructor; simpl; eauto using typed.
+      eapply (context_weakening [_; _; _]); eauto.
   Qed.
 
   Lemma CG_iter_to_val f : to_val (CG_iter f) = Some (CG_iterV f).
