@@ -1,4 +1,4 @@
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.program_logic Require Export weakestpre.
 From iris_examples.logrel Require Export persistent_pred.
 From iris_examples.logrel.F_mu_ref_conc Require Export rules typing.

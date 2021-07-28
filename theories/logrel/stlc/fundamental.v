@@ -1,4 +1,4 @@
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris_examples.logrel.stlc Require Import rules.
 From iris.program_logic Require Import lifting.
 From iris_examples.logrel.stlc Require Export logrel.

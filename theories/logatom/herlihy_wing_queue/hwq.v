@@ -1,6 +1,6 @@
 From iris.algebra Require Import numbers excl auth list gset gmap agree csum.
 From iris.bi.lib Require Import fractional.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.base_logic.lib Require Export invariants proph_map saved_prop.
 From iris.program_logic Require Export atomic.
 From iris.heap_lang.lib Require Import arith diverge.

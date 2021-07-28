@@ -1,5 +1,5 @@
 From stdpp Require Import tactics.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.program_logic Require Import weakestpre.
 From iris.base_logic Require Import invariants.
 From iris.algebra Require Import list.

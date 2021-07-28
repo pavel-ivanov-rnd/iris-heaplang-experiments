@@ -1,7 +1,7 @@
 From iris.algebra Require Import excl auth agree frac list cmra csum.
 From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.logatom.conditional_increment Require Import spec.
 From iris.prelude Require Import options.

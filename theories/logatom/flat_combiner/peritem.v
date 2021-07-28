@@ -1,7 +1,7 @@
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.algebra Require Import frac auth gmap csum.
 From iris.base_logic.lib Require Import invariants.
 From iris_examples.logatom Require Export treiber.

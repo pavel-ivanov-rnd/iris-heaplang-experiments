@@ -1,5 +1,5 @@
 From iris.algebra Require Import excl auth gmap agree.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.bi.lib Require Import fractional.
 From iris.base_logic.lib Require Export invariants.
 From iris.program_logic Require Export atomic.

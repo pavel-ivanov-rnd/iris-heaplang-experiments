@@ -1,4 +1,4 @@
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.program_logic Require Import lifting.
 From iris.algebra Require Import auth list numbers.
 From iris.program_logic Require Import adequacy.

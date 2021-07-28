@@ -2,7 +2,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.algebra Require Import excl agree csum.
 From iris.heap_lang Require Import notation par proofmode.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris_examples.barrier Require Import proof specification.
 From iris.prelude Require Import options.
 

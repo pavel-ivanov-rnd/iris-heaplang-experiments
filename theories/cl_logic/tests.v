@@ -1,4 +1,4 @@
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris_examples.cl_logic Require Import bi.
 From iris.prelude Require Import options.
 

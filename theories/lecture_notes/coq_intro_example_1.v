@@ -12,7 +12,7 @@ From iris.base_logic.lib Require Export invariants.
    general tactics of the proof mode. The second provides some more specialized 
    tactics particular to the instantiation of Iris to a particular programming 
    language. *)
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode.
 
 (* Instantiation of Iris with the particular language. The notation file

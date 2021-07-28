@@ -1,4 +1,4 @@
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.program_logic Require Import adequacy.
 From iris_examples.logrel.F_mu_ref_conc Require Import rules.
 From iris_examples.logrel.F_mu_ref_conc.binary Require Import soundness rules.

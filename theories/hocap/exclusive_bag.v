@@ -6,7 +6,7 @@ Deriving the sequential specification from the abstract one
 *)
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris_examples.hocap Require Import abstract_bag.
 From iris.prelude Require Import options.

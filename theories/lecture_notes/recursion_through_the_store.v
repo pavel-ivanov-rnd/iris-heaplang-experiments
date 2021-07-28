@@ -19,7 +19,7 @@ From iris.heap_lang Require Export notation lang.
    general tactics of the proof mode. The second provides some more specialized
    tactics particular to the instantiation of Iris to a particular programming
    language. *)
-From iris.proofmode Require Export tactics.
+From iris.proofmode Require Export proofmode.
 From iris.heap_lang Require Import proofmode.
 
 (* The following line imports some Coq configuration we commonly use in Iris

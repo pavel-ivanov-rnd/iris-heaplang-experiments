@@ -1,5 +1,5 @@
 From iris.program_logic Require Export weakestpre.
-From iris.proofmode Require Export tactics.
+From iris.proofmode Require Export proofmode.
 From iris_examples.logrel.stlc Require Export lang typing.
 From iris.prelude Require Import options.
 

@@ -6,7 +6,7 @@
 
 From iris.program_logic Require Export weakestpre.
 From iris.base_logic.lib Require Export invariants.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode.
 From iris.heap_lang Require Import notation lang.
 From iris.algebra Require Import numbers.

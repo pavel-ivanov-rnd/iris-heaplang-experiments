@@ -1,6 +1,6 @@
 From iris.algebra Require Import frac gmap gset excl.
 From iris.base_logic Require Export invariants.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import par.
 From iris.base_logic Require Import cancelable_invariants.

@@ -1,5 +1,5 @@
 From iris.program_logic Require Export weakestpre.
-From iris.proofmode Require Export tactics.
+From iris.proofmode Require Export proofmode.
 From iris.program_logic Require Import ectx_lifting.
 From iris_examples.logrel.stlc Require Export lang.
 From stdpp Require Import fin_maps.

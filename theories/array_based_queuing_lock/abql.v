@@ -12,7 +12,7 @@
 From iris.program_logic Require Export weakestpre.
 From stdpp Require Export list.
 From iris.heap_lang Require Export notation lang.
-From iris.proofmode Require Export tactics.
+From iris.proofmode Require Export proofmode.
 From iris.heap_lang Require Import proofmode.
 From iris.base_logic.lib Require Export invariants.
 From iris.algebra Require Import numbers excl auth gset frac.

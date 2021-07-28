@@ -2,7 +2,7 @@ From iris.algebra Require Import excl auth list.
 From iris.bi.lib Require Import fractional.
 From iris.base_logic.lib Require Import invariants.
 From iris.program_logic Require Import atomic.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.heap_lang Require Import proofmode notation atomic_heap.
 From iris_examples.logatom.elimination_stack Require Import spec.
 From iris.prelude Require Import options.
