@@ -43,7 +43,7 @@ builddep: builddep-opamfiles
 	@# To achieve this, we create a fake opam package that has our build-dependencies as
 	@# dependencies, but does not actually install anything itself.
 	@echo "# Installing builddep packages."
-	@opam install $(OPAMFLAGS) $(BUILDDEPFILES)
+	@opam install -y $(OPAMFLAGS) $(BUILDDEPFILES)
 .PHONY: builddep
 
 # Backwards compatibility target
