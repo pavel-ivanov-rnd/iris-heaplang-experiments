@@ -35,6 +35,4 @@ Theorem simple_leq_spec a b :
 Proof. iIntros (Φ) "H HΦ". wp_rec. do 2 wp_let. 
 
 
-
-
 End simple_arith.
